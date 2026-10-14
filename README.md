@@ -7,6 +7,8 @@ LexiHalo 是一个以本地独立运行和 BYOK 为核心的 AI 翻译、网页�
 - 视频双语字幕与字幕样式控制
 - 使用本地 BYOK AI 对原字幕进行智能分段，并自动修复 ASR 错词、标点、大小写和重复词
 - 无字幕视频可将浏览器可读取的音频直接上传到 OpenAI 音频识别接口，先生成带时间轴的字幕，再进行修复和翻译
+- 可选本地助手可识别视频的多种分辨率，并用 yt-dlp 下载、自动合并独立音轨
+- 新增 19 个视频、课程、音频和播客站点适配，共用原有 AI 字幕和资源下载流程
 - 点击字幕单词打开 AI 详解
 - Web Dictionary 与美式/英式发音切换
 - 网页划词翻译、快速翻译和沉浸式全文翻译
@@ -36,7 +38,9 @@ LexiHalo 是一个以本地独立运行和 BYOK 为核心的 AI 翻译、网页�
 
 在 BYOK 页面配置 OpenAI、OpenRouter、DeepSeek、Gemini、Claude 或 OpenAI 兼容接口。在视频字幕中选择该 AI 引擎作为字幕翻译引擎时，系统会用一次模型请求同时完成上下文消歧、ASR 保守修复和翻译，主副字幕同步呈现。首批优先处理当前 3 行，后续使用稳定 6 行窗口并最多并发 2 个请求；跳转播放位置会取消旧请求。组合响应缺行时仅对缺失行执行同模型普通翻译，必要时再使用机器翻译兜底，避免整批字幕失败。选择 Google / 微软等机器翻译引擎时，保持原始字幕不修改。
 
-OpenAI 和 OpenAI 兼容引擎还可在 BYOK 页面配置“音频识别模型”与“音频识别 Endpoint”。在任一受支持视频平台可从播放器菜单选择“AI 字幕（音频转写）”：扩展优先获取独立音频流，也可使用播放器公开的直连媒体文件，以 `multipart/form-data` 直接调用 `/v1/audio/transcriptions`，将返回的分段时间戳安装为原字幕，然后进入现有 AI 修复与翻译流程。默认推荐 `whisper-1` 和 `verbose_json`，还可配置识别语言和提示词；请求使用 `file`、`model`、`language`、`prompt`、`response_format`、`temperature` 等标准 multipart 字段。单个媒体流需小于 24 MB。识别结果会保存在本机缓存中。使用 DRM、MediaSource Blob 或加密分片且不公开媒体地址的平台，浏览器扩展无法提取完整音频，会显示明确提示。
+OpenAI 和 OpenAI 兼容引擎还可在 BYOK 页面配置“音频识别模型”与“音频识别 Endpoint”。在任一受支持视频平台可从播放器菜单选择“AI 字幕（音频转写）”：扩展优先获取独立音频流，也可使用播放器公开的直连媒体文件，以 `multipart/form-data` 直接调用 `/v1/audio/transcriptions`，将返回的分段时间戳安装为原字幕，然后进入现有 AI 修复与翻译流程。默认推荐 `whisper-1` 和 `verbose_json`，还可配置识别语言和提示词；请求使用 `file`、`model`、`language`、`prompt`、`response_format`、`timestamp_granularities[]`、`temperature` 等标准 multipart 字段。纯扩展直接读取仍要求单个媒体流小于 24 MB。对没有可读直连音频或直连下载失败的视频，可在确认后使用**可选本地助手**（需安装 Python、yt-dlp、ffmpeg），下载当前支持的视频页面音频并切块后逐块调用用户配置的 BYOK 转写接口；助手不接收 API Key。Pornhub 的 AI 字幕改由浏览器读取当前播放器的 HLS 媒体并按序导入助手切块，避免 yt-dlp 抓到失效地址；需更新到版本 10 的本地助手。安装及当前网站范围见 [`native/README.md`](native/README.md)。识别结果保存在本机缓存中。受登录保护的媒体和 DRM 无法保证读取；助手不会绕过 DRM。
+
+安装可选本地助手后，专门适配平台及普通公网 HTTPS 视频页面的 LexiHalo 菜单还会显示“下载视频（多清晰度）”。助手通过 yt-dlp 获取可用格式，列出分辨率、帧率、封装格式、预计大小及是否包含音轨；选择纯视频格式时会自动下载并合并最佳音轨，结果保存到系统 `Downloads/LexiHalo` 目录。通用网站是否可用取决于 yt-dlp；助手不支持 DRM，也不会自动使用浏览器 Cookie。安装说明见 [`native/README.md`](native/README.md)。
 
 “双语字幕”页提供“重新载入当前字幕”和“彻底清除 AI 字幕缓存”：前者保留持久 AI 结果并恢复原字幕，不重新下载字幕轨道；后者会强制下次重新调用模型。沉浸式翻译、划词翻译和快速翻译继续使用各自独立缓存。完整流程见 [`docs/AI_SUBTITLES.md`](docs/AI_SUBTITLES.md)。
 
@@ -46,7 +50,9 @@ OpenAI 和 OpenAI 兼容引擎还可在 BYOK 页面配置“音频识别模型�
 
 ## 支持范围
 
-视频字幕脚本覆盖 YouTube、Netflix、Coursera、Udemy、TED、Max、Disney+、edX、Prime Video、Bilibili、Vimeo 等 Manifest 中声明的网站。实际可用性会受到站点页面结构和字幕权限变化影响。
+视频字幕脚本覆盖 YouTube、Netflix、Coursera、Udemy、TED、Max、Disney+、edX、Prime Video、Bilibili、Vimeo 等专门适配的平台，也会在普通网页检测标准 HTML5 `<video>`，选择正在播放或可见面积最大的播放器，在右上角显示 LexiHalo 图标，并读取浏览器可见的 TextTrack / `<track>` 字幕。通用模式支持公开的 `video[src]`、`source[src]` 直连媒体和当前 Video.js 播放器的真实 M3U8，并可使用浏览器导入生成 AI 字幕或下载资源；封闭 Shadow DOM、跨域受限 iframe、DRM 或只暴露 MediaSource `blob:` 的播放器仍可能需要专门适配。多清晰度 yt-dlp 下载和本地 AI 字幕入口会在通过安全校验的公网 HTTPS 视频页面显示，实际提取能力取决于 yt-dlp。
+
+新增适配抖音、小红书、微信视频号、小鹅通、微博视频、TikTok、X/Twitter、Instagram、Facebook、Reddit、Twitch、Dailymotion、niconico、小宇宙、SoundCloud、Bandcamp、喜马拉雅、网易云音乐和 Apple Podcasts。可读取当前项的媒体时优先走浏览器导入；否则可明确选择本地页面解析。播客/音乐显示音频资源入口，下载不要求 AI Key。视频号验证需用户确认，小鹅通需原站登录。新站点的结构、流程及验证边界见 [`docs/MEDIA_SITES.md`](docs/MEDIA_SITES.md)；不保证所有账号或链接可用，也不绕过 DRM。
 
 ## 独立版说明
 

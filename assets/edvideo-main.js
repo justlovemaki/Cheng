@@ -1,4 +1,2088 @@
 /* LexiHalo readable single bundle: video. */
+/* LexiHalo-owned browser routing policy derived from config/media-platforms.json. */
+(() => {
+  "use strict";
+  const CATALOG = [
+    {
+      id: "douyin",
+      name: "抖音",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["douyin.com"],
+      routes: ["^/(video|note)/[0-9]+", "[?&](modal_id|vid)=[0-9]+"],
+      mediaHosts: ["douyinvod.com"],
+      browser: true,
+    },
+    {
+      id: "xiaohongshu",
+      name: "小红书",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["xiaohongshu.com"],
+      routes: ["^/(explore|discovery/item)/[a-fA-F0-9]{24}(/|[?]|$)"],
+      mediaHosts: ["xhscdn.com"],
+      browser: true,
+    },
+    {
+      id: "channels",
+      name: "微信视频号",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["weixin.qq.com"],
+      routes: ["^/sph/[A-Za-z0-9]{3,64}", "^/finder-preview/pages/(sph|feed)[?]"],
+      mediaHosts: ["finder.video.qq.com"],
+      browser: true,
+    },
+    {
+      id: "xiaoe",
+      name: "小鹅通",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: [
+        "xiaoeknow.com",
+        "xiaoe-tech.com",
+        "xet.citv.cn",
+        "xet.pomoho.com",
+        "xet.tech",
+        "xetslk.com",
+        "xetlk.com",
+      ],
+      routes: [
+        "^/(v[0-9]+|p)/course/alive/l_[A-Za-z0-9_]+",
+        "^/content_page/",
+        "[?&]params=",
+        "^/sl/",
+      ],
+      mediaHosts: ["xiaoeknow.com", "xiaoe-tech.com", "xet.tech", "xiaoecloud.com"],
+      browser: true,
+    },
+    {
+      id: "weibo",
+      name: "微博视频",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["weibo.com", "weibo.cn"],
+      routes: ["^/tv/show/", "^/[0-9]+/[A-Za-z0-9]+", "^/status/[A-Za-z0-9]+"],
+      mediaHosts: ["weibocdn.com", "sina.com.cn", "sinaimg.cn"],
+      browser: false,
+    },
+    {
+      id: "tiktok",
+      name: "TikTok",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["tiktok.com"],
+      routes: ["^/@[^/]+/(video|photo)/[0-9]+"],
+      mediaHosts: ["tiktok.com", "tiktokcdn.com", "tiktokcdn-us.com"],
+      browser: false,
+    },
+    {
+      id: "x",
+      name: "X / Twitter",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["x.com", "twitter.com"],
+      routes: ["^/([A-Za-z0-9_]{1,15}|i)/status/[0-9]{5,25}"],
+      mediaHosts: ["video.twimg.com"],
+      browser: false,
+    },
+    {
+      id: "instagram",
+      name: "Instagram",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["instagram.com"],
+      routes: ["^/(p|reel|reels)/[^/]+"],
+      mediaHosts: ["cdninstagram.com", "fbcdn.net"],
+      browser: false,
+    },
+    {
+      id: "facebook",
+      name: "Facebook",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["facebook.com", "fb.watch"],
+      routes: ["/videos/", "/reel/", "^/watch/?[?].*v=", "^/[^/?]+/?$"],
+      mediaHosts: ["fbcdn.net"],
+      browser: false,
+    },
+    {
+      id: "reddit",
+      name: "Reddit",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["reddit.com", "v.redd.it"],
+      routes: ["/comments/", "^/[A-Za-z0-9]+/?$"],
+      mediaHosts: ["redd.it", "redditmedia.com"],
+      browser: false,
+    },
+    {
+      id: "twitch",
+      name: "Twitch",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["twitch.tv"],
+      routes: ["^/videos/[0-9]+", "^/[^/]+/clip/[^/]+", "^/[A-Za-z0-9_-]+/?$"],
+      mediaHosts: ["ttvnw.net", "twitch.tv", "twitchcdn.net"],
+      browser: false,
+    },
+    {
+      id: "dailymotion",
+      name: "Dailymotion",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["dailymotion.com", "dai.ly"],
+      routes: ["^/(embed/)?video/[A-Za-z0-9]+", "^/[A-Za-z0-9]+/?$"],
+      mediaHosts: ["dmcdn.net"],
+      browser: false,
+    },
+    {
+      id: "niconico",
+      name: "niconico",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["nicovideo.jp", "nico.ms"],
+      routes: ["^/watch/[A-Za-z0-9]+", "^/(sm|so|nm)?[0-9]+/?$"],
+      mediaHosts: ["nicovideo.jp", "dmc.nico", "domand.nicovideo.jp"],
+      browser: false,
+    },
+    {
+      id: "xiaoyuzhou",
+      name: "小宇宙",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["xiaoyuzhoufm.com"],
+      routes: ["^/episode/[a-fA-F0-9]{24}(/|$)"],
+      mediaHosts: ["xyzcdn.net"],
+      browser: true,
+      audio: true,
+    },
+    {
+      id: "soundcloud",
+      name: "SoundCloud",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["soundcloud.com"],
+      routes: ["^/[^/]+/[^/]+/?$"],
+      mediaHosts: ["sndcdn.com", "soundcloud.com"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "bandcamp",
+      name: "Bandcamp",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["bandcamp.com"],
+      routes: ["^/track/[^/?]+"],
+      mediaHosts: ["bcbits.com"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "ximalaya",
+      name: "喜马拉雅",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["ximalaya.com"],
+      routes: ["/sound/[0-9]+"],
+      mediaHosts: ["xmcdn.com", "ximalaya.com"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "netease",
+      name: "网易云音乐",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["music.163.com"],
+      routes: ["(^/|#/)song[?].*id=[0-9]+"],
+      mediaHosts: ["music.126.net"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "applepodcasts",
+      name: "Apple Podcasts",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["podcasts.apple.com"],
+      routes: ["/podcast/.*[?].*i=[0-9]+"],
+      mediaHosts: ["podcasts.apple.com", "mzstatic.com"],
+      browser: false,
+      audio: true,
+    },
+  ]; // Replaced with mode=browser entries by the build.
+  const hostIn = (host, list) => list.some((entry) => host === entry || host.endsWith(`.${entry}`));
+  const safePage = (address, allowPublicPort = false) => {
+    try {
+      const url = new URL(address);
+      if (
+        url.protocol !== "https:" ||
+        url.username ||
+        url.password ||
+        (!allowPublicPort && url.port) ||
+        url.href.length > 12000
+      )
+        return null;
+      return url;
+    } catch {
+      return null;
+    }
+  };
+  const siteOf = (address) => {
+    const url = safePage(address);
+    return url ? CATALOG.find((site) => hostIn(url.hostname.toLowerCase(), site.hosts)) : undefined;
+  };
+  const xiaoePage = (url) => {
+    const shop = url.hostname.match(
+      /^(app[0-9a-z]{6,24})\.(?:(?:h5|mp)\.(?:xiaoeknow|xiaoe-tech)\.com|(?:(?:h5|mp)\.)?xet\.(?:citv\.cn|pomoho\.com))$/i,
+    );
+    if (!shop) return null;
+    const app = shop[1].toLowerCase();
+    let live = url.pathname.match(/^\/(?:v\d+|p)\/course\/alive\/(l_[0-9a-z_]{8,64})\/?$/i)?.[1];
+    if (!live) {
+      try {
+        const encoded =
+          url.searchParams.get("params") || url.pathname.match(/^\/content_page\/(.+)$/)?.[1];
+        if (encoded && encoded.length <= 10000) {
+          const raw = decodeURIComponent(encoded)
+            .replace(/ /g, "+")
+            .replace(/-/g, "+")
+            .replace(/_/g, "/");
+          const state = JSON.parse(
+            new TextDecoder().decode(Uint8Array.from(atob(raw), (c) => c.charCodeAt(0))),
+          );
+          if (state.app_id && String(state.app_id).toLowerCase() !== app) return null;
+          if (/^l_[0-9a-z_]{8,64}$/i.test(state.resource_id || "")) live = state.resource_id;
+        }
+      } catch {}
+    }
+    if (
+      !live ||
+      (url.searchParams.get("app_id") && url.searchParams.get("app_id").toLowerCase() !== app)
+    )
+      return null;
+    const origin = url.origin.replace(".mp.", ".h5.");
+    return {
+      url: `${origin}/v4/course/alive/${live}?app_id=${app}`,
+      identity: `xiaoe:${app}:${live}`,
+    };
+  };
+  const page = (address, depth = 0) => {
+    if (depth > 3) return null;
+    const url = safePage(address),
+      site = siteOf(address);
+    if (!url || !site) return null;
+    let identity;
+    const path = url.pathname;
+    const route = path + url.search + url.hash;
+    if (site.id === "xiaoe") {
+      const result = xiaoePage(url);
+      return result ? { ...site, ...result } : null;
+    }
+    if (site.id === "douyin") {
+      const id =
+        path.match(/^\/(?:video|note)\/(\d+)/)?.[1] ||
+        url.searchParams.get("modal_id") ||
+        url.searchParams.get("vid");
+      if (!/^\d+$/.test(id || "")) return null;
+      return {
+        ...site,
+        url: `https://www.douyin.com/video/${id}`,
+        identity: `douyin:${id}`,
+        itemId: id,
+      };
+    }
+    if (site.id === "xiaohongshu") {
+      const id = path.match(/^\/(?:explore|discovery\/item)\/([a-f0-9]{24})\/?$/i)?.[1];
+      if (!id) return null;
+      const next = new URL(`https://www.xiaohongshu.com/explore/${id.toLowerCase()}`);
+      for (const key of ["xsec_token", "xsec_source"]) {
+        const value = url.searchParams.get(key);
+        if (value && value.length <= 512) next.searchParams.set(key, value);
+      }
+      return {
+        ...site,
+        url: next.href,
+        identity: `xiaohongshu:${id.toLowerCase()}`,
+        itemId: id.toLowerCase(),
+      };
+    }
+    if (site.id === "channels") {
+      let id;
+      if (url.hostname === "weixin.qq.com" && !url.search)
+        id = path.match(/^\/sph\/([A-Za-z0-9]{3,64})\/?$/)?.[1];
+      else if (url.hostname === "channels.weixin.qq.com" && path === "/finder-preview/pages/sph")
+        id = url.searchParams.get("id");
+      if (/^[A-Za-z0-9]{3,64}$/.test(id || ""))
+        return {
+          ...site,
+          url: `https://weixin.qq.com/sph/${id}`,
+          identity: `channels:share:${id}`,
+          itemId: id,
+        };
+      if (
+        url.hostname === "channels.weixin.qq.com" &&
+        path === "/finder-preview/pages/feed" &&
+        url.searchParams.get("eid") &&
+        url.searchParams.get("token")
+      ) {
+        url.hash = "";
+        return { ...site, url: url.href, identity: `channels:feed:${url.searchParams.get("eid")}` };
+      }
+      return null;
+    }
+    if (site.id === "x") {
+      const match = path.match(/^\/(?:([A-Za-z0-9_]{1,15})|i)\/status\/(\d{5,25})(?:\/|$)/);
+      return match
+        ? {
+            ...site,
+            url: `https://x.com/${match[1] || "i"}/status/${match[2]}`,
+            identity: `x:${match[2]}`,
+            itemId: match[2],
+          }
+        : null;
+    }
+    if (site.id === "tiktok") {
+      const match = path.match(/^\/(@[^/]+)\/(?:video|photo)\/(\d+)/);
+      if (!match) return null;
+      return {
+        ...site,
+        url: `https://www.tiktok.com/${match[1]}/video/${match[2]}`,
+        identity: `tiktok:${match[2]}`,
+        itemId: match[2],
+      };
+    }
+    if (site.id === "twitch") {
+      const video =
+        path.match(/^\/videos\/(\d+)/)?.[1] ||
+        (url.hostname === "player.twitch.tv"
+          ? url.searchParams.get("video")?.replace(/^v/, "")
+          : null);
+      if (/^\d+$/.test(video || ""))
+        return {
+          ...site,
+          url: `https://www.twitch.tv/videos/${video}`,
+          identity: `twitch:video:${video}`,
+        };
+      const clip =
+        path.match(/^\/[^/]+\/clip\/([A-Za-z0-9_-]+)/)?.[1] ||
+        (url.hostname === "clips.twitch.tv"
+          ? path.match(/^\/([A-Za-z0-9_-]+)\/?$/)?.[1] || url.searchParams.get("clip")
+          : null);
+      if (clip)
+        return { ...site, url: `https://clips.twitch.tv/${clip}`, identity: `twitch:clip:${clip}` };
+      return null;
+    }
+    if (site.id === "dailymotion") {
+      const id =
+        path.match(/^\/(?:embed\/)?video\/([A-Za-z0-9]+)/)?.[1] ||
+        (url.hostname === "dai.ly" ? path.match(/^\/([A-Za-z0-9]+)\/?$/)?.[1] : null) ||
+        (url.hostname === "geo.dailymotion.com" ? url.searchParams.get("video") : null);
+      return /^[A-Za-z0-9]+$/.test(id || "")
+        ? { ...site, url: `https://www.dailymotion.com/video/${id}`, identity: `dailymotion:${id}` }
+        : null;
+    }
+    if (site.id === "facebook" && path === "/plugins/video.php") {
+      const linked = url.searchParams.get("href");
+      return siteOf(linked)?.id === "facebook" ? page(linked, depth + 1) : null;
+    }
+    if (site.id === "soundcloud" && url.hostname === "w.soundcloud.com" && path === "/player/") {
+      const linked = url.searchParams.get("url");
+      return siteOf(linked)?.id === "soundcloud" ? page(linked, depth + 1) : null;
+    }
+    if (
+      site.id === "soundcloud" &&
+      /^\/(discover|search|you|stream|charts|stations)(\/|$)/.test(path)
+    )
+      return null;
+    if (
+      site.id === "facebook" &&
+      url.hostname !== "fb.watch" &&
+      !/\/videos\/|\/reel\/|^\/watch\/?\?/.test(route)
+    )
+      return null;
+    if (site.id === "reddit" && url.hostname !== "v.redd.it" && !/\/comments\//.test(path))
+      return null;
+    if (
+      site.id === "twitch" &&
+      url.hostname !== "clips.twitch.tv" &&
+      !/^\/videos\/\d+|^\/[^/]+\/clip\//.test(path)
+    )
+      return null;
+    if (
+      site.id === "dailymotion" &&
+      url.hostname !== "dai.ly" &&
+      !/^\/(embed\/)?video\//.test(path)
+    )
+      return null;
+    if (site.id === "niconico" && url.hostname !== "nico.ms" && !/^\/watch\//.test(path))
+      return null;
+    if (!site.routes.some((pattern) => new RegExp(pattern).test(route))) return null;
+    if (site.id === "netease") {
+      const id = url.searchParams.get("id") || url.hash.match(/[?&]id=(\d+)/)?.[1];
+      if (!/^\d+$/.test(id || "")) return null;
+      return {
+        ...site,
+        url: `https://music.163.com/#/song?id=${id}`,
+        identity: `netease:${id}`,
+        itemId: id,
+      };
+    }
+    url.hash = "";
+    if (site.id === "soundcloud") {
+      const token = url.searchParams.get("secret_token");
+      url.search = "";
+      if (token && token.length <= 512) url.searchParams.set("secret_token", token);
+      return { ...site, url: url.href, identity: `soundcloud:${url.origin}${url.pathname}` };
+    }
+    if (!["applepodcasts", "facebook"].includes(site.id)) url.search = "";
+    if (site.id === "facebook" && /^\/watch/.test(path) && !url.searchParams.get("v")) return null;
+    if (site.id === "applepodcasts" && !/^\d+$/.test(url.searchParams.get("i") || "")) return null;
+    identity = `${site.id}:${url.href}`;
+    return { ...site, url: url.href, identity };
+  };
+  const publicHost = (host) => {
+    const value = String(host || "")
+      .toLowerCase()
+      .replace(/\.$/, "");
+    if (/^\d+(?:\.\d+){3}$/.test(value)) {
+      const octets = value.split(".").map(Number);
+      if (
+        octets.some((number, index) => number > 255 || String(number) !== value.split(".")[index])
+      )
+        return false;
+      const [a, b, c] = octets;
+      return !(
+        a === 0 ||
+        a === 10 ||
+        a === 127 ||
+        a >= 224 ||
+        (a === 100 && b >= 64 && b <= 127) ||
+        (a === 169 && b === 254) ||
+        (a === 172 && b >= 16 && b <= 31) ||
+        (a === 192 && (b === 168 || (b === 0 && c === 0) || (b === 0 && c === 2))) ||
+        (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) ||
+        (a === 203 && b === 0 && c === 113)
+      );
+    }
+    return (
+      /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{1,62}$/.test(value) &&
+      value !== "localhost" &&
+      !/\.(localhost|local|internal|test|invalid)$/.test(value)
+    );
+  };
+  const browserPage = (address) => {
+    const registered = siteOf(address);
+    if (registered) return page(address);
+    const url = safePage(address, true);
+    if (!url || !publicHost(url.hostname) || url.port === "0") return null;
+    url.hash = "";
+    return {
+      id: "generic",
+      name: "当前网站",
+      url: url.href,
+      identity: `generic:${url.href}`,
+      browser: false,
+      mediaHosts: [],
+    };
+  };
+  const nativePage = (address) => {
+    const url = safePage(address, true);
+    if (!url) return null;
+    if (siteOf(address)) return page(address);
+    const host = url.hostname.toLowerCase();
+    if (hostIn(host, ["youtube.com", "youtube-nocookie.com", "youtu.be"])) {
+      const id = hostIn(host, ["youtu.be"])
+        ? url.pathname.match(/^\/([A-Za-z0-9_-]{11})\/?$/)?.[1]
+        : url.searchParams.get("v") ||
+          url.pathname.match(/^\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{11})(?:\/|$)/)?.[1];
+      return /^[A-Za-z0-9_-]{11}$/.test(id || "")
+        ? { url: `https://www.youtube.com/watch?v=${id}`, identity: `youtube:${id}` }
+        : null;
+    }
+    if (hostIn(host, ["bilibili.com"])) {
+      const id =
+        url.pathname.match(/\/video\/(BV[0-9A-Za-z]{10})(?:\/|$)/)?.[1] ||
+        url.searchParams.get("bvid");
+      const rawPart = Number(url.searchParams.get("p") || 1);
+      const part = Number.isInteger(rawPart) && rawPart > 0 ? rawPart : 1;
+      return /^BV[0-9A-Za-z]{10}$/.test(id || "")
+        ? {
+            url: `https://www.bilibili.com/video/${id}${part > 1 ? `?p=${part}` : ""}`,
+            identity: `bilibili:${id}:${part}`,
+          }
+        : null;
+    }
+    if (hostIn(host, ["vimeo.com"])) {
+      const ids = Array.from(url.pathname.matchAll(/\/(\d{5,12})(?=\/|$)/g), (match) => match[1]);
+      const id =
+        url.pathname.match(/^\/(\d{5,12})(?:\/|$)/)?.[1] ||
+        url.pathname.match(/\/(?:video|videos)\/(\d{5,12})(?:\/|$)/)?.[1] ||
+        ids.at(-1);
+      return id ? { url: `https://vimeo.com/${id}`, identity: `vimeo:${id}` } : null;
+    }
+    if (hostIn(host, ["ted.com"])) {
+      const slug = url.pathname.match(/^\/talks\/([A-Za-z0-9_-]+)\/?$/)?.[1];
+      return slug ? { url: `${url.origin}/talks/${slug}`, identity: `ted:${slug}` } : null;
+    }
+    if (hostIn(host, ["pornhub.com"])) {
+      const id =
+        url.searchParams.get("viewkey") || url.pathname.match(/^\/embed\/([A-Za-z0-9]+)\/?$/)?.[1];
+      return /^[A-Za-z0-9]+$/.test(id || "")
+        ? { url: `${url.origin}/view_video.php?viewkey=${id}`, identity: `pornhub:${id}` }
+        : null;
+    }
+    return browserPage(address);
+  };
+  const isMediaUrl = (pageAddress, raw) => {
+    const owner = browserPage(pageAddress);
+    const media = safePage(raw, owner?.id === "generic");
+    if (!owner || !media) return false;
+    if (owner.id === "generic") return publicHost(media.hostname) && media.port !== "0";
+    if (!hostIn(media.hostname.toLowerCase(), owner.mediaHosts)) return false;
+    if (
+      owner.id === "douyin" &&
+      media.searchParams.has("__vid") &&
+      media.searchParams.get("__vid") !== owner.itemId
+    )
+      return false;
+    if (
+      owner.id === "xiaohongshu" &&
+      (!/^sns-video-[a-z0-9-]+\.xhscdn\.com$/.test(media.hostname) ||
+        !/\.(mp4|m4a)$/.test(media.pathname))
+    )
+      return false;
+    if (
+      owner.id === "channels" &&
+      (media.hostname !== "finder.video.qq.com" ||
+        !/^\/(?:\d+\/){2}stodownload$/.test(media.pathname))
+    )
+      return false;
+    return true;
+  };
+  globalThis.lexihaloSites = {
+    catalog: CATALOG,
+    siteOf,
+    page,
+    browserPage,
+    nativePage,
+    publicHost,
+    isMediaUrl,
+    hostIn,
+  };
+})();
+
+/* Canonical media-source contract shared by page adapters and the background.
+ * Legacy isAudio/ext fields remain so existing bridge/native messages stay wire-compatible. */
+(() => {
+  "use strict";
+
+  const KIND = Object.freeze({ AUDIO: "audio", VIDEO: "video" });
+  const TRANSPORT = Object.freeze({
+    DIRECT: "direct",
+    CAPTURE: "capture",
+    NATIVE_PAGE: "native-page",
+  });
+  const AUDIO_EXTENSIONS = new Set(["m4a", "mp3", "aac", "wav", "flac", "ogg", "opus"]);
+  const MEDIA_EXTENSION = /\.(mp4|m4a|webm|mp3|aac|wav|flac|ogg|opus|m3u8)$/i;
+  const REJECT_EXTENSION = /\.(html?|js|css|jpe?g|png|gif|svg)$/i;
+
+  const kindOf = (value = {}) =>
+    value.kind === KIND.AUDIO || value.isAudio === true ? KIND.AUDIO : KIND.VIDEO;
+  const sourceKey = (source) =>
+    source?.transport === TRANSPORT.CAPTURE
+      ? `capture:${source.captureId || ""}`
+      : source?.transport === TRANSPORT.NATIVE_PAGE
+        ? `native:${source.pageUrl || ""}`
+        : `direct:${source?.url || ""}`;
+  const normalize = (value = {}) => {
+    const transport =
+      value.transport ||
+      (value.captureId
+        ? TRANSPORT.CAPTURE
+        : value.pageUrl
+          ? TRANSPORT.NATIVE_PAGE
+          : TRANSPORT.DIRECT);
+    const kind = kindOf(value);
+    return {
+      ...value,
+      transport,
+      kind,
+      isAudio: kind === KIND.AUDIO,
+      size: Number(value.size) || 0,
+      resolution: kind === KIND.AUDIO ? 0 : Number(value.resolution) || 0,
+    };
+  };
+  const append = (list, value) => {
+    if (!value) return null;
+    const source = normalize(value),
+      key = sourceKey(source);
+    if (!key || list.some((item) => sourceKey(item) === key)) return null;
+    list.push(source);
+    return source;
+  };
+  const addDirect = (list, page, raw, metadata = {}) => {
+    if (!page || typeof raw !== "string" || !raw) return null;
+    const { upgradeHttp = false, ...details } = metadata;
+    if (upgradeHttp && raw.startsWith("http:")) {
+      try {
+        const upgraded = new URL(raw);
+        upgraded.protocol = "https:";
+        raw = upgraded.href;
+      } catch {}
+    }
+    try {
+      raw = new URL(raw, page.url).href;
+    } catch {
+      return null;
+    }
+    if (!globalThis.lexihaloSites?.isMediaUrl(page.url, raw)) return null;
+    const url = new URL(raw, page.url);
+    if (REJECT_EXTENSION.test(url.pathname)) return null;
+    const inferredExt = url.pathname.match(MEDIA_EXTENSION)?.[1]?.toLowerCase();
+    const kind = [KIND.AUDIO, KIND.VIDEO].includes(details.kind)
+      ? details.kind
+      : (details.isAudio ?? AUDIO_EXTENSIONS.has(inferredExt))
+        ? KIND.AUDIO
+        : KIND.VIDEO;
+    const ext = /mpegurl/i.test(details.mimeType || "")
+      ? "m3u8"
+      : inferredExt || (kind === KIND.AUDIO ? "m4a" : "mp4");
+    return append(list, {
+      ...details,
+      transport: TRANSPORT.DIRECT,
+      kind,
+      url: url.href,
+      ext,
+      mimeType:
+        details.mimeType || (ext === "m3u8" ? "application/vnd.apple.mpegurl" : `${kind}/${ext}`),
+    });
+  };
+  const addCaptured = (list, value) =>
+    value?.captureId ? append(list, { ...value, transport: TRANSPORT.CAPTURE }) : null;
+  const merge = (...groups) => {
+    const result = [];
+    for (const group of groups)
+      for (const source of group || []) {
+        if (source?.captureId) addCaptured(result, source);
+        else append(result, source);
+      }
+    return result;
+  };
+  const capabilities = (page) =>
+    Object.freeze({
+      audioOnly: page?.audio === true,
+      browserReadable: page?.browser === true || page?.id === "generic",
+      generic: page?.id === "generic",
+    });
+
+  globalThis.lexihaloMediaContract = {
+    KIND,
+    TRANSPORT,
+    kindOf,
+    sourceKey,
+    normalize,
+    append,
+    addDirect,
+    addCaptured,
+    merge,
+    capabilities,
+  };
+})();
+
+/* Platform capability registry generated from config/media-platforms.json. */
+(() => {
+  "use strict";
+  const PLATFORM_CATALOG = [
+    {
+      id: "youtube",
+      name: "YouTube",
+      mode: "specialized",
+      platform: "youtube",
+      mediaKind: "video",
+      hosts: ["youtube.com", "youtu.be", "youtube-nocookie.com"],
+      capabilities: { captions: true, aiTranscription: true, download: true, directAudio: true },
+    },
+    {
+      id: "netflix",
+      name: "Netflix",
+      mode: "specialized",
+      platform: "netflix",
+      mediaKind: "video",
+      hosts: ["netflix.com"],
+      capabilities: { captions: true, aiTranscription: true, download: false, drm: true },
+    },
+    {
+      id: "coursera",
+      name: "Coursera",
+      mode: "specialized",
+      platform: "coursera",
+      mediaKind: "video",
+      hosts: ["coursera.org"],
+      capabilities: { captions: true, aiTranscription: true, download: false },
+    },
+    {
+      id: "udemy",
+      name: "Udemy",
+      mode: "specialized",
+      platform: "udemy",
+      mediaKind: "video",
+      hosts: ["udemy.com"],
+      capabilities: { captions: true, aiTranscription: true, download: false },
+    },
+    {
+      id: "ted",
+      name: "TED",
+      mode: "specialized",
+      platform: "ted",
+      mediaKind: "video",
+      hosts: ["ted.com"],
+      capabilities: { captions: true, aiTranscription: true, download: true, directAudio: true },
+    },
+    {
+      id: "hbo",
+      name: "Max / HBO",
+      mode: "specialized",
+      platform: "hbo",
+      mediaKind: "video",
+      hosts: ["max.com", "hbomax.com"],
+      capabilities: { captions: true, aiTranscription: true, download: false, drm: true },
+    },
+    {
+      id: "disney",
+      name: "Disney+",
+      mode: "specialized",
+      platform: "disney",
+      mediaKind: "video",
+      hosts: ["disneyplus.com"],
+      capabilities: { captions: true, aiTranscription: true, download: false, drm: true },
+    },
+    {
+      id: "edx",
+      name: "edX",
+      mode: "specialized",
+      platform: "edx",
+      mediaKind: "video",
+      hosts: ["edx.org"],
+      capabilities: { captions: true, aiTranscription: true, download: false },
+    },
+    {
+      id: "primevideo",
+      name: "Prime Video",
+      mode: "specialized",
+      platform: "primevideo",
+      mediaKind: "video",
+      hosts: ["primevideo.com", "amazon.com"],
+      capabilities: { captions: true, aiTranscription: true, download: false, drm: true },
+    },
+    {
+      id: "deeplearning",
+      name: "DeepLearning.AI",
+      mode: "specialized",
+      platform: "deeplearning",
+      mediaKind: "video",
+      hosts: ["deeplearning.ai"],
+      capabilities: { captions: true, aiTranscription: true, download: false },
+    },
+    {
+      id: "bilibili",
+      name: "Bilibili",
+      mode: "specialized",
+      platform: "bilibili",
+      mediaKind: "video",
+      hosts: ["bilibili.com"],
+      capabilities: { captions: true, aiTranscription: true, download: true, directAudio: true },
+    },
+    {
+      id: "vimeo",
+      name: "Vimeo",
+      mode: "specialized",
+      platform: "vimeo",
+      mediaKind: "video",
+      hosts: ["vimeo.com"],
+      capabilities: { captions: true, aiTranscription: true, download: true, directAudio: true },
+    },
+    {
+      id: "pornhub",
+      name: "Pornhub",
+      mode: "specialized",
+      platform: "html5",
+      mediaKind: "video",
+      hosts: ["pornhub.com"],
+      capabilities: { captions: true, aiTranscription: true, download: true, browserCapture: true },
+    },
+    {
+      id: "douyin",
+      name: "抖音",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["douyin.com"],
+      routes: ["^/(video|note)/[0-9]+", "[?&](modal_id|vid)=[0-9]+"],
+      mediaHosts: ["douyinvod.com"],
+      browser: true,
+    },
+    {
+      id: "xiaohongshu",
+      name: "小红书",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["xiaohongshu.com"],
+      routes: ["^/(explore|discovery/item)/[a-fA-F0-9]{24}(/|[?]|$)"],
+      mediaHosts: ["xhscdn.com"],
+      browser: true,
+    },
+    {
+      id: "channels",
+      name: "微信视频号",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["weixin.qq.com"],
+      routes: ["^/sph/[A-Za-z0-9]{3,64}", "^/finder-preview/pages/(sph|feed)[?]"],
+      mediaHosts: ["finder.video.qq.com"],
+      browser: true,
+    },
+    {
+      id: "xiaoe",
+      name: "小鹅通",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: [
+        "xiaoeknow.com",
+        "xiaoe-tech.com",
+        "xet.citv.cn",
+        "xet.pomoho.com",
+        "xet.tech",
+        "xetslk.com",
+        "xetlk.com",
+      ],
+      routes: [
+        "^/(v[0-9]+|p)/course/alive/l_[A-Za-z0-9_]+",
+        "^/content_page/",
+        "[?&]params=",
+        "^/sl/",
+      ],
+      mediaHosts: ["xiaoeknow.com", "xiaoe-tech.com", "xet.tech", "xiaoecloud.com"],
+      browser: true,
+    },
+    {
+      id: "weibo",
+      name: "微博视频",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["weibo.com", "weibo.cn"],
+      routes: ["^/tv/show/", "^/[0-9]+/[A-Za-z0-9]+", "^/status/[A-Za-z0-9]+"],
+      mediaHosts: ["weibocdn.com", "sina.com.cn", "sinaimg.cn"],
+      browser: false,
+    },
+    {
+      id: "tiktok",
+      name: "TikTok",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["tiktok.com"],
+      routes: ["^/@[^/]+/(video|photo)/[0-9]+"],
+      mediaHosts: ["tiktok.com", "tiktokcdn.com", "tiktokcdn-us.com"],
+      browser: false,
+    },
+    {
+      id: "x",
+      name: "X / Twitter",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["x.com", "twitter.com"],
+      routes: ["^/([A-Za-z0-9_]{1,15}|i)/status/[0-9]{5,25}"],
+      mediaHosts: ["video.twimg.com"],
+      browser: false,
+    },
+    {
+      id: "instagram",
+      name: "Instagram",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["instagram.com"],
+      routes: ["^/(p|reel|reels)/[^/]+"],
+      mediaHosts: ["cdninstagram.com", "fbcdn.net"],
+      browser: false,
+    },
+    {
+      id: "facebook",
+      name: "Facebook",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["facebook.com", "fb.watch"],
+      routes: ["/videos/", "/reel/", "^/watch/?[?].*v=", "^/[^/?]+/?$"],
+      mediaHosts: ["fbcdn.net"],
+      browser: false,
+    },
+    {
+      id: "reddit",
+      name: "Reddit",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["reddit.com", "v.redd.it"],
+      routes: ["/comments/", "^/[A-Za-z0-9]+/?$"],
+      mediaHosts: ["redd.it", "redditmedia.com"],
+      browser: false,
+    },
+    {
+      id: "twitch",
+      name: "Twitch",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["twitch.tv"],
+      routes: ["^/videos/[0-9]+", "^/[^/]+/clip/[^/]+", "^/[A-Za-z0-9_-]+/?$"],
+      mediaHosts: ["ttvnw.net", "twitch.tv", "twitchcdn.net"],
+      browser: false,
+    },
+    {
+      id: "dailymotion",
+      name: "Dailymotion",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["dailymotion.com", "dai.ly"],
+      routes: ["^/(embed/)?video/[A-Za-z0-9]+", "^/[A-Za-z0-9]+/?$"],
+      mediaHosts: ["dmcdn.net"],
+      browser: false,
+    },
+    {
+      id: "niconico",
+      name: "niconico",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["nicovideo.jp", "nico.ms"],
+      routes: ["^/watch/[A-Za-z0-9]+", "^/(sm|so|nm)?[0-9]+/?$"],
+      mediaHosts: ["nicovideo.jp", "dmc.nico", "domand.nicovideo.jp"],
+      browser: false,
+    },
+    {
+      id: "xiaoyuzhou",
+      name: "小宇宙",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["xiaoyuzhoufm.com"],
+      routes: ["^/episode/[a-fA-F0-9]{24}(/|$)"],
+      mediaHosts: ["xyzcdn.net"],
+      browser: true,
+      audio: true,
+    },
+    {
+      id: "soundcloud",
+      name: "SoundCloud",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["soundcloud.com"],
+      routes: ["^/[^/]+/[^/]+/?$"],
+      mediaHosts: ["sndcdn.com", "soundcloud.com"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "bandcamp",
+      name: "Bandcamp",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["bandcamp.com"],
+      routes: ["^/track/[^/?]+"],
+      mediaHosts: ["bcbits.com"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "ximalaya",
+      name: "喜马拉雅",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["ximalaya.com"],
+      routes: ["/sound/[0-9]+"],
+      mediaHosts: ["xmcdn.com", "ximalaya.com"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "netease",
+      name: "网易云音乐",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["music.163.com"],
+      routes: ["(^/|#/)song[?].*id=[0-9]+"],
+      mediaHosts: ["music.126.net"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "applepodcasts",
+      name: "Apple Podcasts",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["podcasts.apple.com"],
+      routes: ["/podcast/.*[?].*i=[0-9]+"],
+      mediaHosts: ["podcasts.apple.com", "mzstatic.com"],
+      browser: false,
+      audio: true,
+    },
+  ]; // Replaced by the readable-bundle build.
+  const defaults = Object.freeze({
+    captions: true,
+    aiTranscription: true,
+    directAudio: false,
+    browserCapture: false,
+    nativePage: true,
+    download: true,
+    drm: false,
+    specialized: true,
+  });
+  const registry = new Map(
+    PLATFORM_CATALOG.map((entry) => [
+      entry.id,
+      Object.freeze({
+        ...defaults,
+        ...(entry.capabilities || {}),
+        id: entry.id,
+        platform: entry.platform || entry.id,
+        mode: entry.mode,
+        mediaKind: entry.mediaKind || "video",
+        hosts: Object.freeze([...(entry.hosts || [])]),
+        specialized: entry.mode === "specialized",
+      }),
+    ]),
+  );
+  registry.set(
+    "html5",
+    Object.freeze({
+      ...defaults,
+      id: "html5",
+      platform: "html5",
+      mode: "generic",
+      mediaKind: "video",
+      browserCapture: true,
+      specialized: false,
+      hosts: [],
+    }),
+  );
+  const byPlatform = new Map([...registry.values()].map((entry) => [entry.platform, entry]));
+  const hostMatches = (host, entry) =>
+    entry.hosts.some((value) => host === value || host.endsWith(`.${value}`));
+  const resolve = ({ platform, page, host = "" } = {}) => {
+    const normalizedHost = String(host || "").toLowerCase();
+    const hostEntry = [...registry.values()].find(
+      (entry) => entry.specialized && hostMatches(normalizedHost, entry),
+    );
+    const entry =
+      hostEntry ||
+      registry.get(page?.id) ||
+      byPlatform.get(platform) ||
+      registry.get(platform) ||
+      registry.get("html5");
+    const pageCapabilities = globalThis.lexihaloMediaContract?.capabilities(page) || {};
+    return Object.freeze({
+      ...entry,
+      browserCapture:
+        entry.browserCapture === true ||
+        entry.mode === "browser" ||
+        (entry.id === "html5" && pageCapabilities.browserReadable === true),
+      audioOnly: entry.mediaKind === "audio" || pageCapabilities.audioOnly === true,
+      generic: pageCapabilities.generic === true,
+      key: entry.id,
+    });
+  };
+  globalThis.lexihaloPlatformCapabilities = Object.freeze({
+    catalog: Object.freeze(PLATFORM_CATALOG),
+    entries: Object.freeze([...registry.values()]),
+    keys: Object.freeze([...registry.keys()]),
+    get: (id) => registry.get(id) || null,
+    resolve,
+  });
+})();
+
+/* Runtime validation at the untrusted page/background message boundary. */
+(() => {
+  "use strict";
+  const fail = (message) => {
+    throw new Error(`媒体消息无效：${message}`);
+  };
+  const text = (value, max, name, required = false) => {
+    if (value == null || value === "") {
+      if (required) fail(`${name} 缺失`);
+      return "";
+    }
+    if (typeof value !== "string" || value.length > max) fail(name);
+    return value;
+  };
+  const source = (value, required = false) => {
+    if (value == null) {
+      if (required) fail("mediaSource 缺失");
+      return undefined;
+    }
+    if (typeof value !== "object" || Array.isArray(value)) fail("mediaSource");
+    const normalized = globalThis.lexihaloMediaContract.normalize(value);
+    if (normalized.transport === "capture") text(normalized.captureId, 128, "captureId", true);
+    else if (normalized.transport === "direct") text(normalized.url, 12000, "media URL", true);
+    else if (normalized.transport === "native-page")
+      text(normalized.pageUrl, 12000, "page URL", true);
+    else fail("transport");
+    if (!["audio", "video"].includes(normalized.kind)) fail("kind");
+    return normalized;
+  };
+  const request = (message) => {
+    if (!message || typeof message !== "object" || Array.isArray(message)) fail("请求不是对象");
+    const type = text(message.type, 100, "type", true);
+    if (!type.startsWith("lexihalo:subtitle-ai:")) fail("type");
+    const result = { ...message, type };
+    result.requestId = text(message.requestId, 128, "requestId", true);
+    if (message.mediaPageUrl != null)
+      result.mediaPageUrl = text(message.mediaPageUrl, 12000, "mediaPageUrl");
+    if (message.audioUrl != null) result.audioUrl = text(message.audioUrl, 12000, "audioUrl");
+    if (message.browserSource != null || message.mediaSource != null) {
+      result.mediaSource = source(message.mediaSource || message.browserSource, true);
+      result.browserSource = result.mediaSource; // compatibility at the current wire boundary
+    }
+    if (message.uploadId != null) result.uploadId = text(message.uploadId, 64, "uploadId");
+    if (message.browserUploadId != null)
+      result.browserUploadId = text(message.browserUploadId, 64, "browserUploadId");
+    if (message.targetRequestId != null)
+      result.targetRequestId = text(message.targetRequestId, 128, "targetRequestId");
+    if (message.sequence != null && (!Number.isInteger(message.sequence) || message.sequence < 0))
+      fail("sequence");
+    if (message.total != null && (!Number.isSafeInteger(message.total) || message.total < 0))
+      fail("total");
+    return result;
+  };
+  const segments = (value) => {
+    if (!Array.isArray(value) || !value.length || value.length > 20000) fail("字幕分段");
+    return value.map((item, index) => {
+      const start = Number(item?.start),
+        end = Number(item?.end),
+        content = text(item?.text, 20000, `segment[${index}].text`, true);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start)
+        fail(`segment[${index}] 时间`);
+      return { ...item, start, end, text: content };
+    });
+  };
+  globalThis.lexihaloMediaSchema = Object.freeze({ request, source, segments });
+})();
+
+/* Bounded clear-HLS/HTTP reader. Transport is supplied by the caller (page or
+ * extension broker); only media bytes and numeric fragment metadata reach native. */
+(() => {
+  "use strict";
+  const MAX_BYTES = 2 * 1024 ** 3,
+    PART = 192 * 1024,
+    MAX_ENTRIES = 5000;
+  const attrs = (line) =>
+    Object.fromEntries(
+      Array.from(line.matchAll(/([A-Z0-9-]+)=("[^"]*"|[^,]*)/g), (m) => [
+        m[1],
+        m[2].replace(/^"|"$/g, ""),
+      ]),
+    );
+  const rangeOf = (raw, offset) => {
+    const match = /^(\d+)(?:@(\d+))?$/.exec(raw || "");
+    if (!match) throw new Error("HLS 字节范围无效");
+    const length = Number(match[1]),
+      start = match[2] == null ? offset : Number(match[2]);
+    if (
+      !Number.isSafeInteger(start) ||
+      start < 0 ||
+      !Number.isSafeInteger(length) ||
+      length < 1 ||
+      length > MAX_BYTES
+    )
+      throw new Error("HLS 字节范围无效");
+    return { start, end: start + length - 1 };
+  };
+  const textOf = async (response) => {
+    const reader = response.body.getReader();
+    let text = "",
+      bytes = 0;
+    const decoder = new TextDecoder();
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        bytes += value.length;
+        if (bytes > 2 * 1024 * 1024) throw new Error("HLS 清单超过 2 MB");
+        text += decoder.decode(value, { stream: true });
+      }
+      return text + decoder.decode();
+    } finally {
+      await reader.cancel().catch(() => {});
+      reader.releaseLock();
+    }
+  };
+  globalThis.lexihaloMediaReader = async ({
+    source,
+    purpose = "transcribe",
+    fetchResource,
+    safeUrl,
+    signal,
+    onPart,
+    onProgress,
+    resolution = 0,
+  }) => {
+    const abort = () => {
+      if (signal?.aborted) throw new Error("已取消媒体读取");
+    };
+    const load = async (url, range) => {
+      abort();
+      const response = await fetchResource(safeUrl(url), signal, range);
+      if (!response.ok || !response.body)
+        throw new Error(`读取媒体失败（HTTP ${response.status}）`);
+      if (
+        range &&
+        (response.status !== 206 ||
+          !(response.headers.get("content-range") || "").startsWith(
+            `bytes ${range.start}-${range.end}/`,
+          ))
+      )
+        throw new Error("媒体服务器未返回完整字节范围");
+      return response;
+    };
+    const resolve = async (url, depth = 0, mode = purpose) => {
+      if (depth > 4) throw new Error("HLS 清单嵌套过深");
+      const response = await load(url);
+      const base = safeUrl(response.url || url);
+      const text = await textOf(response);
+      const lines = text
+        .replace(/^\uFEFF/, "")
+        .trim()
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+      if (lines[0] !== "#EXTM3U") throw new Error("未返回有效的 HLS 清单");
+      if (
+        lines.some(
+          (l) =>
+            l.startsWith("#EXT-X-SESSION-KEY:") ||
+            (l.startsWith("#EXT-X-KEY:") && attrs(l).METHOD !== "NONE"),
+        )
+      )
+        throw new Error("不处理加密/DRM HLS");
+      const variants = [];
+      for (let i = 0; i < lines.length; i++)
+        if (
+          lines[i].startsWith("#EXT-X-STREAM-INF:") &&
+          lines[i + 1] &&
+          !lines[i + 1].startsWith("#")
+        ) {
+          variants.push({ ...attrs(lines[i]), url: safeUrl(lines[i + 1], base) });
+        }
+      if (variants.length) {
+        variants.sort((a, b) => Number(a.BANDWIDTH || Infinity) - Number(b.BANDWIDTH || Infinity));
+        const qualified =
+          resolution > 0
+            ? variants.filter((v) => {
+                const dimensions = String(v.RESOLUTION || "")
+                  .split("x")
+                  .map(Number);
+                return !dimensions[1] || Math.min(...dimensions) <= resolution;
+              })
+            : variants;
+        const selected = mode === "download" ? qualified.at(-1) || variants.at(-1) : variants[0];
+        const audio = lines
+          .filter((l) => l.startsWith("#EXT-X-MEDIA:"))
+          .map(attrs)
+          .find((a) => a.TYPE === "AUDIO" && a["GROUP-ID"] === selected.AUDIO && a.URI);
+        if (audio && mode === "transcribe")
+          return resolve(safeUrl(audio.URI, base), depth + 1, mode);
+        const main = await resolve(selected.url, depth + 1, mode);
+        if (audio) main.audio = await resolve(safeUrl(audio.URI, base), depth + 1, "transcribe");
+        return main;
+      }
+      if (!lines.includes("#EXT-X-ENDLIST")) throw new Error("暂不处理直播或未结束的 HLS 清单");
+      const entries = [];
+      let duration = 0,
+        seconds = 0,
+        rangeRaw = "",
+        previousUrl = "",
+        nextOffset;
+      let map = null,
+        discontinuity = false;
+      for (const line of lines) {
+        if (line.startsWith("#EXTINF:")) seconds = Number.parseFloat(line.slice(8));
+        else if (line === "#EXT-X-GAP") throw new Error("HLS 媒体存在缺片");
+        else if (line === "#EXT-X-DISCONTINUITY") discontinuity = true;
+        else if (line.startsWith("#EXT-X-BYTERANGE:")) rangeRaw = line.slice(17);
+        else if (line.startsWith("#EXT-X-MAP:")) {
+          const data = attrs(line),
+            mapUrl = safeUrl(data.URI, base);
+          const range = data.BYTERANGE ? rangeOf(data.BYTERANGE) : null;
+          const previous = entries.find(
+            (e) =>
+              e.kind === "init" &&
+              e.url === mapUrl &&
+              JSON.stringify(e.range) === JSON.stringify(range),
+          );
+          map = previous ? previous.index : entries.length;
+          if (!previous) entries.push({ index: map, kind: "init", url: mapUrl, range });
+        } else if (!line.startsWith("#")) {
+          if (!Number.isFinite(seconds) || seconds <= 0) throw new Error("HLS 分段时长无效");
+          const segmentUrl = safeUrl(line, base),
+            range = rangeRaw
+              ? rangeOf(rangeRaw, previousUrl === segmentUrl ? nextOffset : undefined)
+              : null;
+          entries.push({
+            index: entries.length,
+            kind: "segment",
+            url: segmentUrl,
+            range,
+            duration: seconds,
+            map,
+            discontinuity,
+          });
+          duration += seconds;
+          seconds = 0;
+          rangeRaw = "";
+          discontinuity = false;
+          previousUrl = segmentUrl;
+          nextOffset = range ? range.end + 1 : undefined;
+        }
+      }
+      if (!entries.length || entries.length > MAX_ENTRIES || duration <= 0 || duration > 14400)
+        throw new Error("只支持四小时以内、最多 5000 分片的完整媒体");
+      return { entries, duration, hls: true };
+    };
+    let media;
+    if (
+      source.ext === "m3u8" ||
+      /\.m3u8(?:$|[?#])/i.test(source.url) ||
+      /mpegurl/i.test(source.mimeType || "")
+    )
+      media = await resolve(source.url);
+    else
+      media = {
+        entries: [{ index: 0, url: safeUrl(source.url), kind: "raw" }],
+        duration: 0,
+        hls: false,
+      };
+    const streams = [{ stream: "media", ...media }];
+    if (media.audio) streams.push({ stream: "audio", ...media.audio });
+    const entryCount = streams.reduce((n, item) => n + item.entries.length, 0);
+    let total = 0,
+      sequence = 0,
+      completed = 0;
+    for (const stream of streams)
+      for (const entry of stream.entries) {
+        abort();
+        const response = await load(entry.url, entry.range);
+        if (/text\/html|application\/json/i.test(response.headers.get("content-type") || "")) {
+          await response.body.cancel();
+          throw new Error("站点返回登录或错误页面，而不是媒体");
+        }
+        const declared = Number(response.headers.get("content-length")) || 0;
+        if (declared > MAX_BYTES - total) {
+          await response.body.cancel();
+          throw new Error("媒体超过 2 GB");
+        }
+        const reader = response.body.getReader();
+        let bytes = 0;
+        let pending = new Uint8Array(PART),
+          filled = 0;
+        const flush = async () => {
+          if (!filled) return;
+          abort();
+          let raw = "";
+          for (let i = 0; i < filled; i += 8192)
+            raw += String.fromCharCode(...pending.subarray(i, Math.min(filled, i + 8192)));
+          await onPart({
+            sequence: sequence++,
+            stream: stream.stream,
+            data: btoa(raw),
+            ...(stream.hls
+              ? {
+                  entry: {
+                    index: entry.index,
+                    kind: entry.kind,
+                    duration: entry.duration || 0,
+                    discontinuity: entry.discontinuity === true,
+                    map: entry.map ?? null,
+                  },
+                }
+              : {}),
+          });
+          filled = 0;
+        };
+        try {
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            bytes += value.length;
+            total += value.length;
+            if (total > MAX_BYTES || (stream.hls && bytes > 128 * 1024 * 1024))
+              throw new Error("媒体或单个分片超过大小限制");
+            for (let i = 0; i < value.length; ) {
+              const length = Math.min(PART - filled, value.length - i);
+              pending.set(value.subarray(i, i + length), filled);
+              filled += length;
+              i += length;
+              if (filled === PART) await flush();
+            }
+          }
+          await flush();
+        } finally {
+          await reader.cancel().catch(() => {});
+          reader.releaseLock();
+        }
+        if (!bytes || (entry.range && bytes !== entry.range.end - entry.range.start + 1))
+          throw new Error("媒体分片为空或不完整");
+        completed++;
+        const message = `读取媒体 ${completed}/${entryCount}（${(total / 1024 / 1024).toFixed(1)} MB）`;
+        onProgress?.(
+          purpose === "download"
+            ? { message, percent: Math.round((completed / entryCount) * 85) }
+            : message,
+        );
+      }
+    return { total, sequence, duration: media.duration };
+  };
+})();
+
+/* Site-specific extraction hooks. The orchestration pipeline stays site-agnostic;
+ * each hook only contributes player selection, sources, or authenticated preparation. */
+(() => {
+  "use strict";
+  const hooks = new Map(
+    (globalThis.lexihaloSites?.catalog || []).map((site) => [
+      site.id,
+      Object.freeze({ id: site.id, mode: "generic" }),
+    ]),
+  );
+  const register = (id, value) =>
+    hooks.set(
+      id,
+      Object.freeze({
+        ...(hooks.get(id) || { id }),
+        ...value,
+        id,
+        mode: "custom",
+      }),
+    );
+
+  register("xiaohongshu", {
+    pickMedia({ page }) {
+      const root = document.querySelector("#noteContainer");
+      if (
+        !page ||
+        root?.closest("[note-id]")?.getAttribute("note-id") !== page.itemId ||
+        root?.getAttribute("data-type") !== "video"
+      )
+        return null;
+      return root.querySelector("video");
+    },
+    snapshot({ page, media, sources, add }) {
+      const note = globalThis.__INITIAL_STATE__?.note?.noteDetailMap?.[page.itemId]?.note;
+      if (note?.noteId !== page.itemId || note.type !== "video" || !media) return;
+      let data = note.video?.media;
+      try {
+        if (typeof note.video?.mediaV2 === "string" && note.video.mediaV2.length < 500000)
+          data = JSON.parse(note.video.mediaV2);
+      } catch {}
+      if (data?.video?.drm_type || data?.video?.drmType) throw new Error("不支持 DRM 视频");
+      for (const stream of Object.values(data?.stream || {})
+        .flat()
+        .slice(0, 40)) {
+        if (stream?.format?.toLowerCase() === "mp4")
+          add(sources, page, stream.master_url || stream.masterUrl, {
+            resolution: stream.height || stream.video_height,
+            size: stream.size,
+            upgradeHttp: true,
+          });
+      }
+      for (const stream of Object.values(data?.audio_stream || {})
+        .flat()
+        .slice(0, 20)) {
+        add(sources, page, stream.master_url || stream.masterUrl, {
+          kind: "audio",
+          size: stream.size,
+          upgradeHttp: true,
+        });
+      }
+    },
+    openGraph: false,
+  });
+
+  register("xiaoyuzhou", {
+    snapshot({ page, sources, add }) {
+      for (const node of document.querySelectorAll(
+        'meta[property="og:audio"], meta[property="og:audio:url"]',
+      )) {
+        add(sources, page, node.content, { kind: "audio" });
+      }
+      try {
+        const data = JSON.parse(document.querySelector("#__NEXT_DATA__")?.textContent || "{}");
+        const episode = data.props?.pageProps?.episode;
+        if (
+          episode &&
+          (episode.eid === page.url.split("/").pop() || episode.id === page.url.split("/").pop())
+        ) {
+          add(
+            sources,
+            page,
+            episode.media?.source?.url || episode.media?.source || episode.audio?.url,
+            { kind: "audio" },
+          );
+        }
+      } catch {}
+    },
+  });
+
+  register("tiktok", {
+    snapshot({ page, sources, add }) {
+      try {
+        const data = JSON.parse(
+          document.querySelector("#__UNIVERSAL_DATA_FOR_REHYDRATION__")?.textContent || "{}",
+        );
+        const item = data.__DEFAULT_SCOPE__?.["webapp.video-detail"]?.itemInfo?.itemStruct;
+        if (String(item?.id) !== page.itemId) return;
+        add(sources, page, item.video?.playAddr, { resolution: item.video?.height });
+        for (const rate of (item.video?.bitrateInfo || []).slice(0, 20)) {
+          for (const url of (rate?.PlayAddr?.UrlList || []).slice(0, 4)) {
+            add(sources, page, url, { resolution: rate.PlayAddr.Height, bitrate: rate.Bitrate });
+          }
+        }
+      } catch {}
+    },
+    observedFallback: true,
+    observedCandidate(raw) {
+      const url = new URL(raw);
+      if (
+        url.searchParams.get("mime_type") !== "video_mp4" ||
+        !url.pathname.includes("/video/tos/")
+      )
+        return null;
+      return { key: url.pathname, bitrate: Number(url.searchParams.get("br")) || Infinity };
+    },
+    openGraph: false,
+  });
+
+  register("douyin", {
+    snapshot({ page, sources, add }) {
+      try {
+        const raw = document.querySelector("#RENDER_DATA")?.textContent;
+        if (!raw || raw.length >= 2_000_000) return;
+        const queue = [JSON.parse(decodeURIComponent(raw))];
+        let visited = 0;
+        while (queue.length && visited++ < 1500) {
+          const item = queue.shift();
+          if (!item || typeof item !== "object") continue;
+          if (String(item.aweme_id || item.awemeId || "") === page.itemId) {
+            const video = item.video || {};
+            for (const url of (video.play_addr?.url_list || video.playAddr?.urlList || []).slice(
+              0,
+              4,
+            )) {
+              add(sources, page, url, { resolution: video.height });
+            }
+            for (const rate of (video.bit_rate || []).slice(0, 20)) {
+              for (const url of (rate.play_addr?.url_list || []).slice(0, 4)) {
+                add(sources, page, url, {
+                  resolution: rate.play_addr?.height,
+                  bitrate: rate.bit_rate,
+                });
+              }
+            }
+            break;
+          }
+          queue.push(
+            ...Object.values(item)
+              .filter((entry) => entry && typeof entry === "object")
+              .slice(0, 50),
+          );
+        }
+      } catch {}
+    },
+    observedFallback: true,
+    observedCandidate(raw) {
+      const url = new URL(raw),
+        key = url.searchParams.get("l");
+      if (url.searchParams.get("mime_type") !== "video_mp4" || !key) return null;
+      return { key, bitrate: Number(url.searchParams.get("br")) || Infinity };
+    },
+    openGraph: false,
+  });
+
+  register("bandcamp", {
+    snapshot({ page, sources, add }) {
+      for (const url of Object.values(globalThis.TralbumData?.trackinfo?.[0]?.file || {})) {
+        add(sources, page, url, { kind: "audio" });
+      }
+    },
+  });
+
+  register("xiaoe", {
+    async prepare({ result, jsonFetch, signal }) {
+      if (result.sources.length) return;
+      const match = new URL(result.page.url),
+        app = match.searchParams.get("app_id"),
+        live = match.pathname.split("/").pop();
+      const reply = await jsonFetch(
+        `/_alive/v3/get_lookback_list?app_id=${encodeURIComponent(app)}&alive_id=${encodeURIComponent(live)}`,
+        { credentials: "same-origin" },
+        signal,
+      );
+      if (reply.code === 11302) throw new Error("请先在当前小鹅通店铺网页登录");
+      if (reply.code !== 0)
+        throw new Error(
+          `小鹅通回放不可用：${String(reply.msg || reply.message || reply.code).slice(0, 160)}`,
+        );
+      for (const line of (Array.isArray(reply.data) ? reply.data : []).slice(0, 10)) {
+        for (const entry of (line.line_sharpness || []).slice(0, 12))
+          result.add(entry.url, {
+            resolution:
+              Number(String(entry.sharpness || entry.name || "").match(/\d{3,4}/)?.[0]) || 0,
+          });
+      }
+      if (!result.sources.length) throw new Error("小鹅通尚未提供可读取的回放，请先在网页播放回放");
+    },
+  });
+
+  register("channels", {
+    async prepare({ result, jsonFetch, signal, onProgress }) {
+      if (result.sources.length) return;
+      if (
+        location.hostname === "channels.weixin.qq.com" &&
+        location.pathname === "/finder-preview/pages/feed"
+      ) {
+        const url = new URL(location.href);
+        const data = await jsonFetch(
+          "/finder-preview/api/feed/get_feed_info",
+          {
+            method: "POST",
+            credentials: "omit",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              baseReq: { generalToken: url.searchParams.get("token") },
+              exportId: url.searchParams.get("eid"),
+            }),
+          },
+          signal,
+        );
+        if (data.errCode !== 0 || data.data?.errMsg?.type !== 0)
+          throw new Error("视频号官方播放信息不可用");
+        result.add(data.data?.feedInfo?.h264VideoInfo?.videoUrl);
+      } else {
+        if (!globalThis.lexihaloResolveChannels)
+          throw new Error("请在视频号官方播放页打开播放器后重试");
+        const resolved = await globalThis.lexihaloResolveChannels(result.page.url, {
+          signal,
+          onProgress,
+        });
+        result.add(resolved.mediaUrl);
+      }
+      if (!result.sources.length) throw new Error("视频号尚未返回可播放资源；请先完成原网站验证");
+    },
+  });
+
+  const get = (pageOrId) =>
+    hooks.get(typeof pageOrId === "string" ? pageOrId : pageOrId?.id) || null;
+  globalThis.lexihaloMediaSiteHooks = Object.freeze({
+    ids: Object.freeze([...hooks.keys()]),
+    entries: Object.freeze([...hooks.values()]),
+    get,
+    pickMedia(page, context) {
+      return get(page)?.pickMedia?.({ page, ...context }) || null;
+    },
+    snapshot(page, context) {
+      return get(page)?.snapshot?.({ page, ...context });
+    },
+    prepare(page, context) {
+      return get(page)?.prepare?.({ page, ...context });
+    },
+    flag(page, name, fallback = false) {
+      return get(page)?.[name] ?? fallback;
+    },
+  });
+})();
+
+/* Site snapshots inspired by qiaomu-clipper (MIT); implementation follows LexiHalo's
+ * player -> background -> native helper pipeline. No cookies or API keys leave the browser. */
+(() => {
+  "use strict";
+  const policy = globalThis.lexihaloSites;
+  const mediaContract = globalThis.lexihaloMediaContract;
+  const siteHooks = globalThis.lexihaloMediaSiteHooks;
+  const preparedSnapshots = new Map();
+  const view = (element) => {
+    const rect = element.getBoundingClientRect();
+    const css = getComputedStyle(element);
+    if (css.display === "none" || css.visibility === "hidden") return -1;
+    return (
+      Math.max(0, Math.min(rect.right, innerWidth) - Math.max(rect.left, 0)) *
+      Math.max(0, Math.min(rect.bottom, innerHeight) - Math.max(rect.top, 0))
+    );
+  };
+  const pickMedia = () => {
+    const site = policy.siteOf(location.href);
+    const candidates = Array.from(
+      document.querySelectorAll(site || hasPlayerFrame() ? "video, audio" : "video"),
+    ).filter(
+      (media) =>
+        media.isConnected &&
+        !media.closest("[data-lexihalo-media-probe], [class*='liveCard']") &&
+        !media.srcObject,
+    );
+    const customMedia = siteHooks.pickMedia(policy.page(location.href), { candidates });
+    if (customMedia) return customMedia;
+    if (siteHooks.get(site)?.pickMedia) return null;
+    const ranked = candidates
+      .filter((media) => !media.hasAttribute?.("data-lexihalo-proxy"))
+      .map((media) => ({
+        media,
+        area: view(media),
+        score: view(media) + (!media.paused && !media.ended ? 1e9 : 0),
+      }))
+      .filter((item) => item.area > 0 || (site?.audio && item.media.tagName === "AUDIO"))
+      .sort((left, right) => right.score - left.score);
+    if (ranked[0]?.media) {
+      document.querySelector(".lexihalo-media-proxy-host")?.remove();
+      if (!ranked[0].media.hasAttribute?.("data-lexihalo-placeholder")) {
+        document.querySelector(".lexihalo-audio-tool-host")?.remove();
+      }
+      return ranked[0].media;
+    }
+    return candidates.find((media) => media.hasAttribute?.("data-lexihalo-proxy")) || null;
+  };
+  const title = () =>
+    (document.querySelector("h1, #detail-title")?.textContent || document.title || "media")
+      .trim()
+      .slice(0, 240);
+  const add = (list, page, raw, metadata = {}) =>
+    mediaContract.addDirect(list, page, raw, metadata);
+  const declaredParentSources = (media, page, sources) => {
+    if (!media || typeof parent === "undefined") return false;
+    let declared = false,
+      scanned = 0;
+    // Recognize a literal media-src assignment only; never eval page scripts,
+    // guess a parent element ID, or enumerate the parent's unrelated resources.
+    const assignment =
+      /\bdocument\s*\.\s*getElementById\(\s*(['"])([\w:-]{1,100})\1\s*\)\s*\.\s*src\s*=\s*(?:window\s*\.\s*)?parent\s*\.\s*document\s*\.\s*getElementById\(\s*(['"])([\w:-]{1,100})\3\s*\)\s*\.\s*src\b/g;
+    for (const script of Array.from(document.scripts || []).slice(0, 64)) {
+      if (script.src) continue;
+      const text = script.textContent || "";
+      scanned += text.length;
+      if (text.length > 64000 || scanned > 256000) break;
+      assignment.lastIndex = 0;
+      for (const match of text.matchAll(assignment)) {
+        const target = document.getElementById(match[2]);
+        if (
+          !target ||
+          !["VIDEO", "AUDIO", "SOURCE"].includes(target.tagName) ||
+          (target !== media && !media.contains?.(target))
+        )
+          continue;
+        declared = true;
+        try {
+          if (parent === window || parent.location.origin !== location.origin) continue;
+          const source = parent.document.getElementById(match[4]);
+          add(sources, page, source?.src, {
+            isAudio: media.tagName === "AUDIO",
+            mimeType: target.getAttribute("type") || "",
+            resolution: media.videoHeight || 0,
+          });
+        } catch {}
+      }
+    }
+    return declared;
+  };
+  const snapshot = () => {
+    const page = policy.browserPage(location.href);
+    if (!page) return null;
+    const media = pickMedia(),
+      sources = [];
+    let parentSourceDeclared = false;
+    if (media?.mediaKeys) throw new Error("不支持 DRM 视频");
+    if (media) {
+      add(sources, page, media.currentSrc || media.src, {
+        isAudio: media.tagName === "AUDIO",
+        resolution: media.videoHeight || 0,
+        mimeType: media.getAttribute("type") || "",
+      });
+      for (const source of media.querySelectorAll("source[src]"))
+        add(sources, page, source.src, {
+          isAudio: media.tagName === "AUDIO",
+          mimeType: source.type || "",
+        });
+    }
+    const playerFrame =
+      page.id === "generic" && (!media || media.hasAttribute?.("data-lexihalo-placeholder"))
+        ? findPlayerFrame()
+        : null;
+    if (playerFrame) {
+      // Read only actual media in the selected, visible same-origin frame.
+      // Cross-origin frames are handled by background network capture instead.
+      try {
+        for (const element of playerFrame.contentDocument?.querySelectorAll("video, audio") || []) {
+          if (element.srcObject || element.mediaKeys) continue;
+          const metadata = {
+            isAudio: element.tagName === "AUDIO",
+            resolution: element.videoHeight || 0,
+          };
+          add(sources, page, element.currentSrc || element.src, metadata);
+          for (const source of element.querySelectorAll("source[src]")) {
+            add(sources, page, source.src, { ...metadata, mimeType: source.type || "" });
+          }
+        }
+      } catch {}
+    }
+    if (page.id === "generic" && media) {
+      // Video.js replaces the <video>/<source> with a blob-backed media element.
+      // Its currentSource still names this player's original HTTP/HLS resource.
+      try {
+        const wrapper = media.closest(".video-js");
+        const playerId = wrapper?.id || media.id?.replace(/_html5_api$/, "");
+        const player = globalThis.videojs?.getPlayer?.(playerId);
+        if (player?.el?.()?.contains(media)) {
+          const current = player.currentSource?.();
+          for (const source of [current, ...(player.currentSources?.() || [])].filter(Boolean)) {
+            add(sources, page, source.src, {
+              mimeType: source.type || "",
+              resolution: media.videoHeight || 0,
+            });
+          }
+        }
+      } catch {}
+      parentSourceDeclared = declaredParentSources(media, page, sources);
+    }
+    siteHooks.snapshot(page, { media, sources, add });
+    if (page.id !== "generic" && siteHooks.flag(page, "openGraph", true)) {
+      for (const node of document.querySelectorAll(
+        'meta[property="og:video"], meta[property="og:video:url"], meta[property="og:audio"], meta[property="og:audio:url"]',
+      )) {
+        add(sources, page, node.content, { isAudio: /audio/.test(node.getAttribute("property")) });
+      }
+    }
+    const cached = preparedSnapshots.get(page.identity);
+    if (cached && Date.now() - cached.at < 60000) {
+      if (!sources.length) sources.push(...cached.sources);
+      else {
+        // prepare() may add opaque background captures beside an already-known
+        // DOM/Video.js URL. A following snapshot must retain those captures so
+        // AI transcription takes the broker path just like resource download.
+        for (const captured of cached.sources.filter((source) => source.captureId)) {
+          if (!sources.some((source) => source.captureId === captured.captureId))
+            sources.push(captured);
+        }
+      }
+    }
+    sources.sort(
+      (a, b) =>
+        Number(b.kind === "audio") - Number(a.kind === "audio") ||
+        (a.size || Infinity) - (b.size || Infinity) ||
+        (a.resolution || Infinity) - (b.resolution || Infinity),
+    );
+    const wrapper = page.id === "generic" && Boolean(parentSourceDeclared || playerFrame);
+    return {
+      page,
+      capabilities: mediaContract.capabilities(page),
+      media,
+      wrapper,
+      title: title(),
+      duration: Number.isFinite(media?.duration) ? media.duration : 0,
+      sources: sources.slice(0, 24),
+    };
+  };
+  const jsonFetch = async (path, options = {}, signal) => {
+    const response = await fetch(path, {
+      ...options,
+      signal: AbortSignal.any([signal, AbortSignal.timeout(25000)].filter(Boolean)),
+    });
+    if ([401, 403].includes(response.status)) throw new Error("请先在原网站登录并确认你有播放权限");
+    if (!response.ok) throw new Error(`站点媒体接口失败（HTTP ${response.status}）`);
+    const reader = response.body.getReader(),
+      decoder = new TextDecoder();
+    let text = "",
+      size = 0;
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.length;
+        if (size > 2_000_000) throw new Error("站点媒体数据过大");
+        text += decoder.decode(value, { stream: true });
+      }
+      return JSON.parse(text + decoder.decode());
+    } finally {
+      await reader.cancel().catch(() => {});
+      reader.releaseLock();
+    }
+  };
+  const measuredDuration = (url, signal) =>
+    new Promise((resolve) => {
+      const probe = document.createElement("video");
+      probe.preload = "metadata";
+      probe.setAttribute("data-lexihalo-media-probe", "true");
+      const finish = (value) => {
+        clearTimeout(timer);
+        signal?.removeEventListener("abort", abort);
+        probe.onloadedmetadata = null;
+        probe.onerror = null;
+        probe.removeAttribute("src");
+        probe.load();
+        resolve(value);
+      };
+      const abort = () => finish(NaN);
+      const timer = setTimeout(abort, 6000);
+      probe.onloadedmetadata = () => finish(probe.duration);
+      probe.onerror = abort;
+      signal?.addEventListener("abort", abort, { once: true });
+      if (signal?.aborted) abort();
+      else probe.src = url;
+    });
+  const observedCurrentMedia = async (result, signal) => {
+    if (
+      !siteHooks.flag(result.page, "observedFallback") ||
+      result.sources.length ||
+      !result.media ||
+      !Number.isFinite(result.media.duration) ||
+      result.media.duration <= 0 ||
+      typeof globalThis.performance?.getEntriesByType !== "function"
+    )
+      return;
+    const navigation = performance.getEntriesByType("navigation")[0];
+    if (policy.page(navigation?.name)?.identity !== result.page.identity) return;
+    const observed = [
+      ...new Set(performance.getEntriesByType("resource").map((entry) => entry.name)),
+    ].filter((url) => policy.isMediaUrl(result.page.url, url));
+    const groups = new Map(),
+      adapter = siteHooks.get(result.page);
+    for (const raw of observed) {
+      const candidate = adapter?.observedCandidate?.(raw);
+      if (!candidate?.key) continue;
+      groups.set(candidate.key, [
+        ...(groups.get(candidate.key) || []),
+        { raw, bitrate: candidate.bitrate },
+      ]);
+    }
+    // A preload may be a different clip. Require a single request group on the
+    // exact initial detail page, then verify against the current player's time.
+    if (groups.size !== 1) return;
+    const candidates = [...groups.values()][0].sort((a, b) => a.bitrate - b.bitrate);
+    for (const { raw: url } of candidates.slice(0, 4)) {
+      if (signal?.aborted) throw new Error("已取消媒体读取");
+      const duration = await measuredDuration(url, signal);
+      if (policy.page(location.href)?.identity !== result.page.identity)
+        throw new Error("视频已切换");
+      if (
+        Number.isFinite(duration) &&
+        Math.abs(duration - result.media.duration) <= Math.max(0.5, result.media.duration * 0.005)
+      ) {
+        add(result.sources, result.page, url, { resolution: result.media.videoHeight || 0 });
+        return;
+      }
+    }
+  };
+  const prepare = async ({ signal, onProgress } = {}) => {
+    const result = snapshot();
+    if (!result) return null;
+    const identity = result.page.identity;
+    if (
+      result.page.id === "generic" &&
+      typeof globalThis.lexihaloGetCapturedSources === "function"
+    ) {
+      const captured = await globalThis.lexihaloGetCapturedSources();
+      if (Array.isArray(captured?.sources) && captured.sources.length) {
+        result.sources = mediaContract.merge(captured.sources, result.sources);
+      }
+    }
+    await observedCurrentMedia(result, signal);
+    result.add = (raw, metadata = {}) => add(result.sources, result.page, raw, metadata);
+    try {
+      await siteHooks.prepare(result.page, { result, jsonFetch, signal, onProgress });
+    } finally {
+      delete result.add;
+    }
+    if (policy.browserPage(location.href)?.identity !== identity)
+      throw new Error("视频已切换，请重新打开菜单");
+    if (preparedSnapshots.size > 16) preparedSnapshots.clear();
+    preparedSnapshots.set(identity, { at: Date.now(), sources: result.sources });
+    const preview = document.querySelector(
+      "audio[data-lexihalo-placeholder]:not([data-lexihalo-proxy])",
+    );
+    const audioSource = result.sources.find(
+      (source) => source.kind === "audio" && source.ext !== "m3u8",
+    );
+    if (preview && audioSource) preview.src = audioSource.url;
+    return result;
+  };
+  const findPlayerFrame = () =>
+    Array.from(document.querySelectorAll("iframe"))
+      .filter((frame) => {
+        if (
+          frame.tagName !== "IFRAME" ||
+          frame.closest?.("[data-lexihalo-media-probe], .lexihalo-audio-host")
+        )
+          return false;
+        const rect = frame.getBoundingClientRect();
+        if (rect.width < 160 || rect.height < 90 || view(frame) <= 0) return false;
+        try {
+          if (frame.contentDocument?.querySelector("video, audio")) return true;
+        } catch {}
+        // A hint enables the resource-tool host, not media extraction. URLs are
+        // accepted only from real DOM sources or document-bound network responses.
+        return /player|video|embed|play/i.test([frame.src, frame.title, frame.name].join(" "));
+      })
+      .sort((left, right) => view(right) - view(left))[0] || null;
+  const frameOwnsRuntime = (frame) => {
+    try {
+      if (frame.hasAttribute?.("srcdoc")) return false;
+      const declared = frame.getAttribute?.("src");
+      const raw = declared == null ? frame.src : declared;
+      if (!String(raw || "").trim()) return false;
+      const url = new URL(raw, location.href);
+      return ["http:", "https:", "file:"].includes(url.protocol);
+    } catch {
+      return false;
+    }
+  };
+  const findProxyFrame = () => {
+    const frame = findPlayerFrame();
+    return frame && !frameOwnsRuntime(frame) ? frame : null;
+  };
+  const hasPlayerFrame = () => Boolean(findProxyFrame());
+  const ensureHost = (media) => {
+    if (media?.tagName === "VIDEO") return media.parentElement;
+    if (media?.hasAttribute?.("data-lexihalo-proxy"))
+      return media.closest(".lexihalo-media-proxy-host");
+    if (media?.hasAttribute?.("data-lexihalo-tool-anchor"))
+      return media.closest(".lexihalo-audio-tool-host");
+    if (media?.tagName === "AUDIO") {
+      document.querySelector(".lexihalo-audio-tool-host")?.remove();
+      return media.parentElement;
+    }
+    const site = policy.siteOf(location.href);
+    const frame = !media ? findProxyFrame() : null;
+    const frameProxy = !media && !site?.audio;
+    const audioTool = !media && site?.audio;
+    if (frameProxy && !frame) return null;
+    if (!frameProxy && !audioTool) return null;
+    const selector = frameProxy ? ".lexihalo-media-proxy-host" : ".lexihalo-audio-tool-host";
+    let host = document.querySelector(selector);
+    if (!host) {
+      host = document.createElement("section");
+      host.className = frameProxy
+        ? "lexihalo-audio-host lexihalo-media-proxy-host lexihalo-html5-container"
+        : "lexihalo-audio-host lexihalo-audio-tool-host lexihalo-html5-container";
+      const audio = document.createElement("audio");
+      audio.controls = false;
+      audio.setAttribute("data-lexihalo-placeholder", "true");
+      audio.setAttribute(frameProxy ? "data-lexihalo-proxy" : "data-lexihalo-tool-anchor", "true");
+      audio.setAttribute(
+        "aria-label",
+        frameProxy ? "LexiHalo 播放器工具锚点" : "LexiHalo 音频工具入口",
+      );
+      host.appendChild(audio);
+      const anchor = frameProxy ? frame?.parentElement : document.body;
+      if (frameProxy && anchor && getComputedStyle(anchor).position === "static") {
+        anchor.classList.add("lexihalo-html5-position-static");
+      }
+      anchor?.appendChild(host);
+    }
+    return host;
+  };
+  globalThis.lexihaloSiteAdapters = { pickMedia, snapshot, prepare, ensureHost, hasPlayerFrame };
+})();
+
 (() => {
   const __trancyStandaloneLinkGuard = (e) => {
     const t = "function" == typeof e.composedPath ? e.composedPath() : [],
@@ -28916,6 +31000,7 @@
         );
       },
       Zt = () => {
+        if (globalThis.lexihaloSites?.siteOf(location.href)) return "html5";
         const e = window.location.href;
         let t;
         switch (!0) {
@@ -28959,7 +31044,7 @@
             t = "vimeo";
             break;
           default:
-            t = "und";
+            t = "html5";
         }
         return t;
       },
@@ -29047,6 +31132,67 @@
         return e;
       },
       on = (e) => JSON.parse(JSON.stringify(e));
+    const lexihaloPickHtml5Video = () => {
+      if (globalThis.lexihaloSites?.siteOf(location.href)) {
+        return globalThis.lexihaloSiteAdapters?.pickMedia() || null;
+      }
+      const videos = Array.from(document.querySelectorAll("video")).filter(
+        (video) => video?.isConnected,
+      );
+      if (!videos.length) {
+        if (globalThis.lexihaloSiteAdapters?.hasPlayerFrame()) {
+          globalThis.lexihaloSiteAdapters.ensureHost(null);
+          return globalThis.lexihaloSiteAdapters.pickMedia();
+        }
+        return null;
+      }
+      const scored = videos
+        .map((video) => {
+          const rect = video.getBoundingClientRect();
+          const visible = rect.width >= 160 && rect.height >= 90;
+          return {
+            video,
+            visible,
+            score:
+              (visible ? rect.width * rect.height : 0) +
+              (!video.paused && !video.ended ? 1e9 : 0) +
+              (video.currentSrc || video.src || video.querySelector("source[src]") ? 1e6 : 0),
+          };
+        })
+        .sort((left, right) => right.score - left.score);
+      return scored.find((item) => item.visible)?.video || scored[0]?.video || null;
+    };
+    const lexihaloFindHtml5PlayerHost = (video) => {
+      if (!video || video.tagName === "AUDIO") {
+        return globalThis.lexihaloSiteAdapters?.ensureHost(video);
+      }
+      const fullscreen = document.fullscreenElement;
+      if (fullscreen?.contains(video)) return fullscreen;
+      if (globalThis.lexihaloSites?.siteOf(location.href)?.id === "x") {
+        return (
+          video.closest('[data-testid="videoPlayer"]') ||
+          video.closest('[data-testid="videoComponent"]') ||
+          video.parentElement
+        );
+      }
+      const videoRect = video.getBoundingClientRect();
+      let candidate = video.parentElement;
+      let current = video.parentElement;
+      for (let depth = 0; current && depth < 7; depth += 1) {
+        if (current === document.body || current === document.documentElement) break;
+        const rect = current.getBoundingClientRect();
+        const closeWidth =
+          rect.width >= videoRect.width * 0.9 && rect.width <= videoRect.width * 1.4;
+        const closeHeight =
+          rect.height >= videoRect.height * 0.9 && rect.height <= videoRect.height * 1.45;
+        if (!closeWidth || !closeHeight) break;
+        candidate = current;
+        const marker = (current.id || "") + " " + (current.className || "");
+        if (/player|video.?wrapper|mgp_/i.test(marker)) candidate = current;
+        current = current.parentElement;
+      }
+      return candidate || video.parentElement;
+    };
     let sn = null;
     const ln = (e) => {
         const t = e.trim().split(/[:,]/);
@@ -40500,7 +42646,7 @@
             case "vimeo":
               break;
             default:
-              this.platform = "example";
+              this.platform = "html5";
           }
           Ht("meta init", {
             platform: this.platform,
@@ -40665,6 +42811,8 @@
           }
         }
         get vid() {
+          const mediaItem = globalThis.lexihaloSites?.page(location.href);
+          if (this.platform === "html5" && mediaItem) return mediaItem.identity;
           var e;
           switch (this.platform) {
             case "youtube":
@@ -40696,6 +42844,8 @@
           }
         }
         get id() {
+          const mediaItem = globalThis.lexihaloSites?.page(location.href);
+          if (this.platform === "html5" && mediaItem) return mediaItem.identity;
           var e, t, n, r, i, a, o, s, l, c, u, d, p;
           let _;
           switch (this.platform) {
@@ -45678,6 +47828,19 @@
               const t = new Audio((null == e ? void 0 : e.src) || "");
               return new StandardHtml5Player(e, t);
             }
+            case "html5": {
+              let video = lexihaloPickHtml5Video();
+              if (!video && globalThis.lexihaloSites?.page(location.href)) {
+                globalThis.lexihaloSiteAdapters.ensureHost(null);
+                video = lexihaloPickHtml5Video();
+              }
+              if (!video) {
+                yield yn("video");
+                video = lexihaloPickHtml5Video();
+              }
+              if (!video) return;
+              return new StandardHtml5Player(video, new Audio(video.currentSrc || video.src || ""));
+            }
             default:
               Vt("[platform.unsupport]");
           }
@@ -46122,6 +48285,10 @@
           strategy: "texttrack",
           autoSubtitle: !0,
         },
+        html5: {
+          strategy: "texttrack",
+          autoSubtitle: true,
+        },
       },
       hf = {
         strategy: "preload",
@@ -46554,6 +48721,19 @@
               this.video = e;
               break;
             }
+            case "html5": {
+              let video = lexihaloPickHtml5Video();
+              if (!video && globalThis.lexihaloSites?.page(location.href)) {
+                globalThis.lexihaloSiteAdapters.ensureHost(null);
+                video = lexihaloPickHtml5Video();
+              }
+              if (!video) {
+                yield yn("video");
+                video = lexihaloPickHtml5Video();
+              }
+              this.video = video;
+              break;
+            }
             default: {
               const e = yield yn("video[src]");
               this.video = e;
@@ -46642,6 +48822,27 @@
               return {
                 element: e.closest(".vp-video-wrapper") || e.parentElement,
                 video: e,
+              };
+            }
+            case "html5": {
+              let video = lexihaloPickHtml5Video();
+              if (!video && globalThis.lexihaloSites?.page(location.href)) {
+                globalThis.lexihaloSiteAdapters.ensureHost(null);
+                video = lexihaloPickHtml5Video();
+              }
+              if (!video) {
+                yield yn("video");
+                video = lexihaloPickHtml5Video();
+              }
+              if (!video) return {};
+              const element =
+                video.tagName === "AUDIO"
+                  ? globalThis.lexihaloSiteAdapters.ensureHost(video)
+                  : video.parentElement || document.documentElement;
+              element.classList.add("lexihalo-html5-container");
+              return {
+                element,
+                video,
               };
             }
             default: {
@@ -47453,6 +49654,72 @@
             return;
           }
       }
+      lineSameLanguage(text, target = this.to) {
+        if (!target) return false;
+        const clean = String(text || "")
+          .replace(/https?:\/\/\S+|www\.\S+/gi, " ")
+          .replace(/<[^>]*>|[\d\s\p{P}\p{S}]+/gu, "")
+          .trim();
+        if (!clean) return true;
+        const count = (expression) => (clean.match(expression) || []).length;
+        const scripts = {
+          han: count(/\p{Script=Han}/gu),
+          kana: count(/[\p{Script=Hiragana}\p{Script=Katakana}]/gu),
+          hangul: count(/\p{Script=Hangul}/gu),
+          latin: count(/\p{Script=Latin}/gu),
+          cyrillic: count(/\p{Script=Cyrillic}/gu),
+          arabic: count(/\p{Script=Arabic}/gu),
+          devanagari: count(/\p{Script=Devanagari}/gu),
+          thai: count(/\p{Script=Thai}/gu),
+        };
+        const total = Object.values(scripts).reduce((sum, value) => sum + value, 0);
+        if (!total) return true;
+        const family = (value) => {
+          const code = String(value || "")
+            .toLowerCase()
+            .replace(/_/g, "-")
+            .split("-")[0];
+          return ["cmn", "yue", "zho"].includes(code) ? "zh" : code;
+        };
+        const languageKey = (value) => {
+          const code = String(value || "")
+            .toLowerCase()
+            .replace(/_/g, "-");
+          if (/^(zh|cmn|yue|zho)/.test(code)) {
+            return /(?:hant|tw|hk|mo)/.test(code) ? "zh-hant" : "zh-cn";
+          }
+          return family(code);
+        };
+        const targetFamily = family(target);
+        const targetKey = languageKey(target);
+        const detectedValue = this.detectTextsLanguage([clean]);
+        const detectedFamily = family(detectedValue);
+        const detectedKey = languageKey(detectedValue);
+        let targetCount;
+        if (targetFamily === "zh") targetCount = scripts.han;
+        else if (targetFamily === "ja") targetCount = scripts.han + scripts.kana;
+        else if (targetFamily === "ko") targetCount = scripts.hangul;
+        else if (["ru", "uk", "bg", "mk", "be"].includes(targetFamily))
+          targetCount = scripts.cyrillic;
+        else if (["ar", "fa", "ur"].includes(targetFamily)) targetCount = scripts.arabic;
+        else if (["hi", "mr", "ne"].includes(targetFamily)) targetCount = scripts.devanagari;
+        else if (targetFamily === "th") targetCount = scripts.thai;
+        else targetCount = scripts.latin;
+        const foreignCount = total - targetCount;
+        const targetRatio = targetCount / total;
+        // A dominant target script wins over a detector biased by a few CJK
+        // characters. Balanced mixed text remains translatable.
+        const sameDetectedLanguage =
+          targetFamily === "zh" ? detectedKey === targetKey : detectedFamily === targetFamily;
+        if (
+          foreignCount > 0 &&
+          targetRatio >= 0.72 &&
+          (targetFamily !== "zh" || sameDetectedLanguage)
+        )
+          return true;
+        if (!detectedFamily) return targetRatio >= 0.9;
+        return sameDetectedLanguage && (foreignCount <= 2 || targetRatio >= 0.72);
+      }
       isSameLangLine(e) {
         return !!e && !!this.to && e.sameLangTo === this.to;
       }
@@ -47482,34 +49749,44 @@
         );
       }
       syncCorpusSameLang() {
-        const e = this.to,
-          t = this.lines;
-        if (!e || !t.length || !xf(this.corpusLang(), e)) return !1;
-        if (t.every((t) => t.sameLangTo === e)) return !0;
-        const n = this.captionCache.get(this.id) || {},
-          r = t.map((t) =>
-            t.sameLangTo === e
-              ? t
-              : Rf(qf({}, t), {
-                  sameLangTo: e,
-                }),
-          ),
-          i = qf({}, n);
-        return (
-          this.endableWhisper ? (i.whisperLines = r) : (i.builtinLines = r),
-          this.captionCache.set(this.id, i),
-          (this.translatingIdx = []),
-          Ht("[caption.sameLanguage.corpus]", {
-            lang: this.corpusLang(),
-            to: e,
-            lines: r.length,
-          }),
+        const target = this.to;
+        const lines = this.lines;
+        if (!target || !lines.length) return false;
+        let changed = false;
+        const next = lines.map((line) => {
+          const checkKey = target + "|" + String(line.text || "");
+          const same =
+            line.sameLangCheckKey === checkKey
+              ? line.sameLangTo === target
+              : this.lineSameLanguage(line.text, target);
+          if (
+            line.sameLangCheckKey === checkKey &&
+            (same ? line.sameLangTo === target : line.sameLangTo !== target)
+          )
+            return line;
+          changed = true;
+          return {
+            ...line,
+            sameLangCheckKey: checkKey,
+            sameLangTo: same ? target : undefined,
+          };
+        });
+        const allSame = next.every((line) => line.sameLangTo === target);
+        if (changed) {
+          const cache = this.captionCache.get(this.id) || {};
+          const updated = {
+            ...cache,
+          };
+          if (this.endableWhisper) updated.whisperLines = next;
+          else updated.builtinLines = next;
+          this.captionCache.set(this.id, updated);
+          this.translatingIdx = [];
           this.event.emit("changed", {
             current: this.current,
-            forceUpdate: !0,
-          }),
-          !0
-        );
+            forceUpdate: true,
+          });
+        }
+        return allSame;
       }
       domLang() {
         if (this.domLangDirty) {
@@ -47526,18 +49803,26 @@
         );
       }
       domLineSameLang(e, t) {
-        const n = this.to;
-        if (!n || !e) return !1;
-        if (this.domEchoKeys.has(`${n}|${t}`)) return !0;
-        if (!xf(this.domLang(), n)) return !1;
-        const r = this.detectDomLineLang(e, t);
-        return !r || xf(r, n);
+        const target = this.to;
+        if (!target || !e) return false;
+        if (this.domEchoKeys.has(target + "|" + t)) return true;
+        return this.lineSameLanguage(e, target);
       }
       sourceLang() {
         return "dom-anchor" === ff(this.platform) ? this.domLang() : this.corpusLang();
       }
       evalSameLanguage() {
-        this.setSameLanguage(!!this.to && xf(this.sourceLang(), this.to));
+        const target = this.to;
+        const lines = this.lines.filter((line) => String(line.text || "").trim());
+        this.setSameLanguage(
+          Boolean(
+            target &&
+              lines.length &&
+              lines.every(
+                (line) => line.sameLangTo === target || this.lineSameLanguage(line.text, target),
+              ),
+          ),
+        );
       }
       evalLookupAllowed() {
         const source = this.sourceLang();
@@ -47669,7 +49954,9 @@
           i = new Map();
         [...r, ...e].forEach((e) => i.set(`${e.start}:${e.end}`, e));
         const a = Array.from(i.values()).sort((e, t) => e.start - t.start);
-        if ((this.streamBuckets.set(n, a), a.length < this.MIN_LANG_CUES))
+        if (
+          (this.streamBuckets.set(n, a), this.platform !== "html5" && a.length < this.MIN_LANG_CUES)
+        )
           Ht("[caption.stream.pending]", {
             bucketKey: n,
             count: a.length,
@@ -66706,7 +68993,11 @@
           t && r(t);
         },
         a = () => {
-          const e = captionProvider.video || document.querySelector("video");
+          const e =
+            captionProvider.video ||
+            (captionProvider.platform === "html5"
+              ? lexihaloPickHtml5Video()
+              : document.querySelector("video"));
           if (!e || !e.textTracks || 0 === e.textTracks.length) return;
           const a = ((e) => {
             var t;
@@ -66849,760 +69140,928 @@
     const Sj = "undefined" != typeof chrome && !!(null == (_j = chrome.runtime) ? void 0 : _j.id),
       Cj = !!window.__trancyEdvideoBooted;
     Sj || Cj || (window.__trancyEdvideoBooted = !0);
-    Sj ||
-      Cj ||
-      new (class {
-        constructor() {
-          kj(this, "ELEMENT_NAME", "trancy-app"),
-            kj(this, "appRoot"),
-            kj(this, "dualCaptionRoot"),
-            kj(this, "buttonRoot"),
-            kj(this, "mutationObserver", null),
-            kj(this, "t1", null),
-            kj(this, "boundBootstrap"),
-            kj(this, "dualSubtitleEnabled", !0),
-            kj(this, "lastVideoEl", null),
-            kj(this, "disneyControlsObserver", null),
-            kj(this, "disneyObservedRoot", null),
-            kj(this, "ensureButtonTimer", null),
-            kj(this, "renderingCaptionId", null),
-            (this.boundBootstrap = () => {
-              this.renderCaption(),
-                this.ensureQuickButtonInjected(),
-                captionProvider.event.emit("caption:reload");
-            }),
-            "bilibili" === platformContext.platform &&
-              platformContext.event.on("subtitle.loaded", this.boundBootstrap),
-            this.bootstrap();
-        }
-        bootstrap() {
-          (extensionClient = new ExtensionClient()),
-            window.__trancyWordClickBridge ||
-              ((window.__trancyWordClickBridge = !0),
-              document.addEventListener(
-                "click",
-                (e) => {
-                  const t =
-                    e.target instanceof Element
-                      ? e.target.closest("trancy-caption-window .token")
-                      : null;
-                  if (!t) return;
-                  const n = (t.textContent || "").trim();
-                  if (!n || !/[\p{L}\p{N}]/u.test(n)) return;
-                  const r = n.replace(/^[^\p{L}\p{N}'’-]+|[^\p{L}\p{N}'’-]+$/gu, "");
-                  r &&
-                    (e.preventDefault(),
-                    e.stopPropagation(),
-                    e.stopImmediatePropagation(),
-                    window.postMessage(
-                      {
-                        eventName: "trancy:slider-toggle",
-                        path: `/word/${encodeURIComponent(r)}`,
-                      },
-                      "*",
-                    ));
-                },
-                !0,
-              )),
-            (() => {
-              if (window.top === window) return !1;
-              try {
-                const e = window.location.ancestorOrigins;
-                if (e && e.length > 0) {
-                  const t = (e[e.length - 1] || "").replace(/^https?:\/\//, "");
-                  if (cn(t)) return !0;
-                }
-              } catch (e) {}
-              try {
-                if (document.referrer) {
-                  const e = new URL(document.referrer).host;
-                  if (cn(e)) return !0;
-                }
-              } catch (e) {}
-              return !1;
-            })()
-              ? this.runSilentCaptionUpload()
-              : (this.injectAppStyle(),
-                this.addMessageListener(),
-                sj(),
-                cj(),
-                dj(),
-                this.refreshDualSubtitleEnabled().then(() => this.addEntry()),
-                captionProvider.event.on("caption.enable", this.renderCaption.bind(this)),
-                captionProvider.event.on("caption.disable", this.unmountCaption.bind(this)),
+    if (!(Sj || Cj)) {
+      const bootLexihaloVideoRuntime = () => {
+        new (class {
+          constructor() {
+            kj(this, "ELEMENT_NAME", "trancy-app"),
+              kj(this, "appRoot"),
+              kj(this, "dualCaptionRoot"),
+              kj(this, "buttonRoot"),
+              kj(this, "mutationObserver", null),
+              kj(this, "t1", null),
+              kj(this, "boundBootstrap"),
+              kj(this, "dualSubtitleEnabled", !0),
+              kj(this, "lastVideoEl", null),
+              kj(this, "disneyControlsObserver", null),
+              kj(this, "disneyObservedRoot", null),
+              kj(this, "ensureButtonTimer", null),
+              kj(this, "renderingCaptionId", null),
+              (this.boundBootstrap = () => {
                 this.renderCaption(),
-                (this.t1 = ((e) => {
-                  let t = location.href;
-                  const n = window.location.href.includes("www.youtube.com/embed");
-                  let r = null;
-                  return (
-                    sn && window.clearInterval(sn),
-                    (sn = window.setInterval(() => {
-                      if ("youtube" === Zt()) {
-                        if (n)
-                          try {
-                            const n = document.querySelector("a.ytp-title-link").href,
-                              i = new URL(n).searchParams.get("v");
-                            i !== r && ((r = i), e && e(t, location.href));
-                          } catch (e) {
-                            Wt("[addVideoChangeListener.youtube]", {
-                              error: e,
-                            });
+                  this.ensureQuickButtonInjected(),
+                  captionProvider.event.emit("caption:reload");
+              }),
+              "bilibili" === platformContext.platform &&
+                platformContext.event.on("subtitle.loaded", this.boundBootstrap),
+              this.bootstrap();
+          }
+          bootstrap() {
+            (extensionClient = new ExtensionClient()),
+              window.__trancyWordClickBridge ||
+                ((window.__trancyWordClickBridge = !0),
+                document.addEventListener(
+                  "click",
+                  (e) => {
+                    const t =
+                      e.target instanceof Element
+                        ? e.target.closest("trancy-caption-window .token")
+                        : null;
+                    if (!t) return;
+                    const n = (t.textContent || "").trim();
+                    if (!n || !/[\p{L}\p{N}]/u.test(n)) return;
+                    const r = n.replace(/^[^\p{L}\p{N}'’-]+|[^\p{L}\p{N}'’-]+$/gu, "");
+                    r &&
+                      (e.preventDefault(),
+                      e.stopPropagation(),
+                      e.stopImmediatePropagation(),
+                      window.postMessage(
+                        {
+                          eventName: "trancy:slider-toggle",
+                          path: `/word/${encodeURIComponent(r)}`,
+                        },
+                        "*",
+                      ));
+                  },
+                  !0,
+                )),
+              (() => {
+                if (window.top === window) return !1;
+                try {
+                  const e = window.location.ancestorOrigins;
+                  if (e && e.length > 0) {
+                    const t = (e[e.length - 1] || "").replace(/^https?:\/\//, "");
+                    if (cn(t)) return !0;
+                  }
+                } catch (e) {}
+                try {
+                  if (document.referrer) {
+                    const e = new URL(document.referrer).host;
+                    if (cn(e)) return !0;
+                  }
+                } catch (e) {}
+                return !1;
+              })()
+                ? this.runSilentCaptionUpload()
+                : (this.injectAppStyle(),
+                  this.addMessageListener(),
+                  sj(),
+                  cj(),
+                  dj(),
+                  this.refreshDualSubtitleEnabled().then(() => this.addEntry()),
+                  captionProvider.event.on("caption.enable", this.renderCaption.bind(this)),
+                  captionProvider.event.on("caption.disable", this.unmountCaption.bind(this)),
+                  this.renderCaption(),
+                  (this.t1 = ((e) => {
+                    let t = location.href;
+                    const n = window.location.href.includes("www.youtube.com/embed");
+                    let r = null;
+                    return (
+                      sn && window.clearInterval(sn),
+                      (sn = window.setInterval(() => {
+                        if ("youtube" === Zt()) {
+                          if (n)
+                            try {
+                              const n = document.querySelector("a.ytp-title-link").href,
+                                i = new URL(n).searchParams.get("v");
+                              i !== r && ((r = i), e && e(t, location.href));
+                            } catch (e) {
+                              Wt("[addVideoChangeListener.youtube]", {
+                                error: e,
+                              });
+                            }
+                          else {
+                            const n = (e) => {
+                                try {
+                                  const t = new URL(e),
+                                    n = t.searchParams.get("v");
+                                  if (n) return n;
+                                  const r = /\/live\/([^/?#]+)/.exec(t.pathname);
+                                  return r ? r[1] : null;
+                                } catch (e) {
+                                  return null;
+                                }
+                              },
+                              r = n(t),
+                              i = n(window.location.href);
+                            r !== i && i && (e && e(t, location.href), (t = location.href));
                           }
-                        else {
-                          const n = (e) => {
-                              try {
-                                const t = new URL(e),
-                                  n = t.searchParams.get("v");
-                                if (n) return n;
-                                const r = /\/live\/([^/?#]+)/.exec(t.pathname);
-                                return r ? r[1] : null;
-                              } catch (e) {
-                                return null;
-                              }
-                            },
-                            r = n(t),
-                            i = n(window.location.href);
-                          r !== i && i && (e && e(t, location.href), (t = location.href));
-                        }
-                      } else location.href !== t && (e && e(t, location.href), (t = location.href));
-                    }, 500)),
-                    sn
-                  );
-                })((e, t) => {
-                  (captionProvider.enabled = !1),
-                    Ht("[URL changed]", {
-                      prev: e,
-                      current: t,
-                    }),
-                    this.ensureQuickButtonInjected(),
-                    "hbo" === platformContext.platform && (platformContext.context = {}),
-                    "udemy" === platformContext.platform && (platformContext.context = {}),
-                    this.renderCaption(),
-                    captionProvider.event.emit("video.change");
-                })),
-                platformContext.event.on("url.change", () => {
-                  (captionProvider.enabled = !1),
-                    this.renderCaption(),
-                    this.ensureQuickButtonInjected(),
-                    captionProvider.event.emit("video.change"),
-                    "primevideo" === platformContext.platform &&
-                      captionProvider.event.emit("caption:reload");
+                        } else
+                          location.href !== t && (e && e(t, location.href), (t = location.href));
+                      }, 500)),
+                      sn
+                    );
+                  })((e, t) => {
+                    (captionProvider.enabled = !1),
+                      Ht("[URL changed]", {
+                        prev: e,
+                        current: t,
+                      }),
+                      this.ensureQuickButtonInjected(),
+                      "hbo" === platformContext.platform && (platformContext.context = {}),
+                      "udemy" === platformContext.platform && (platformContext.context = {}),
+                      this.renderCaption(),
+                      captionProvider.event.emit("video.change");
+                  })),
+                  platformContext.event.on("url.change", () => {
+                    (captionProvider.enabled = !1),
+                      this.renderCaption(),
+                      this.ensureQuickButtonInjected(),
+                      captionProvider.event.emit("video.change"),
+                      "primevideo" === platformContext.platform &&
+                        captionProvider.event.emit("caption:reload");
+                  }),
+                  window.addEventListener("beforeunload", this.destroy.bind(this)));
+          }
+          runSilentCaptionUpload() {
+            return Tj(this, null, function* () {
+              try {
+                if ("youtube" !== captionProvider.platform) return;
+                const e = yield this.queryDashboardNativeLang();
+                if (!e)
+                  return void Ht("[silent-caption-upload] no preferredLang from dashboard, skip");
+                const t = new CaptionUploader("en", "en");
+                yield t.uploadOnly(e);
+              } catch (e) {
+                Vt("[silent-caption-upload.failed]", e);
+              }
+            });
+          }
+          queryDashboardNativeLang() {
+            return new Promise((e) => {
+              let t = !1;
+              const n = (n) => {
+                t || ((t = !0), extensionClient.off("dashboard:native-lang"), e(n));
+              };
+              extensionClient.on("dashboard:native-lang", (e) => {
+                var t;
+                return n((null == (t = e.body) ? void 0 : t.nativeLang) || null);
+              }),
+                extensionClient.emit("forward", ["background"], {
+                  name: "dashboard:native-lang:request",
+                  body: {},
                 }),
-                window.addEventListener("beforeunload", this.destroy.bind(this)));
-        }
-        runSilentCaptionUpload() {
-          return Tj(this, null, function* () {
-            try {
-              if ("youtube" !== captionProvider.platform) return;
-              const e = yield this.queryDashboardNativeLang();
-              if (!e)
-                return void Ht("[silent-caption-upload] no preferredLang from dashboard, skip");
-              const t = new CaptionUploader("en", "en");
-              yield t.uploadOnly(e);
-            } catch (e) {
-              Vt("[silent-caption-upload.failed]", e);
+                setTimeout(() => n(null), 1500);
+            });
+          }
+          destroy() {
+            if (this.html5ButtonPositionTimer) {
+              window.clearInterval(this.html5ButtonPositionTimer);
+              this.html5ButtonPositionTimer = null;
             }
-          });
-        }
-        queryDashboardNativeLang() {
-          return new Promise((e) => {
-            let t = !1;
-            const n = (n) => {
-              t || ((t = !0), extensionClient.off("dashboard:native-lang"), e(n));
-            };
-            extensionClient.on("dashboard:native-lang", (e) => {
-              var t;
-              return n((null == (t = e.body) ? void 0 : t.nativeLang) || null);
-            }),
-              extensionClient.emit("forward", ["background"], {
-                name: "dashboard:native-lang:request",
-                body: {},
-              }),
-              setTimeout(() => n(null), 1500);
-          });
-        }
-        destroy() {
-          Ht("[destroy]"),
-            this.appRoot && this.appRoot.unmount(),
-            this.dualCaptionRoot && this.dualCaptionRoot.unmount(),
-            this.buttonRoot && this.buttonRoot.unmount(),
-            this.mutationObserver && this.mutationObserver.disconnect(),
-            this.t1 && window.clearInterval(this.t1),
-            extensionClient.off("toggle"),
-            window.removeEventListener("edvideo:caption.reload", this.reload.bind(this)),
-            window.removeEventListener("beforeunload", this.destroy.bind(this)),
-            captionProvider.event.off("caption.enable", this.renderCaption.bind(this)),
-            captionProvider.event.off("caption.disable", this.unmountCaption.bind(this)),
-            platformContext.event.off("subtitle.loaded", this.boundBootstrap);
-        }
-        injectCaptionStyle() {
-          return Tj(this, null, function* () {
-            const { data: e } = yield extensionClient.getRuntime(),
-              t = document.createElement("link");
-            (t.rel = "stylesheet"),
-              (t.href = `${e.scheme}/assets/caption.css`),
-              document.head.appendChild(t);
-          });
-        }
-        injectAppStyle() {
-          return Tj(this, null, function* () {
-            const { data: e } = yield extensionClient.getRuntime(),
-              t = document.createElement("link");
-            (t.rel = "stylesheet"),
-              (t.href = `${e.scheme}/assets/edvideo.css`),
-              Ht("[injectAppStyle]", {
-                linkElement: t,
-              }),
-              document.documentElement.prepend(t);
-          });
-        }
-        addEntry() {
-          return Tj(this, null, function* () {
-            this.mutationObserver && this.mutationObserver.disconnect(),
-              (this.mutationObserver = new MutationObserver(
-                Tb()(() => {
-                  this.addQuickButton(), this.checkVideoChange();
-                }, 300),
-              )),
-              this.mutationObserver.observe(document.documentElement, {
-                childList: !0,
-                attributes: !1,
-                subtree: !0,
-              }),
+            if (this.html5FullscreenHandler) {
+              document.removeEventListener("fullscreenchange", this.html5FullscreenHandler);
+              this.html5FullscreenHandler = null;
+            }
+            Ht("[destroy]"),
+              this.appRoot && this.appRoot.unmount(),
+              this.dualCaptionRoot && this.dualCaptionRoot.unmount(),
+              this.buttonRoot && this.buttonRoot.unmount(),
+              this.mutationObserver && this.mutationObserver.disconnect(),
+              this.t1 && window.clearInterval(this.t1),
+              extensionClient.off("toggle"),
+              window.removeEventListener("edvideo:caption.reload", this.reload.bind(this)),
+              window.removeEventListener("beforeunload", this.destroy.bind(this)),
+              captionProvider.event.off("caption.enable", this.renderCaption.bind(this)),
+              captionProvider.event.off("caption.disable", this.unmountCaption.bind(this)),
+              platformContext.event.off("subtitle.loaded", this.boundBootstrap);
+          }
+          injectCaptionStyle() {
+            return Tj(this, null, function* () {
+              const { data: e } = yield extensionClient.getRuntime(),
+                t = document.createElement("link");
+              (t.rel = "stylesheet"),
+                (t.href = `${e.scheme}/assets/caption.css`),
+                document.head.appendChild(t);
+            });
+          }
+          injectAppStyle() {
+            return Tj(this, null, function* () {
+              const { data: e } = yield extensionClient.getRuntime(),
+                t = document.createElement("link");
+              (t.rel = "stylesheet"),
+                (t.href = `${e.scheme}/assets/edvideo.css`),
+                Ht("[injectAppStyle]", {
+                  linkElement: t,
+                }),
+                document.documentElement.prepend(t);
+            });
+          }
+          addEntry() {
+            return Tj(this, null, function* () {
+              this.mutationObserver && this.mutationObserver.disconnect(),
+                (this.mutationObserver = new MutationObserver(
+                  Tb()(() => {
+                    this.addQuickButton(), this.checkVideoChange();
+                  }, 300),
+                )),
+                this.mutationObserver.observe(document.documentElement, {
+                  childList: !0,
+                  attributes: !1,
+                  subtree: !0,
+                }),
+                this.ensureQuickButtonInjected();
+            });
+          }
+          ensureQuickButtonInjected() {
+            this.ensureButtonTimer && clearInterval(this.ensureButtonTimer),
+              (this.ensureButtonTimer = window.setInterval(() => {
+                if (document.querySelector("#xt-toggle-button"))
+                  return (
+                    this.ensureButtonTimer && clearInterval(this.ensureButtonTimer),
+                    void (this.ensureButtonTimer = null)
+                  );
+                this.addQuickButton();
+              }, 500));
+          }
+          checkVideoChange() {
+            const video =
+              captionProvider.platform === "html5"
+                ? lexihaloPickHtml5Video()
+                : document.querySelector("video");
+            if (video && video !== this.lastVideoEl) {
+              if (captionProvider.platform === "html5" && this.lastVideoEl) {
+                this.unmountButton();
+                document.querySelector("#xt-toggle-button")?.remove();
+                this.lastVideoEl.parentElement?.classList.remove("lexihalo-html5-container");
+              }
+              if (captionProvider.platform === "html5") captionProvider.video = video;
+              this.lastVideoEl = video;
+              Ht("[video.element.changed] re-render caption");
+              this.renderCaption();
               this.ensureQuickButtonInjected();
-          });
-        }
-        ensureQuickButtonInjected() {
-          this.ensureButtonTimer && clearInterval(this.ensureButtonTimer),
-            (this.ensureButtonTimer = window.setInterval(() => {
-              if (document.querySelector("#xt-toggle-button"))
-                return (
-                  this.ensureButtonTimer && clearInterval(this.ensureButtonTimer),
-                  void (this.ensureButtonTimer = null)
-                );
-              this.addQuickButton();
-            }, 500));
-        }
-        checkVideoChange() {
-          const e = document.querySelector("video");
-          e &&
-            e !== this.lastVideoEl &&
-            ((this.lastVideoEl = e),
-            Ht("[video.element.changed] re-render caption"),
-            this.renderCaption(),
-            this.ensureQuickButtonInjected());
-        }
-        refreshDualSubtitleEnabled() {
-          return Tj(this, null, function* () {
-            var e;
-            try {
-              const t = yield extensionClient.getStateChunks({
-                only: ["setting"],
-              });
-              this.dualSubtitleEnabled =
-                !1 !==
-                (null == (e = null == t ? void 0 : t.setting) ? void 0 : e.dualSubtitleEnabled);
-            } catch (e) {
-              Vt("[refreshDualSubtitleEnabled.failed]", e);
             }
-          });
-        }
-        addQuickButton() {
-          var e, t;
-          if (this.dualSubtitleEnabled)
-            switch (!0) {
-              case "coursera" === captionProvider.platform: {
-                const t = document.querySelector(
-                  ".icon-container .fullscreen-toggle-tooltip-wrapper",
-                );
-                if (t) {
-                  this.insertButton({
-                    el: t,
-                    platform: platformContext.platform,
-                    classNames: "trancy-coursera-button-new",
-                    insertType: "after",
-                  });
-                  break;
-                }
-                const n = document.querySelector(".rc-SubtitleMenu"),
-                  r = document.querySelector(".vjs-progress-control"),
-                  i = document.querySelector(".rc-VideoSettingsMenu"),
-                  a =
-                    null == (e = document.querySelector("[data-testid='fullscreenToggle']"))
-                      ? void 0
-                      : e.parentElement;
-                if (i || n || r || a) {
-                  let e =
-                    "vjs-subtitles-button vjs-menu-button vjs-menu-button-popup vjs-control vjs-button";
-                  i && (e += " trancy-coursera-button-new"),
+          }
+          refreshDualSubtitleEnabled() {
+            return Tj(this, null, function* () {
+              var e;
+              try {
+                const t = yield extensionClient.getStateChunks({
+                  only: ["setting"],
+                });
+                this.dualSubtitleEnabled =
+                  !1 !==
+                  (null == (e = null == t ? void 0 : t.setting) ? void 0 : e.dualSubtitleEnabled);
+              } catch (e) {
+                Vt("[refreshDualSubtitleEnabled.failed]", e);
+              }
+            });
+          }
+          addQuickButton() {
+            var e, t;
+            if (this.dualSubtitleEnabled)
+              switch (!0) {
+                case "coursera" === captionProvider.platform: {
+                  const t = document.querySelector(
+                    ".icon-container .fullscreen-toggle-tooltip-wrapper",
+                  );
+                  if (t) {
                     this.insertButton({
-                      el: i || n || r || a,
+                      el: t,
                       platform: platformContext.platform,
-                      classNames: e,
+                      classNames: "trancy-coursera-button-new",
                       insertType: "after",
                     });
-                }
-                break;
-              }
-              case "edx" === captionProvider.platform: {
-                const e = document.querySelector(".toggle-captions");
-                e &&
-                  this.insertButton({
-                    el: e,
-                    platform: platformContext.platform,
-                    classNames: "control",
-                    insertType: "after",
-                  });
-                break;
-              }
-              case "disney" === captionProvider.platform: {
-                const e = document.querySelector("video[src]"),
-                  t = null == e ? void 0 : e.parentElement;
-                t &&
-                  this.insertButton({
-                    el: t,
-                    platform: platformContext.platform,
-                    classNames: "trancy-floating",
-                    insertType: "append",
-                  }),
-                  this.syncDisneyControlsVisibility();
-                break;
-              }
-              case "hbo" === captionProvider.platform: {
-                const e = document.querySelector(
-                    "button[data-testid='player-ux-fullscreen-button']",
-                  ),
-                  t = e && e.parentElement;
-                t &&
-                  this.insertButton({
-                    el: t,
-                    platform: platformContext.platform,
-                    insertType: "append",
-                  });
-                break;
-              }
-              case "ted" === captionProvider.platform: {
-                const e = document.querySelector("#controls-container .media-settings-wrapper"),
-                  t = e && e.parentElement;
-                t &&
-                  this.insertButton({
-                    el: t,
-                    platform: platformContext.platform,
-                    insertType: "append",
-                  });
-                break;
-              }
-              case "udemy" === captionProvider.platform: {
-                const e = document.querySelector(
-                    'button[aria-label="Enter fullscreen"], button[aria-label="Exit fullscreen"]',
-                  ),
-                  t =
-                    (null == e ? void 0 : e.closest("._control-fullscreen_16d8l_142")) ||
-                    (null == e ? void 0 : e.parentElement);
-                if (t) {
-                  this.insertButton({
-                    el: t,
-                    platform: platformContext.platform,
-                    insertType: "before",
-                  });
+                    break;
+                  }
+                  const n = document.querySelector(".rc-SubtitleMenu"),
+                    r = document.querySelector(".vjs-progress-control"),
+                    i = document.querySelector(".rc-VideoSettingsMenu"),
+                    a =
+                      null == (e = document.querySelector("[data-testid='fullscreenToggle']"))
+                        ? void 0
+                        : e.parentElement;
+                  if (i || n || r || a) {
+                    let e =
+                      "vjs-subtitles-button vjs-menu-button vjs-menu-button-popup vjs-control vjs-button";
+                    i && (e += " trancy-coursera-button-new"),
+                      this.insertButton({
+                        el: i || n || r || a,
+                        platform: platformContext.platform,
+                        classNames: e,
+                        insertType: "after",
+                      });
+                  }
                   break;
                 }
-                const n = document.querySelector("[data-purpose='video-controls']"),
-                  r = n && n.children[7];
-                r &&
-                  this.insertButton({
-                    el: r,
-                    platform: platformContext.platform,
-                    insertType: "after",
-                  });
-                break;
-              }
-              case "youtube" === captionProvider.platform: {
-                const e = document.querySelector("ytd-section-list-renderer"),
-                  t = document.querySelectorAll(".html5-video-player"),
-                  n = Array.from(t)
-                    .filter((t) => !e || !e.contains(t))
-                    .map((e) => e.querySelector(".ytp-fullscreen-button"))
-                    .filter(Boolean);
-                if (n.length > 0)
-                  this.insertButton({
-                    el: n[0],
-                    platform: platformContext.platform,
-                    insertType: "after",
-                  });
-                else {
-                  const e = document.querySelector(".quick-actions-wrapper");
+                case "edx" === captionProvider.platform: {
+                  const e = document.querySelector(".toggle-captions");
                   e &&
                     this.insertButton({
                       el: e,
                       platform: platformContext.platform,
+                      classNames: "control",
+                      insertType: "after",
+                    });
+                  break;
+                }
+                case "disney" === captionProvider.platform: {
+                  const e = document.querySelector("video[src]"),
+                    t = null == e ? void 0 : e.parentElement;
+                  t &&
+                    this.insertButton({
+                      el: t,
+                      platform: platformContext.platform,
+                      classNames: "trancy-floating",
+                      insertType: "append",
+                    }),
+                    this.syncDisneyControlsVisibility();
+                  break;
+                }
+                case "hbo" === captionProvider.platform: {
+                  const e = document.querySelector(
+                      "button[data-testid='player-ux-fullscreen-button']",
+                    ),
+                    t = e && e.parentElement;
+                  t &&
+                    this.insertButton({
+                      el: t,
+                      platform: platformContext.platform,
                       insertType: "append",
                     });
-                }
-                break;
-              }
-              case "netflix" === captionProvider.platform: {
-                const e = document.querySelector("[data-uia='control-fullscreen-enter']"),
-                  t = e && e.parentElement;
-                t &&
-                  this.insertButton({
-                    el: t,
-                    platform: platformContext.platform,
-                    insertType: "after",
-                  });
-                break;
-              }
-              case "primevideo" === captionProvider.platform: {
-                const e = document.querySelector(
-                  ".atvwebplayersdk-infobar-container div div:last-child",
-                );
-                e &&
-                  this.insertButton({
-                    el: e,
-                    platform: platformContext.platform,
-                    insertType: "after",
-                  });
-                break;
-              }
-              case "deeplearning" === captionProvider.platform: {
-                const e = document.querySelector(".vds-fullscreen-button");
-                e &&
-                  this.insertButton({
-                    el: e,
-                    platform: platformContext.platform,
-                    insertType: "after",
-                  });
-                break;
-              }
-              case "bilibili" === captionProvider.platform: {
-                const e = document.querySelector(".bpx-player-ctrl-full");
-                e &&
-                  this.insertButton({
-                    el: e,
-                    platform: platformContext.platform,
-                    insertType: "after",
-                  });
-                break;
-              }
-              case "vimeo" === captionProvider.platform: {
-                const e =
-                  null == (t = document.querySelector(".vp-controls .vp-prefs"))
-                    ? void 0
-                    : t.closest('[class*="controlBarButtonContainer"]');
-                if (e) {
-                  this.insertButton({
-                    el: e,
-                    platform: platformContext.platform,
-                    insertType: "before",
-                  });
                   break;
                 }
-                const n = document.querySelectorAll(
-                    '.vp-controls [class*="controlBarButtonContainer"]',
-                  ),
-                  r = n[n.length - 1];
-                if (r) {
-                  this.insertButton({
-                    el: r,
-                    platform: platformContext.platform,
-                    insertType: "after",
-                  });
+                case "ted" === captionProvider.platform: {
+                  const e = document.querySelector("#controls-container .media-settings-wrapper"),
+                    t = e && e.parentElement;
+                  t &&
+                    this.insertButton({
+                      el: t,
+                      platform: platformContext.platform,
+                      insertType: "append",
+                    });
                   break;
                 }
-                const i = document.querySelector(".vp-controls");
-                i &&
-                  this.insertButton({
-                    el: i,
-                    platform: platformContext.platform,
-                    insertType: "append",
-                  });
-                break;
+                case "udemy" === captionProvider.platform: {
+                  const e = document.querySelector(
+                      'button[aria-label="Enter fullscreen"], button[aria-label="Exit fullscreen"]',
+                    ),
+                    t =
+                      (null == e ? void 0 : e.closest("._control-fullscreen_16d8l_142")) ||
+                      (null == e ? void 0 : e.parentElement);
+                  if (t) {
+                    this.insertButton({
+                      el: t,
+                      platform: platformContext.platform,
+                      insertType: "before",
+                    });
+                    break;
+                  }
+                  const n = document.querySelector("[data-purpose='video-controls']"),
+                    r = n && n.children[7];
+                  r &&
+                    this.insertButton({
+                      el: r,
+                      platform: platformContext.platform,
+                      insertType: "after",
+                    });
+                  break;
+                }
+                case "youtube" === captionProvider.platform: {
+                  const e = document.querySelector("ytd-section-list-renderer"),
+                    t = document.querySelectorAll(".html5-video-player"),
+                    n = Array.from(t)
+                      .filter((t) => !e || !e.contains(t))
+                      .map((e) => e.querySelector(".ytp-fullscreen-button"))
+                      .filter(Boolean);
+                  if (n.length > 0)
+                    this.insertButton({
+                      el: n[0],
+                      platform: platformContext.platform,
+                      insertType: "after",
+                    });
+                  else {
+                    const e = document.querySelector(".quick-actions-wrapper");
+                    e &&
+                      this.insertButton({
+                        el: e,
+                        platform: platformContext.platform,
+                        insertType: "append",
+                      });
+                  }
+                  break;
+                }
+                case "netflix" === captionProvider.platform: {
+                  const e = document.querySelector("[data-uia='control-fullscreen-enter']"),
+                    t = e && e.parentElement;
+                  t &&
+                    this.insertButton({
+                      el: t,
+                      platform: platformContext.platform,
+                      insertType: "after",
+                    });
+                  break;
+                }
+                case "primevideo" === captionProvider.platform: {
+                  const e = document.querySelector(
+                    ".atvwebplayersdk-infobar-container div div:last-child",
+                  );
+                  e &&
+                    this.insertButton({
+                      el: e,
+                      platform: platformContext.platform,
+                      insertType: "after",
+                    });
+                  break;
+                }
+                case "deeplearning" === captionProvider.platform: {
+                  const e = document.querySelector(".vds-fullscreen-button");
+                  e &&
+                    this.insertButton({
+                      el: e,
+                      platform: platformContext.platform,
+                      insertType: "after",
+                    });
+                  break;
+                }
+                case "bilibili" === captionProvider.platform: {
+                  const e = document.querySelector(".bpx-player-ctrl-full");
+                  e &&
+                    this.insertButton({
+                      el: e,
+                      platform: platformContext.platform,
+                      insertType: "after",
+                    });
+                  break;
+                }
+                case "vimeo" === captionProvider.platform: {
+                  const e =
+                    null == (t = document.querySelector(".vp-controls .vp-prefs"))
+                      ? void 0
+                      : t.closest('[class*="controlBarButtonContainer"]');
+                  if (e) {
+                    this.insertButton({
+                      el: e,
+                      platform: platformContext.platform,
+                      insertType: "before",
+                    });
+                    break;
+                  }
+                  const n = document.querySelectorAll(
+                      '.vp-controls [class*="controlBarButtonContainer"]',
+                    ),
+                    r = n[n.length - 1];
+                  if (r) {
+                    this.insertButton({
+                      el: r,
+                      platform: platformContext.platform,
+                      insertType: "after",
+                    });
+                    break;
+                  }
+                  const i = document.querySelector(".vp-controls");
+                  i &&
+                    this.insertButton({
+                      el: i,
+                      platform: platformContext.platform,
+                      insertType: "append",
+                    });
+                  break;
+                }
+                case "html5" === captionProvider.platform: {
+                  let video = lexihaloPickHtml5Video();
+                  if (!video && globalThis.lexihaloSites?.page(location.href)) {
+                    globalThis.lexihaloSiteAdapters.ensureHost(null);
+                    video = lexihaloPickHtml5Video();
+                  }
+                  const element = video?.parentElement;
+                  if (video) captionProvider.video = video;
+                  if (element) element.classList.add("lexihalo-html5-container");
+                  const isPornhub = /(^|\.)pornhub\.com$/i.test(location.hostname);
+                  const pornhubControls = isPornhub
+                    ? document.querySelector(
+                        "#mgp .mgp_controlBar .mgp_front, .mgp_container .mgp_controlBar .mgp_front, #mgp .mgp_controlsBar, #mgp .mgp_controlsContainer",
+                      )
+                    : null;
+                  if (video && pornhubControls) {
+                    const anchor = pornhubControls.querySelector(
+                      ".mgp_fullscreen, .mgp_fullScreen, [class*='fullscreen' i]",
+                    );
+                    this.insertButton({
+                      el: anchor || pornhubControls,
+                      platform: platformContext.platform,
+                      classNames: "trancy-pornhub-control",
+                      insertType: anchor ? "before" : "append",
+                    });
+                    const button = document.querySelector("#xt-toggle-button.trancy-html5-button");
+                    if (button) {
+                      button.classList.remove("trancy-floating");
+                      button.classList.add("trancy-pornhub-control");
+                      if (anchor && button.nextElementSibling !== anchor) {
+                        pornhubControls.insertBefore(button, anchor);
+                      } else if (!anchor && button.parentElement !== pornhubControls) {
+                        pornhubControls.appendChild(button);
+                      }
+                      button.removeAttribute("style");
+                    }
+                    if (this.html5ButtonPositionTimer) {
+                      window.clearInterval(this.html5ButtonPositionTimer);
+                      this.html5ButtonPositionTimer = null;
+                    }
+                    if (this.html5FullscreenHandler) {
+                      document.removeEventListener("fullscreenchange", this.html5FullscreenHandler);
+                      this.html5FullscreenHandler = null;
+                    }
+                    this.html5ButtonPosition = null;
+                    break;
+                  }
+                  if (video) {
+                    const playerHost = lexihaloFindHtml5PlayerHost(video);
+                    playerHost?.classList.add("lexihalo-html5-button-host");
+                    if (playerHost && getComputedStyle(playerHost).position === "static") {
+                      playerHost.classList.add("lexihalo-html5-position-static");
+                    }
+                    this.insertButton({
+                      el: playerHost,
+                      platform: platformContext.platform,
+                      classNames: "trancy-floating",
+                      insertType: "append",
+                    });
+                    this.html5ButtonPosition = () => {
+                      const activeVideo = lexihaloPickHtml5Video();
+                      const button = document.querySelector(
+                        "#xt-toggle-button.trancy-html5-button",
+                      );
+                      if (!activeVideo || !button) return;
+                      const host = lexihaloFindHtml5PlayerHost(activeVideo);
+                      if (!host) return;
+                      host.classList.add("lexihalo-html5-button-host");
+                      if (getComputedStyle(host).position === "static") {
+                        host.classList.add("lexihalo-html5-position-static");
+                      }
+                      if (button.parentElement !== host) host.appendChild(button);
+                      const rect =
+                        activeVideo.tagName === "AUDIO"
+                          ? host.getBoundingClientRect()
+                          : activeVideo.getBoundingClientRect();
+                      const hostRect = host.getBoundingClientRect();
+                      const size = 34;
+                      const toolAnchor = activeVideo.hasAttribute?.("data-lexihalo-tool-anchor");
+                      const visible =
+                        toolAnchor ||
+                        (rect.width >= 160 &&
+                          (rect.height >= 90 || activeVideo.tagName === "AUDIO") &&
+                          rect.bottom > 0 &&
+                          rect.right > 0 &&
+                          rect.top < window.innerHeight &&
+                          rect.left < window.innerWidth);
+                      button.style.display = visible ? "flex" : "none";
+                      button.style.position = "absolute";
+                      button.style.top = Math.max(8, rect.top - hostRect.top + 12) + "px";
+                      button.style.left =
+                        Math.max(
+                          8,
+                          Math.min(
+                            hostRect.width - size - 8,
+                            rect.right - hostRect.left - size - 12,
+                          ),
+                        ) + "px";
+                      button.style.right = "auto";
+                      button.style.bottom = "auto";
+                    };
+                    this.html5ButtonPosition();
+                    if (!this.html5ButtonPositionTimer) {
+                      this.html5ButtonPositionTimer = window.setInterval(
+                        () => this.html5ButtonPosition?.(),
+                        250,
+                      );
+                    }
+                    if (!this.html5FullscreenHandler) {
+                      this.html5FullscreenHandler = () =>
+                        window.requestAnimationFrame(() => this.html5ButtonPosition?.());
+                      document.addEventListener("fullscreenchange", this.html5FullscreenHandler);
+                    }
+                  }
+                  break;
+                }
               }
-            }
-        }
-        insertButton(e) {
-          const { el: t, platform: n, classNames: r, insertType: i } = e,
-            a = "xt-toggle-button";
-          if (document.querySelector(`#${a}`)) return;
-          const o = document.createElement("div");
-          switch (((o.className = `trancy-${n}-button ${r || ""}`), (o.id = a), i)) {
-            case "after":
-              t && t.insertAdjacentElement("afterend", o);
-              break;
-            case "before":
-              t && t.insertAdjacentElement("beforebegin", o);
-              break;
-            case "replace":
-              t && t.replaceWith(o);
-              break;
-            case "append":
-              t && t.appendChild(o);
           }
-          this.renderButton();
-        }
-        syncDisneyControlsVisibility() {
-          var e, t;
-          const n = document.querySelector("main-app-controls-overlay"),
-            r = null != (e = null == n ? void 0 : n.shadowRoot) ? e : null;
-          if (!r || r === this.disneyObservedRoot) return;
-          null == (t = this.disneyControlsObserver) || t.disconnect(),
-            (this.disneyObservedRoot = r);
-          const i = () => {
-            const e = document.querySelector("#xt-toggle-button");
-            if (!e) return;
-            const t = !!r.querySelector(".controls-footer, .experience-controls");
-            e.classList.toggle("controls-visible", t);
-          };
-          (this.disneyControlsObserver = new MutationObserver(Tb()(i, 150))),
-            this.disneyControlsObserver.observe(r, {
-              childList: !0,
-              subtree: !0,
-            }),
-            i();
-        }
-        reload() {
-          return Tj(this, null, function* () {
-            var e;
-            if ((yield this.refreshDualSubtitleEnabled(), !this.dualSubtitleEnabled))
-              return (
-                null == (e = document.querySelector("#xt-toggle-button")) || e.remove(),
-                this.unmountButton(),
-                this.unmountCaption(),
-                void this.unmountApp()
-              );
-            this.addQuickButton(), this.renderButton(), this.renderCaption();
-          });
-        }
-        addMessageListener() {
-          extensionClient.on("toggle", (e) =>
-            Tj(this, null, function* () {
-              const { status: t } = e.body || {},
-                n = () => {
-                  extensionClient.track(
-                    xj(wj({}, VA()), {
-                      name: "player_enter",
-                      player_version: "legacy",
-                      entry: "shortcut",
-                      result: "ok",
-                    }),
-                  ),
-                    this.renderApp("shortcut");
-                };
-              switch (t) {
-                case "on":
-                  n();
-                  break;
-                case "off":
-                  this.unmountApp();
-                  break;
-                default:
-                  document.querySelector(this.ELEMENT_NAME) ? this.unmountApp() : n();
-              }
-            }),
-          ),
-            window.addEventListener("edvideo:caption.reload", this.reload.bind(this));
-        }
-        unmountApp() {
-          Ht("[unmountLexiHaloApp]");
-          const e = document.querySelector(this.ELEMENT_NAME);
-          e && e.remove(),
-            this.appRoot && this.appRoot.unmount(),
-            window.dispatchEvent(
-              new CustomEvent("edvideo:off", {
-                detail: {
-                  status: "on",
-                },
+          insertButton(e) {
+            const { el: t, platform: n, classNames: r, insertType: i } = e,
+              a = "xt-toggle-button";
+            if (document.querySelector(`#${a}`)) return;
+            const o = document.createElement("div");
+            switch (((o.className = `trancy-${n}-button ${r || ""}`), (o.id = a), i)) {
+              case "after":
+                t && t.insertAdjacentElement("afterend", o);
+                break;
+              case "before":
+                t && t.insertAdjacentElement("beforebegin", o);
+                break;
+              case "replace":
+                t && t.replaceWith(o);
+                break;
+              case "append":
+                t && t.appendChild(o);
+            }
+            this.renderButton();
+          }
+          syncDisneyControlsVisibility() {
+            var e, t;
+            const n = document.querySelector("main-app-controls-overlay"),
+              r = null != (e = null == n ? void 0 : n.shadowRoot) ? e : null;
+            if (!r || r === this.disneyObservedRoot) return;
+            null == (t = this.disneyControlsObserver) || t.disconnect(),
+              (this.disneyObservedRoot = r);
+            const i = () => {
+              const e = document.querySelector("#xt-toggle-button");
+              if (!e) return;
+              const t = !!r.querySelector(".controls-footer, .experience-controls");
+              e.classList.toggle("controls-visible", t);
+            };
+            (this.disneyControlsObserver = new MutationObserver(Tb()(i, 150))),
+              this.disneyControlsObserver.observe(r, {
+                childList: !0,
+                subtree: !0,
+              }),
+              i();
+          }
+          reload() {
+            return Tj(this, null, function* () {
+              var e;
+              if ((yield this.refreshDualSubtitleEnabled(), !this.dualSubtitleEnabled))
+                return (
+                  null == (e = document.querySelector("#xt-toggle-button")) || e.remove(),
+                  this.unmountButton(),
+                  this.unmountCaption(),
+                  void this.unmountApp()
+                );
+              this.addQuickButton(), this.renderButton(), this.renderCaption();
+            });
+          }
+          addMessageListener() {
+            extensionClient.on("toggle", (e) =>
+              Tj(this, null, function* () {
+                const { status: t } = e.body || {},
+                  n = () => {
+                    extensionClient.track(
+                      xj(wj({}, VA()), {
+                        name: "player_enter",
+                        player_version: "legacy",
+                        entry: "shortcut",
+                        result: "ok",
+                      }),
+                    ),
+                      this.renderApp("shortcut");
+                  };
+                switch (t) {
+                  case "on":
+                    n();
+                    break;
+                  case "off":
+                    this.unmountApp();
+                    break;
+                  default:
+                    document.querySelector(this.ELEMENT_NAME) ? this.unmountApp() : n();
+                }
               }),
             ),
-            this.renderCaption();
-        }
-        unmountCaption() {
-          Ht("[unmountCaption]"),
-            captionProvider.platform &&
-              document.documentElement.classList.remove(`xtc-${captionProvider.platform}`),
-            this.dualCaptionRoot && this.dualCaptionRoot.unmount();
-          document.querySelectorAll("trancy-caption-window").forEach((e) => {
-            e.remove();
-          }),
-            (captionProvider.freezed = !0);
-        }
-        unmountButton() {
-          Ht("[unmountButton]"), this.buttonRoot && this.buttonRoot.unmount();
-          const e = document.querySelector("#xt-toggle-button .trancy-button-container");
-          e && e.remove();
-        }
-        renderButton() {
-          return Tj(this, null, function* () {
-            const t = document.querySelector("#xt-toggle-button");
-            if (!t) return;
-            this.buttonRoot && this.unmountButton(), (this.buttonRoot = $f.createRoot(t));
-            const { data: n } = yield extensionClient.getRuntime(),
-              r = yield extensionClient.getStateChunks({
-                only: ["setting", "dualCaption", "user", "translatorService", "tasks", "shortcuts"],
-              }),
-              i = yield ws(r);
-            this.buttonRoot.render(
-              (0, e.jsx)(fl, {
-                store: i,
-                children: (0, e.jsx)(VideoToggleButton, {
-                  runtime: n,
-                  enter: (e) => {
-                    this.renderApp(e);
+              window.addEventListener("edvideo:caption.reload", this.reload.bind(this));
+          }
+          unmountApp() {
+            Ht("[unmountLexiHaloApp]");
+            const e = document.querySelector(this.ELEMENT_NAME);
+            e && e.remove(),
+              this.appRoot && this.appRoot.unmount(),
+              window.dispatchEvent(
+                new CustomEvent("edvideo:off", {
+                  detail: {
+                    status: "on",
                   },
                 }),
-              }),
-            );
-          });
-        }
-        renderCaption() {
-          return Tj(this, null, function* () {
-            const e = platformContext.id;
-            if (this.renderingCaptionId !== e) {
-              this.renderingCaptionId = e;
-              try {
-                yield this.renderCaptionInner();
-              } finally {
-                this.renderingCaptionId === e && (this.renderingCaptionId = null);
-              }
-            } else
-              Ht("[renderCaption.skip] already rendering", {
-                id: e,
-              });
-          });
-        }
-        renderCaptionInner() {
-          return Tj(this, null, function* () {
-            var t;
-            if ((Ht("[renderCaption]"), !captionProvider.platform)) return;
-            if (
-              ["youtube", "hbo", "vimeo"].includes(captionProvider.platform) &&
-              !Gt(captionProvider.platform)
-            )
-              return;
-            const { element: n, video: r } = yield captionProvider.queryContainerElement(),
-              { data: i } = yield extensionClient.getRuntime(),
-              a = yield extensionClient.getStateChunks({
-                only: [
-                  "setting",
-                  "dualCaption",
-                  "user",
-                  "translatorService",
-                  "words",
-                  "config",
-                  "edreader",
-                  "lastActionAt",
-                  "tasks",
-                ],
-              });
-            if (
-              (Ht("[renderCaption]", {
-                state: a,
-              }),
-              (this.dualSubtitleEnabled =
-                !1 !==
-                (null == (t = null == a ? void 0 : a.setting) ? void 0 : t.dualSubtitleEnabled)),
-              !this.dualSubtitleEnabled)
-            )
-              return Ht("[dual.subtitle.globally.disabled]"), void this.unmountCaption();
-            if (!a.dualCaption.enabled && !captionProvider.enabled)
-              return void Ht("[dual.caption.disabled]");
-            const o = yield ws(a);
-            this.dualCaptionRoot && this.unmountCaption();
-            const s = yield gn({
-              root: n,
-              tag: "trancy-caption-window",
-              attributes: {
-                id: "trancy-caption-window",
-              },
-            });
-            (this.dualCaptionRoot = $f.createRoot(s)),
-              (captionProvider.freezed = !1),
-              (captionProvider.strategy = "none"),
-              this.dualCaptionRoot.render(
+              ),
+              this.renderCaption();
+          }
+          unmountCaption() {
+            Ht("[unmountCaption]"),
+              captionProvider.platform &&
+                document.documentElement.classList.remove(`xtc-${captionProvider.platform}`),
+              this.dualCaptionRoot && this.dualCaptionRoot.unmount();
+            document.querySelectorAll("trancy-caption-window").forEach((e) => {
+              e.remove();
+            }),
+              (captionProvider.freezed = !0);
+          }
+          unmountButton() {
+            Ht("[unmountButton]"), this.buttonRoot && this.buttonRoot.unmount();
+            const e = document.querySelector("#xt-toggle-button .trancy-button-container");
+            e && e.remove();
+          }
+          renderButton() {
+            return Tj(this, null, function* () {
+              const t = document.querySelector("#xt-toggle-button");
+              if (!t) return;
+              this.buttonRoot && this.unmountButton(), (this.buttonRoot = $f.createRoot(t));
+              const { data: n } = yield extensionClient.getRuntime(),
+                r = yield extensionClient.getStateChunks({
+                  only: [
+                    "setting",
+                    "dualCaption",
+                    "user",
+                    "translatorService",
+                    "tasks",
+                    "shortcuts",
+                  ],
+                }),
+                i = yield ws(r);
+              this.buttonRoot.render(
                 (0, e.jsx)(fl, {
-                  store: o,
-                  children: (0, e.jsx)(DualCaptionApp, {
-                    runtime: i,
-                    video: r,
-                    container: s,
+                  store: i,
+                  children: (0, e.jsx)(VideoToggleButton, {
+                    runtime: n,
+                    enter: (e) => {
+                      this.renderApp(e);
+                    },
                   }),
                 }),
               );
-          });
-        }
-        renderApp(t = "unknown") {
-          return Tj(this, null, function* () {
-            const n = (e) => {
-              extensionClient.track(
-                xj(wj({}, VA()), {
-                  name: "player_enter_result",
-                  player_version: "legacy",
-                  entry: t,
-                  result: e,
+            });
+          }
+          renderCaption() {
+            return Tj(this, null, function* () {
+              const e = platformContext.id;
+              if (this.renderingCaptionId !== e) {
+                this.renderingCaptionId = e;
+                try {
+                  yield this.renderCaptionInner();
+                } finally {
+                  this.renderingCaptionId === e && (this.renderingCaptionId = null);
+                }
+              } else
+                Ht("[renderCaption.skip] already rendering", {
+                  id: e,
+                });
+            });
+          }
+          renderCaptionInner() {
+            return Tj(this, null, function* () {
+              var t;
+              if ((Ht("[renderCaption]"), !captionProvider.platform)) return;
+              if (
+                ["youtube", "hbo", "vimeo"].includes(captionProvider.platform) &&
+                !Gt(captionProvider.platform)
+              )
+                return;
+              const { element: n, video: r } = yield captionProvider.queryContainerElement(),
+                { data: i } = yield extensionClient.getRuntime(),
+                a = yield extensionClient.getStateChunks({
+                  only: [
+                    "setting",
+                    "dualCaption",
+                    "user",
+                    "translatorService",
+                    "words",
+                    "config",
+                    "edreader",
+                    "lastActionAt",
+                    "tasks",
+                  ],
+                });
+              if (
+                (Ht("[renderCaption]", {
+                  state: a,
                 }),
-              );
-            };
-            window.dispatchEvent(
-              new CustomEvent("edvideo:on", {
-                detail: {
-                  status: "on",
+                (this.dualSubtitleEnabled =
+                  !1 !==
+                  (null == (t = null == a ? void 0 : a.setting) ? void 0 : t.dualSubtitleEnabled)),
+                !this.dualSubtitleEnabled)
+              )
+                return Ht("[dual.subtitle.globally.disabled]"), void this.unmountCaption();
+              if (!a.dualCaption.enabled && !captionProvider.enabled)
+                return void Ht("[dual.caption.disabled]");
+              const o = yield ws(a);
+              this.dualCaptionRoot && this.unmountCaption();
+              const s = yield gn({
+                root: n,
+                tag: "trancy-caption-window",
+                attributes: {
+                  id: "trancy-caption-window",
                 },
-              }),
-            );
-            document.querySelector("xt-slider") &&
+              });
+              (this.dualCaptionRoot = $f.createRoot(s)),
+                (captionProvider.freezed = !1),
+                (captionProvider.strategy = "none"),
+                this.dualCaptionRoot.render(
+                  (0, e.jsx)(fl, {
+                    store: o,
+                    children: (0, e.jsx)(DualCaptionApp, {
+                      runtime: i,
+                      video: r,
+                      container: s,
+                    }),
+                  }),
+                );
+            });
+          }
+          renderApp(t = "unknown") {
+            return Tj(this, null, function* () {
+              const n = (e) => {
+                extensionClient.track(
+                  xj(wj({}, VA()), {
+                    name: "player_enter_result",
+                    player_version: "legacy",
+                    entry: t,
+                    result: e,
+                  }),
+                );
+              };
               window.dispatchEvent(
-                new CustomEvent("slider:toggle", {
+                new CustomEvent("edvideo:on", {
                   detail: {
-                    path: "",
+                    status: "on",
                   },
                 }),
               );
-            if (document.querySelector(this.ELEMENT_NAME))
-              return Ht("[edvideo.rendered]"), void n("already_open");
-            const { data: r } = yield extensionClient.getRuntime(),
-              i = yield extensionClient.getState(!0);
-            if ([i.setting.language.subtitle, i.setting.language.translation].includes("und"))
-              return (
-                Vt("[edvideo.auth.failed]"),
-                n("lang_unset"),
+              document.querySelector("xt-slider") &&
                 window.dispatchEvent(
                   new CustomEvent("slider:toggle", {
                     detail: {
-                      path: "/setting/language",
+                      path: "",
                     },
                   }),
+                );
+              if (document.querySelector(this.ELEMENT_NAME))
+                return Ht("[edvideo.rendered]"), void n("already_open");
+              const { data: r } = yield extensionClient.getRuntime(),
+                i = yield extensionClient.getState(!0);
+              if ([i.setting.language.subtitle, i.setting.language.translation].includes("und"))
+                return (
+                  Vt("[edvideo.auth.failed]"),
+                  n("lang_unset"),
+                  window.dispatchEvent(
+                    new CustomEvent("slider:toggle", {
+                      detail: {
+                        path: "/setting/language",
+                      },
+                    }),
+                  ),
+                  !1
+                );
+              const a = yield resolvePlatformPlayer(platformContext.platform);
+              if (!a) return Vt("[Notfound.video]"), void n("no_player");
+              const o = yield ws(i);
+              this.unmountCaption();
+              const s = yield gn({
+                root: document.documentElement,
+                tag: this.ELEMENT_NAME,
+                attributes: {
+                  id: this.ELEMENT_NAME,
+                },
+              });
+              this.appRoot = $f.createRoot(s);
+              const l = {
+                platform: platformContext.platform,
+                runtime: r,
+                player: a,
+              };
+              initializeVideoRouter(l),
+                this.appRoot.render(
+                  (0, e.jsx)(fl, {
+                    store: o,
+                    children: (0, e.jsx)(VideoLearningApp, wj({}, l)),
+                  }),
                 ),
-                !1
-              );
-            const a = yield resolvePlatformPlayer(platformContext.platform);
-            if (!a) return Vt("[Notfound.video]"), void n("no_player");
-            const o = yield ws(i);
-            this.unmountCaption();
-            const s = yield gn({
-              root: document.documentElement,
-              tag: this.ELEMENT_NAME,
-              attributes: {
-                id: this.ELEMENT_NAME,
-              },
+                n("ok");
             });
-            this.appRoot = $f.createRoot(s);
-            const l = {
-              platform: platformContext.platform,
-              runtime: r,
-              player: a,
-            };
-            initializeVideoRouter(l),
-              this.appRoot.render(
-                (0, e.jsx)(fl, {
-                  store: o,
-                  children: (0, e.jsx)(VideoLearningApp, wj({}, l)),
-                }),
-              ),
-              n("ok");
-          });
-        }
-      })();
+          }
+        })();
+      };
+      if (
+        Zt() !== "html5" ||
+        document.querySelector("video") ||
+        globalThis.lexihaloSites?.page(location.href) ||
+        globalThis.lexihaloSiteAdapters?.hasPlayerFrame()
+      )
+        bootLexihaloVideoRuntime();
+      else {
+        const lexihaloHtml5VideoObserver = new MutationObserver(() => {
+          if (
+            !(
+              document.querySelector("video") ||
+              globalThis.lexihaloSites?.page(location.href) ||
+              globalThis.lexihaloSiteAdapters?.hasPlayerFrame()
+            )
+          )
+            return;
+          lexihaloHtml5VideoObserver.disconnect();
+          bootLexihaloVideoRuntime();
+        });
+        lexihaloHtml5VideoObserver.observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+        });
+      }
+    }
     function recoverDualCaptionApp(dependencies) {
       const AA = dependencies.AA;
       const At = dependencies.At;
@@ -69036,6 +71495,14 @@
           [K, Z] = (0, React.useState)(!1),
           [G, Y] = (0, React.useState)(!1),
           J = (0, React.useRef)(),
+          transcriptionTask = (0, React.useRef)(null),
+          [videoFormats, setVideoFormats] = (0, React.useState)([]),
+          [videoDownloadState, setVideoDownloadState] = (0, React.useState)({
+            status: "idle",
+            message: "",
+            percent: 0,
+          }),
+          videoDownloadTask = (0, React.useRef)(null),
           X = () =>
             ij(null, null, function* () {
               if ("null" === platformContext.id || "undefined" === platformContext.id) return;
@@ -69086,10 +71553,17 @@
                     );
                 }
             }),
-          ne = () =>
+          ne = (forceNative = false) =>
             ij(null, null, function* () {
-              if (G) return;
+              if (G) {
+                if (transcriptionTask.current?.native) {
+                  void globalThis.lexihaloCancelTranscription?.(transcriptionTask.current.id);
+                  ee("正在取消…");
+                }
+                return;
+              }
               Y(!0), N(null), Z(!1);
+              const startingVideoId = captionProvider.id;
               const fetchingMessage = String(l.language.interface || "").startsWith("zh")
                 ? "正在获取视频音频…"
                 : "Fetching video audio…";
@@ -69105,86 +71579,53 @@
                 ) {
                   yield platformContext.getYoutubeTracks().catch(() => null);
                 }
-                let streams = [];
-                try {
-                  streams = platformContext.streams || [];
-                } catch {}
-                const adaptiveFormats =
-                  platformContext.context?.ytInitialPlayerResponse?.streamingData
-                    ?.adaptiveFormats || [];
-                streams.push(
-                  ...adaptiveFormats
-                    .filter(
-                      (format) =>
-                        format?.url &&
-                        String(format.mimeType || "")
-                          .toLowerCase()
-                          .includes("audio"),
-                    )
-                    .map((format) => ({
-                      size: Number(format.contentLength) || 0,
-                      bitrate: Number(format.bitrate) || 0,
-                      mimeType: format.mimeType,
-                      urls: [format.url],
-                    })),
-                );
-                const video = captionProvider.video || document.querySelector("video");
-                const mediaUrl = video?.currentSrc || video?.src || "";
-                if (/^https?:\/\//i.test(mediaUrl) && !/\.(?:m3u8|mpd)(?:$|\?)/i.test(mediaUrl)) {
-                  const path = (() => {
-                    try {
-                      return new URL(mediaUrl).pathname.toLowerCase();
-                    } catch {
-                      return "";
-                    }
-                  })();
-                  streams.push({
-                    size: 0,
-                    bitrate: Number.MAX_SAFE_INTEGER,
-                    mimeType: /\.webm$/.test(path) ? "video/webm" : "video/mp4",
-                    urls: [mediaUrl],
-                  });
+                const mediaPage =
+                  globalThis.lexihaloSites?.page(location.href) ||
+                  globalThis.lexihaloSites?.browserPage(location.href);
+                const mediaCapabilities = globalThis.lexihaloPlatformCapabilities.resolve({
+                  platform: captionProvider.platform,
+                  page: mediaPage,
+                  host: location.hostname,
+                });
+                if (!forceNative && mediaCapabilities.browserCapture && mediaCapabilities.generic) {
+                  yield globalThis.lexihaloSiteAdapters?.prepare();
                 }
-                const bilibiliAudio = globalThis.__playinfo__?.data?.dash?.audio || [];
-                streams.push(
-                  ...bilibiliAudio
-                    .map((format) => ({
-                      size: Number(format.size) || 0,
-                      bitrate: Number(format.bandwidth) || 0,
-                      mimeType: format.mimeType || "audio/mp4",
-                      urls: [format.baseUrl || format.base_url],
-                    }))
-                    .filter((stream) => stream.urls[0]),
-                );
-                const seenAudioUrls = new Set();
-                const candidates = streams
-                  .filter((stream) => {
-                    const url = stream?.urls?.[0];
-                    if (!url || seenAudioUrls.has(url)) return false;
-                    seenAudioUrls.add(url);
-                    return true;
-                  })
-                  .sort((left, right) => {
-                    const leftSize = Number(left.size) || Number.MAX_SAFE_INTEGER;
-                    const rightSize = Number(right.size) || Number.MAX_SAFE_INTEGER;
-                    return (
-                      leftSize - rightSize ||
-                      (Number(left.bitrate) || 0) - (Number(right.bitrate) || 0)
-                    );
-                  });
-                const maxBytes = 24 * 1024 * 1024;
-                const stream =
-                  candidates.find(
-                    (candidate) => !Number(candidate.size) || Number(candidate.size) <= maxBytes,
-                  ) || candidates[0];
-                if (!stream?.urls?.[0]) {
+                const resolved = globalThis.lexihaloResolveAudioSource({
+                  platform: captionProvider.platform,
+                  context: platformContext,
+                  video: captionProvider.video || document.querySelector("video"),
+                });
+                if (!forceNative && resolved.wrapper && !resolved.browserSources?.length) {
                   throw new Error(
-                    "当前平台未暴露可直接读取的音频流；受 DRM 保护的视频无法由浏览器扩展提取音频",
+                    "当前播放器尚未提供可读取的媒体资源。请从原详情页打开播放器并播放几秒，再重新打开菜单；若是独立包装页，请返回原详情页",
                   );
                 }
-                if (Number(stream.size) > maxBytes) {
+                const stream = resolved.source;
+                const mediaPageUrl = globalThis.lexihaloMediaPageUrl({
+                  platform: captionProvider.platform,
+                  context: platformContext,
+                });
+                const preferNativeHelper = Boolean(
+                  !forceNative &&
+                    mediaPageUrl &&
+                    globalThis.lexihaloPreferNativeHelper?.({
+                      platform: captionProvider.platform,
+                      context: platformContext,
+                    }),
+                );
+                let useNativeHelper =
+                  (forceNative || !stream || preferNativeHelper) &&
+                  mediaPageUrl &&
+                  window.confirm(
+                    preferNativeHelper
+                      ? `是否让浏览器读取${globalThis.lexihaloSites?.page(mediaPageUrl)?.name || (/(^|\.)pornhub\.com$/i.test(new URL(mediaPageUrl).hostname) ? "Pornhub" : "当前网站")}当前播放器的音频，并交给本地助手（ffmpeg）切块识别？不会导出浏览器 Cookie。音频会上传到你配置的 BYOK 服务商。`
+                      : "浏览器无法直接取得小于 24 MB 的完整音频。是否使用已安装的本地助手（yt-dlp + ffmpeg）下载并分段识别当前视频？音频会上传到你配置的 BYOK 服务商；仅公开且有权限访问的媒体可用。",
+                  );
+                if (!stream && !useNativeHelper) {
                   throw new Error(
-                    `最小音频流 ${(Number(stream.size) / 1024 / 1024).toFixed(1)} MB，超过 24 MB 上传限制`,
+                    mediaPageUrl
+                      ? "没有可直接读取的音频；已取消使用本地助手。DRM 内容不支持提取。"
+                      : "当前页面没有可直接读取的音频；本地助手只接受通过安全校验的公网 HTTPS 视频页。DRM 内容不支持提取。",
                   );
                 }
                 const transcribingMessage = String(l.language.interface || "").startsWith("zh")
@@ -69199,15 +71640,65 @@
                 if (typeof transcribe !== "function") {
                   throw new Error("音频识别服务尚未就绪，请刷新页面后重试");
                 }
-                const result = yield transcribe({
-                  audioUrl: stream.urls[0],
-                  mimeType: stream.mimeType || "audio/webm",
-                  audioBytes: Number(stream.size) || 0,
-                  videoId: platformContext.vid || platformContext.id,
-                  duration: Number(platformContext.duration) || 0,
-                  language: platformContext.audioLanguage || l.language.subtitle || "auto",
-                  engineId: u.subtitle?._id || "",
-                });
+                const runTranscription = () => {
+                  const requestId = crypto.randomUUID();
+                  transcriptionTask.current = {
+                    id: requestId,
+                    native: useNativeHelper,
+                  };
+                  return transcribe(
+                    {
+                      requestId,
+                      useNativeHelper,
+                      useBrowserAudio: Boolean(
+                        useNativeHelper &&
+                          !forceNative &&
+                          (preferNativeHelper || resolved.browserSources?.length),
+                      ),
+                      browserSource: !forceNative
+                        ? resolved.browserSources?.find(
+                            (source) => source.transport === "capture" || source.captureId,
+                          )
+                        : undefined,
+                      audioUrl: useNativeHelper ? mediaPageUrl : stream.url,
+                      mediaPageUrl: useNativeHelper ? mediaPageUrl : undefined,
+                      mimeType: stream?.mimeType || "audio/mpeg",
+                      audioBytes: Number(stream?.size) || 0,
+                      videoId: platformContext.vid || platformContext.id,
+                      duration: Number(platformContext.duration) || 0,
+                      language: platformContext.audioLanguage || l.language.subtitle || "auto",
+                      engineId: u.subtitle?._id || "",
+                    },
+                    (progress) => {
+                      ee(progress);
+                      captionProvider.event.emit("transcription.status", {
+                        state: "loading",
+                        message: progress,
+                      });
+                    },
+                  );
+                };
+                let result;
+                try {
+                  result = yield runTranscription();
+                } catch (error) {
+                  if (
+                    useNativeHelper ||
+                    !mediaPageUrl ||
+                    !/获取视频音频失败|音频文件|音频地址|音频流不可读取|请求超时|Failed to fetch|NetworkError/i.test(
+                      error?.message || "",
+                    ) ||
+                    !window.confirm(
+                      "直接下载音频失败。是否改用已安装的本地助手下载并分段上传到你的 BYOK 音频识别接口？",
+                    )
+                  )
+                    throw error;
+                  useNativeHelper = true;
+                  result = yield runTranscription();
+                }
+                if (captionProvider.id !== startingVideoId) {
+                  throw new Error("视频已切换，取消安装旧视频字幕");
+                }
                 captionProvider.installTranscription(result.segments, result.language);
                 const completedMessage = String(l.language.interface || "").startsWith("zh")
                   ? "AI 字幕生成完成"
@@ -69238,9 +71729,184 @@
                   extensionClient.open("byok.html?provider=OpenAI", !1);
                 }
               } finally {
+                transcriptionTask.current = null;
                 Y(!1);
               }
             }),
+          openVideoDownload = (forceNative = false) =>
+            ij(null, null, function* () {
+              x("video-download");
+              setVideoFormats([]);
+              setVideoDownloadState({
+                status: "loading",
+                message: "正在识别视频清晰度…",
+                percent: 0,
+              });
+              try {
+                const mediaPageUrl = globalThis.lexihaloMediaPageUrl({
+                  platform: captionProvider.platform,
+                  context: platformContext,
+                });
+                if (!mediaPageUrl) throw new Error("当前网站尚未接入 yt-dlp 视频下载助手");
+                const listFormats = globalThis.lexihaloListVideoFormats;
+                if (typeof listFormats !== "function")
+                  throw new Error("视频下载服务尚未就绪，请刷新页面后重试");
+                const prepare = globalThis.lexihaloSiteAdapters?.prepare;
+                const mediaPage =
+                  globalThis.lexihaloSites?.page(location.href) ||
+                  globalThis.lexihaloSites?.browserPage(location.href);
+                const mediaCapabilities = globalThis.lexihaloPlatformCapabilities.resolve({
+                  platform: captionProvider.platform,
+                  page: mediaPage,
+                  host: location.hostname,
+                });
+                const local =
+                  !forceNative && mediaCapabilities.browserCapture && typeof prepare === "function"
+                    ? yield prepare()
+                    : null;
+                if (!forceNative && local?.wrapper && !local.sources.length) {
+                  throw new Error("当前播放器尚未取得真实媒体源，请从原详情页打开并播放几秒后重试");
+                }
+                const localFormats = [];
+                const grouped = new Map();
+                for (const source of local?.sources || []) {
+                  const key = `${source.kind}:${source.resolution || 0}`;
+                  if (!grouped.has(key)) grouped.set(key, source);
+                }
+                for (const source of grouped.values()) {
+                  localFormats.push({
+                    formatId: `browser${localFormats.length}`,
+                    resolution: source.resolution || 0,
+                    height: source.resolution || 0,
+                    isAudio: source.kind === "audio",
+                    hasAudio: true,
+                    ext:
+                      source.ext === "m3u8"
+                        ? source.kind === "audio"
+                          ? "mka"
+                          : "mkv"
+                        : source.ext,
+                    label:
+                      source.label ||
+                      (source.kind === "audio"
+                        ? "音频资源"
+                        : source.resolution
+                          ? `${source.resolution}p`
+                          : "当前播放器资源（自动选择清晰度）"),
+                    codecLabel: "浏览器读取",
+                    filesize: source.size || 0,
+                    browserSource: source,
+                    title: local.title,
+                  });
+                }
+                let formats = [];
+                if (
+                  (local?.capabilities?.browserReadable ??
+                    (local?.page?.browser || local?.page?.id === "generic")) &&
+                  localFormats.length
+                )
+                  formats = localFormats;
+                else {
+                  try {
+                    formats = (yield listFormats(mediaPageUrl)).formats || [];
+                  } catch (error) {
+                    if (!localFormats.length) throw error;
+                    formats = localFormats;
+                  }
+                }
+                setVideoFormats(formats);
+                setVideoDownloadState({
+                  status: "ready",
+                  message: `已识别 ${formats.length} 项可下载资源`,
+                  percent: 0,
+                });
+              } catch (error) {
+                setVideoDownloadState({
+                  status: "error",
+                  message: error?.message || String(error),
+                  percent: 0,
+                });
+              }
+            }),
+          downloadVideoFormat = (format) =>
+            ij(null, null, function* () {
+              if (videoDownloadState.status === "downloading") return;
+              const sizeText = format.filesize
+                ? `，约 ${(format.filesize / 1024 / 1024).toFixed(1)} MB`
+                : "";
+              if (
+                !window.confirm(
+                  `下载 ${format.label}${sizeText}？文件将保存到系统 Downloads/LexiHalo 目录。`,
+                )
+              )
+                return;
+              const mediaPageUrl = globalThis.lexihaloMediaPageUrl({
+                platform: captionProvider.platform,
+                context: platformContext,
+              });
+              const requestId = crypto.randomUUID();
+              videoDownloadTask.current = requestId;
+              setVideoDownloadState({
+                status: "downloading",
+                message: `正在准备 ${format.label}…`,
+                percent: 0,
+              });
+              try {
+                const downloadVideo = globalThis.lexihaloDownloadVideo;
+                if (typeof downloadVideo !== "function")
+                  throw new Error("视频下载服务尚未就绪，请刷新页面后重试");
+                const result = yield downloadVideo(
+                  {
+                    requestId,
+                    mediaPageUrl,
+                    formatId: format.formatId,
+                    resolution: format.resolution || format.height || 0,
+                    browserSource: format.browserSource,
+                    title: format.title || platformContext.title || "media",
+                  },
+                  (progress) =>
+                    setVideoDownloadState((previous) =>
+                      previous.message === "正在取消…"
+                        ? previous
+                        : {
+                            status: "downloading",
+                            message:
+                              typeof progress === "object"
+                                ? progress.message
+                                : String(progress || previous.message),
+                            percent:
+                              typeof progress === "object"
+                                ? Math.max(previous.percent || 0, Number(progress.percent) || 0)
+                                : previous.percent || 0,
+                          },
+                    ),
+                );
+                setVideoDownloadState({
+                  status: "done",
+                  message: `已保存：${result.filename || result.directory}`,
+                  percent: 100,
+                });
+              } catch (error) {
+                const message = error?.message || String(error);
+                setVideoDownloadState({
+                  status: /已取消|aborted|cancelled/i.test(message) ? "ready" : "error",
+                  message: /已取消|aborted|cancelled/i.test(message) ? "已取消下载" : message,
+                  percent: 0,
+                });
+              } finally {
+                videoDownloadTask.current = null;
+              }
+            }),
+          cancelVideoDownload = () => {
+            const requestId = videoDownloadTask.current;
+            if (!requestId) return;
+            setVideoDownloadState((previous) => ({
+              ...previous,
+              status: "downloading",
+              message: "正在取消…",
+            }));
+            void globalThis.lexihaloCancelVideoDownload?.(requestId);
+          },
           [re, ie] = (0, React.useState)([]),
           [ae, oe] = (0, React.useState)([]),
           se = [
@@ -69287,6 +71953,13 @@
         }, []);
         (0, React.useEffect)(() => {
           const e = () => {
+            if (transcriptionTask.current?.native) {
+              void globalThis.lexihaloCancelTranscription?.(transcriptionTask.current.id);
+            }
+            if (videoDownloadTask.current) {
+              void globalThis.lexihaloCancelVideoDownload?.(videoDownloadTask.current);
+              videoDownloadTask.current = null;
+            }
             "youtube" === captionProvider.platform &&
               s.enabled &&
               (U("none"),
@@ -69530,6 +72203,7 @@
             (0, jsxRuntime.jsx)("div", {
               className: xb()("trancy-panel-menu", {
                 "show-second": w,
+                "lexihalo-download-menu": w === "video-download",
                 visible: T,
               }),
               style: rj(nj({}, ve), {
@@ -69693,7 +72367,7 @@
                         className: "trancy-menuitem-group",
                         children: (0, jsxRuntime.jsxs)("div", {
                           className: xb()("trancy-menuitem", {
-                            disabled: G,
+                            disabled: G && !transcriptionTask.current?.native,
                           }),
                           role: "button",
                           tabIndex: 0,
@@ -69728,6 +72402,66 @@
                           ],
                         }),
                       }),
+                      globalThis.lexihaloSites?.page(location.href) &&
+                        (0, jsxRuntime.jsx)("div", {
+                          className: "trancy-menuitem-group",
+                          children: (0, jsxRuntime.jsxs)("div", {
+                            className: "trancy-menuitem",
+                            role: "button",
+                            tabIndex: 0,
+                            onClick: () => {
+                              void ne(true);
+                            },
+                            children: [
+                              (0, jsxRuntime.jsx)("div", {
+                                className: "trancy-menuitem-icon",
+                                children: (0, jsxRuntime.jsx)(yt, {}),
+                              }),
+                              (0, jsxRuntime.jsx)("div", {
+                                className: "trancy-menuitem-label",
+                                children: "AI 字幕（本地页面解析）",
+                              }),
+                            ],
+                          }),
+                        }),
+                      globalThis.lexihaloMediaPageUrl?.({
+                        platform: captionProvider.platform,
+                        context: platformContext,
+                      }) &&
+                        (0, jsxRuntime.jsx)("div", {
+                          className: "trancy-menuitem-group",
+                          children: (0, jsxRuntime.jsxs)("div", {
+                            className: "trancy-menuitem",
+                            role: "button",
+                            tabIndex: 0,
+                            "data-lexihalo-video-download": "true",
+                            onClick: () => {
+                              void openVideoDownload();
+                            },
+                            onKeyDown: (event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                void openVideoDownload();
+                              }
+                            },
+                            children: [
+                              (0, jsxRuntime.jsx)("div", {
+                                className: "trancy-menuitem-icon",
+                                children: (0, jsxRuntime.jsx)(Le, {}),
+                              }),
+                              (0, jsxRuntime.jsx)("div", {
+                                className: "trancy-menuitem-label",
+                                children: globalThis.lexihaloSites?.siteOf(location.href)?.audio
+                                  ? "下载音频/资源"
+                                  : "下载视频（多清晰度）",
+                              }),
+                              (0, jsxRuntime.jsx)("div", {
+                                className: "trancy-menuitem-action",
+                                children: (0, jsxRuntime.jsx)(Ct, {}),
+                              }),
+                            ],
+                          }),
+                        }),
                       (0, jsxRuntime.jsxs)("div", {
                         className: "trancy-menuitem-group",
                         children: [
@@ -70244,6 +72978,165 @@
                   (0, jsxRuntime.jsxs)("div", {
                     className: "trancy-second-panel-menu",
                     children: [
+                      "video-download" === w &&
+                        (0, jsxRuntime.jsxs)("div", {
+                          className:
+                            "trancy-second-panel-menu-container lexihalo-video-download-panel",
+                          ref: C,
+                          children: [
+                            (0, jsxRuntime.jsxs)("div", {
+                              className: "second-panel-menu-header",
+                              children: [
+                                (0, jsxRuntime.jsxs)("div", {
+                                  className: "btn-back-panel-header",
+                                  onClick: (event) => {
+                                    event.stopPropagation();
+                                    event.preventDefault();
+                                    x(null);
+                                  },
+                                  children: [
+                                    (0, jsxRuntime.jsx)("div", {
+                                      className: "trancy-panel-close-icon",
+                                      children: (0, jsxRuntime.jsx)(St, {}),
+                                    }),
+                                    (0, jsxRuntime.jsx)("span", {
+                                      children: "下载视频",
+                                    }),
+                                  ],
+                                }),
+                                videoDownloadState.status === "downloading" &&
+                                  (0, jsxRuntime.jsx)("div", {
+                                    className: "btn-back-panel-action lexihalo-download-cancel",
+                                    role: "button",
+                                    tabIndex: 0,
+                                    "aria-label": "取消视频下载",
+                                    onClick: (event) => {
+                                      event.stopPropagation();
+                                      cancelVideoDownload();
+                                    },
+                                    onKeyDown: (event) => {
+                                      if (event.key === "Enter" || event.key === " ") {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        cancelVideoDownload();
+                                      }
+                                    },
+                                    children: "取消",
+                                  }),
+                              ],
+                            }),
+                            (0, jsxRuntime.jsxs)("div", {
+                              className: "trancy-second-panel-menu-content",
+                              children: [
+                                videoDownloadState.message &&
+                                  (0, jsxRuntime.jsxs)("div", {
+                                    className: xb()(
+                                      "trancy-menuitem trancy-menuitem-static lexihalo-download-status",
+                                      {
+                                        disabled: videoDownloadState.status === "loading",
+                                        done: videoDownloadState.status === "done",
+                                        error: videoDownloadState.status === "error",
+                                      },
+                                    ),
+                                    children: [
+                                      (0, jsxRuntime.jsx)("div", {
+                                        className: "trancy-menuitem-label",
+                                        title: videoDownloadState.message,
+                                        children: videoDownloadState.message,
+                                      }),
+                                      videoDownloadState.status === "downloading" &&
+                                        (0, jsxRuntime.jsxs)("div", {
+                                          className: "lexihalo-download-progress-row",
+                                          children: [
+                                            (0, jsxRuntime.jsx)("div", {
+                                              className: "lexihalo-download-progress-track",
+                                              role: "progressbar",
+                                              "aria-valuemin": 0,
+                                              "aria-valuemax": 100,
+                                              "aria-valuenow": Math.round(
+                                                videoDownloadState.percent || 0,
+                                              ),
+                                              children: (0, jsxRuntime.jsx)("span", {
+                                                style: {
+                                                  width: `${Math.max(0, Math.min(100, videoDownloadState.percent || 0))}%`,
+                                                },
+                                              }),
+                                            }),
+                                            (0, jsxRuntime.jsx)("span", {
+                                              className: "lexihalo-download-progress-value",
+                                              children: `${Math.round(videoDownloadState.percent || 0)}%`,
+                                            }),
+                                          ],
+                                        }),
+                                    ],
+                                  }),
+                                globalThis.lexihaloSites?.page(location.href) &&
+                                  videoDownloadState.status !== "downloading" &&
+                                  (0, jsxRuntime.jsx)("div", {
+                                    className: "trancy-menuitem",
+                                    onClick: () => {
+                                      void openVideoDownload(true);
+                                    },
+                                    children: (0, jsxRuntime.jsx)("div", {
+                                      className: "trancy-menuitem-label",
+                                      children: "改用本地助手解析公开资源",
+                                    }),
+                                  }),
+                                videoFormats.map((format) =>
+                                  (0, jsxRuntime.jsxs)(
+                                    "div",
+                                    {
+                                      className: xb()("trancy-menuitem lexihalo-download-format", {
+                                        disabled: videoDownloadState.status === "downloading",
+                                      }),
+                                      role: "button",
+                                      tabIndex: 0,
+                                      onClick: () => {
+                                        void downloadVideoFormat(format);
+                                      },
+                                      children: [
+                                        (0, jsxRuntime.jsx)("div", {
+                                          className: "trancy-menuitem-icon",
+                                          children: (0, jsxRuntime.jsx)(Le, {}),
+                                        }),
+                                        (0, jsxRuntime.jsxs)("div", {
+                                          className:
+                                            "trancy-menuitem-label lexihalo-download-format-copy",
+                                          children: [
+                                            (0, jsxRuntime.jsx)("span", {
+                                              className: "lexihalo-download-format-title",
+                                              children: format.label,
+                                            }),
+                                            (0, jsxRuntime.jsx)("span", {
+                                              className: "lexihalo-download-format-meta",
+                                              children: [
+                                                format.ext?.toUpperCase(),
+                                                format.codecLabel,
+                                                !format.hasAudio ? "自动合并音频" : "含音频",
+                                              ]
+                                                .filter(Boolean)
+                                                .join(" · "),
+                                            }),
+                                          ],
+                                        }),
+                                        (0, jsxRuntime.jsx)("div", {
+                                          className: "trancy-menuitem-action",
+                                          children: (0, jsxRuntime.jsx)("div", {
+                                            className: "trancy-action-label",
+                                            children: format.filesize
+                                              ? `${(format.filesize / 1024 / 1024).toFixed(0)} MB`
+                                              : "—",
+                                          }),
+                                        }),
+                                      ],
+                                    },
+                                    format.formatId,
+                                  ),
+                                ),
+                              ],
+                            }),
+                          ],
+                        }),
                       "more-settings" === w &&
                         (0, jsxRuntime.jsxs)("div", {
                           className: "trancy-second-panel-menu-container",
@@ -70933,15 +73826,354 @@
   })();
 })();
 
+/* One page-side lifecycle for browser media transcription and download tasks. */
+(() => {
+  "use strict";
+
+  class MediaTaskRegistry {
+    constructor() {
+      this.tasks = new Map();
+    }
+    begin(requestId, purpose) {
+      if (!requestId || this.tasks.has(requestId)) throw new Error("媒体任务标识重复");
+      const task = {
+        requestId,
+        purpose,
+        controller: new AbortController(),
+        uploadId: null,
+        state: "starting",
+      };
+      this.tasks.set(requestId, task);
+      return task;
+    }
+    get(requestId) {
+      return this.tasks.get(requestId) || null;
+    }
+    attachUpload(requestId, uploadId) {
+      const task = this.get(requestId);
+      if (!task) throw new Error("媒体任务已经结束");
+      task.uploadId = uploadId;
+      task.state = "transferring";
+      return task;
+    }
+    processing(requestId) {
+      const task = this.get(requestId);
+      if (task) task.state = "processing";
+      return task;
+    }
+    cancel(requestId) {
+      const task = this.get(requestId);
+      if (!task) return null;
+      task.state = "cancelling";
+      task.controller.abort();
+      return task;
+    }
+    finish(requestId) {
+      const task = this.get(requestId);
+      if (task) task.state = task.controller.signal.aborted ? "cancelled" : "finished";
+      this.tasks.delete(requestId);
+      return task || null;
+    }
+    cancelAll() {
+      for (const task of this.tasks.values()) {
+        task.state = "cancelling";
+        task.controller.abort();
+      }
+    }
+  }
+
+  globalThis.lexihaloMediaTasks = new MediaTaskRegistry();
+})();
+
+/* Resolve browser-readable media without making platform details part of the UI. */
+(() => {
+  const MAX_BYTES = 24 * 1024 * 1024;
+  globalThis.lexihaloMediaPageUrl = ({ platform, context }) => {
+    context = context || {};
+    const here = new URL(location.href);
+    if (typeof globalThis.lexihaloSites?.nativePage === "function") {
+      return globalThis.lexihaloSites.nativePage(here.href)?.url || null;
+    }
+    if (globalThis.lexihaloSites?.siteOf(here.href)) {
+      return globalThis.lexihaloSites.page(here.href)?.url || null;
+    }
+    if (platform === "youtube") {
+      const id = String(context.id || "");
+      return /^[A-Za-z0-9_-]{11}$/.test(id) ? `https://www.youtube.com/watch?v=${id}` : null;
+    }
+    if (platform === "bilibili") {
+      const bvid =
+        here.pathname.match(/\/video\/(BV[0-9A-Za-z]{10})/)?.[1] ||
+        String(globalThis.__INITIAL_STATE__?.bvid || "").match(/^BV[0-9A-Za-z]{10}$/)?.[0] ||
+        String(context.id || "").match(/^BV[0-9A-Za-z]{10}$/)?.[0];
+      if (!bvid) return null;
+      const page = Number(here.searchParams.get("p"));
+      return `https://www.bilibili.com/video/${bvid}${Number.isInteger(page) && page > 1 ? `?p=${page}` : ""}`;
+    }
+    if (platform === "vimeo") {
+      const id = String(context.id || "");
+      return /^\d{5,12}$/.test(id) ? `https://vimeo.com/${id}` : null;
+    }
+    if (
+      platform === "ted" &&
+      /(^|\.)ted\.com$/.test(here.hostname) &&
+      /^\/talks\/[A-Za-z0-9_-]+\/?$/.test(here.pathname)
+    ) {
+      here.search = "";
+      here.hash = "";
+      return here.href;
+    }
+    if (/(^|\.)pornhub\.com$/i.test(here.hostname)) {
+      const id =
+        here.searchParams.get("viewkey") ||
+        here.pathname.match(/^\/embed\/([A-Za-z0-9]+)\/?$/)?.[1];
+      if (/^[A-Za-z0-9]+$/.test(id || "")) {
+        return `${here.origin}/view_video.php?viewkey=${id}`;
+      }
+    }
+    // Generic yt-dlp fallback is restricted again by the background sender
+    // identity check and by the native host's public-HTTPS/DNS validation.
+    const host = here.hostname.toLowerCase();
+    const blockedHost =
+      !host ||
+      host === "localhost" ||
+      host.endsWith(".localhost") ||
+      host.endsWith(".local") ||
+      host.endsWith(".internal") ||
+      /^\d+(?:\.\d+){3}$/.test(host) ||
+      host.includes(":");
+    if (here.protocol === "https:" && !blockedHost && !here.username && !here.password) {
+      here.hash = "";
+      return here.href;
+    }
+    return null;
+  };
+  globalThis.lexihaloPreferNativeHelper = ({ platform }) => {
+    let host = "";
+    try {
+      host = new URL(location.href).hostname;
+    } catch {}
+    const site = globalThis.lexihaloSites?.page(location.href);
+    const capabilities = globalThis.lexihaloPlatformCapabilities.resolve({
+      platform,
+      page: site || globalThis.lexihaloSites?.browserPage(location.href),
+      host,
+    });
+    const snapshot = capabilities.browserCapture
+      ? globalThis.lexihaloSiteAdapters?.snapshot()
+      : null;
+    return (
+      platform === "pornhub" ||
+      /(^|\.)pornhub\.com$/i.test(host) ||
+      Boolean(site?.browser) ||
+      Boolean(site && snapshot?.sources?.length) ||
+      Boolean(
+        snapshot?.page?.id === "generic" &&
+          snapshot.sources.some((source) => source.ext === "m3u8" || source.size > MAX_BYTES),
+      )
+    );
+  };
+  globalThis.lexihaloResolveAudioSource = ({ platform, context, video }) => {
+    context = context || {};
+    const streams = [];
+    let host = "";
+    try {
+      host = new URL(location.href).hostname;
+    } catch {}
+    const page =
+      globalThis.lexihaloSites?.page(location.href) ||
+      globalThis.lexihaloSites?.browserPage(location.href);
+    const capabilities = globalThis.lexihaloPlatformCapabilities.resolve({ platform, page, host });
+    const snapshot = capabilities.browserCapture
+      ? globalThis.lexihaloSiteAdapters?.snapshot()
+      : null;
+    const add = (url, size, bitrate, mimeType) => {
+      if (
+        typeof url !== "string" ||
+        !/^https?:\/\//i.test(url) ||
+        /\.(?:m3u8|mpd)(?:$|[?#])/i.test(url)
+      )
+        return;
+      streams.push({
+        url,
+        size: Number(size) || 0,
+        bitrate: Number(bitrate) || 0,
+        mimeType: mimeType || "audio/webm",
+      });
+    };
+    for (const source of snapshot?.sources || [])
+      add(source.url, source.size, source.bitrate, source.mimeType);
+    // Never mutate platformContext.streams: it is shared with the player.
+    try {
+      for (const stream of context.streams || [])
+        add(stream?.urls?.[0], stream?.size, stream?.bitrate, stream?.mimeType);
+    } catch {}
+    try {
+      for (const format of context.context?.ytInitialPlayerResponse?.streamingData
+        ?.adaptiveFormats || []) {
+        if (/audio/i.test(format?.mimeType || ""))
+          add(format.url, format.contentLength, format.bitrate, format.mimeType);
+      }
+    } catch {}
+    if (platform === "bilibili") {
+      try {
+        for (const format of globalThis.__playinfo__?.data?.dash?.audio || []) {
+          add(
+            format.baseUrl || format.base_url,
+            format.size,
+            format.bandwidth,
+            format.mimeType || "audio/mp4",
+          );
+        }
+      } catch {}
+    }
+    const mediaElements = video
+      ? [
+          {
+            url: video.currentSrc || video.src || video.getAttribute("src") || "",
+            type: video.getAttribute("type") || "",
+          },
+          ...Array.from(video.querySelectorAll("source[src]")).map((source) => ({
+            url: source.src || source.getAttribute("src") || "",
+            type: source.type || "",
+          })),
+        ]
+      : [];
+    for (const media of mediaElements) {
+      if (!/^https?:\/\//i.test(media.url) || /\.(?:m3u8|mpd)(?:$|\?)/i.test(media.url)) continue;
+      const pathname = new URL(media.url).pathname.toLowerCase();
+      add(
+        media.url,
+        0,
+        Number.MAX_SAFE_INTEGER,
+        media.type || (/\.webm$/.test(pathname) ? "video/webm" : "video/mp4"),
+      );
+    }
+    const candidates = [...new Map(streams.map((stream) => [stream.url, stream])).values()].sort(
+      (a, b) =>
+        Number(!/^audio\//i.test(a.mimeType)) - Number(!/^audio\//i.test(b.mimeType)) ||
+        (a.size || Infinity) - (b.size || Infinity) ||
+        a.bitrate - b.bitrate,
+    );
+    const chosen = candidates.find((stream) => !stream.size || stream.size <= MAX_BYTES);
+    return {
+      source: chosen,
+      oversized: !chosen && candidates.length > 0,
+      candidates,
+      browserSources: snapshot?.sources || [],
+      wrapper: snapshot?.wrapper === true,
+    };
+  };
+})();
+
+/* Page-context transport for current, clear media; captured network resources
+ * use the extension broker instead. Neither path exports login cookies to native. */
+(() => {
+  "use strict";
+  const ph = () => /(^|\.)pornhub\.com$/i.test(location.hostname);
+  const safeUrl = (raw, base) => {
+    const url = new URL(raw, base);
+    const allowed = ph()
+      ? /(^|\.)phncdn\.com$/i.test(url.hostname) && !url.port
+      : globalThis.lexihaloSites.isMediaUrl(location.href, url.href);
+    if (
+      url.protocol !== "https:" ||
+      !allowed ||
+      url.username ||
+      url.password ||
+      url.href.length > 8192
+    )
+      throw new Error("媒体不是当前播放器允许的公网 HTTPS 资源");
+    url.hash = "";
+    return url.href;
+  };
+  const phSources = () => {
+    const sources = [];
+    for (const key of Object.keys(globalThis)) {
+      if (!/^flashvars_\d+$/.test(key)) continue;
+      for (const item of (globalThis[key]?.mediaDefinitions || []).slice(0, 40)) {
+        try {
+          const url = safeUrl(item.videoUrl);
+          if (/\.m3u8$/i.test(new URL(url).pathname))
+            sources.push({ url, ext: "m3u8", quality: Number(item.quality) || Infinity });
+        } catch {}
+      }
+    }
+    return sources.sort((a, b) => a.quality - b.quality).slice(0, 12);
+  };
+  const readBrowserMedia = async ({
+    signal,
+    sendPart,
+    onProgress,
+    source,
+    purpose = "transcribe",
+  }) => {
+    const page = globalThis.lexihaloSites?.browserPage(location.href);
+    if (!page && !ph()) throw new Error("当前页面不支持媒体读取");
+    const identity = page?.identity || location.href;
+    const prepared = page
+      ? await globalThis.lexihaloSiteAdapters?.prepare({ signal, onProgress })
+      : null;
+    const sources = source
+      ? [source]
+      : prepared?.sources?.length
+        ? prepared.sources
+        : ph()
+          ? phSources()
+          : [];
+    if (!sources.length) throw new Error("未找到当前播放器真实媒体，请播放几秒后重试");
+    const fetchResource = async (url, sig, range) => {
+      if (
+        (globalThis.lexihaloSites?.browserPage(location.href)?.identity || location.href) !==
+        identity
+      )
+        throw new Error("视频已切换");
+      return fetch(safeUrl(url), {
+        credentials: "omit",
+        redirect: "error",
+        cache: "no-store",
+        signal: AbortSignal.any([sig, AbortSignal.timeout(90000)].filter(Boolean)),
+        ...(range ? { headers: { Range: `bytes=${range.start}-${range.end}` } } : {}),
+      });
+    };
+    let lastError;
+    for (const candidate of sources) {
+      if (candidate.captureId) throw new Error("捕获的网络资源必须经扩展后台读取");
+      let sent = false;
+      try {
+        return await globalThis.lexihaloMediaReader({
+          source: candidate,
+          purpose,
+          signal,
+          safeUrl,
+          fetchResource,
+          resolution: candidate.resolution || 0,
+          onProgress,
+          onPart: async (part) => {
+            sent = true;
+            await sendPart(part);
+          },
+        });
+      } catch (error) {
+        if (sent || signal?.aborted) throw error;
+        lastError = error;
+      }
+    }
+    throw lastError || new Error("没有可读取的媒体");
+  };
+  globalThis.lexihaloReadBrowserMedia = readBrowserMedia;
+  globalThis.lexihaloReadBrowserAudio = readBrowserMedia; // compatibility alias
+})();
+
 (() => {
   "use strict";
 
   const provider = window.captionProvider;
   if (!provider) return;
 
-  const requestSubtitleService = (type, payload = {}, timeoutMs = 720000) =>
+  const requestSubtitleService = (type, payload = {}, timeoutMs = 720000, onProgress) =>
     new Promise((resolve, reject) => {
-      const requestId = crypto.randomUUID();
+      const requestId = payload.requestId || crypto.randomUUID();
       let settled = false;
       const finish = (response, error) => {
         if (settled) return;
@@ -70955,11 +74187,10 @@
             : reject(new Error(response?.error || "音频识别请求失败"));
       };
       const onMessage = (event) => {
-        if (
-          event.source === window &&
-          event.data?.eventName === "lexihalo:subtitle-ai-response" &&
-          event.data?.requestId === requestId
-        ) {
+        if (event.source !== window || event.data?.requestId !== requestId) return;
+        if (event.data?.eventName === "lexihalo:subtitle-ai-progress") {
+          onProgress?.(event.data.progress);
+        } else if (event.data?.eventName === "lexihalo:subtitle-ai-response") {
           finish(event.data.response);
         }
       };
@@ -70979,12 +74210,55 @@
       );
     });
 
+  globalThis.lexihaloResolveChannels = async (mediaPageUrl, { signal, onProgress } = {}) => {
+    if (
+      !window.confirm(
+        "这条视频号分享需要官方验证。是否打开腾讯元宝，仅提交当前分享链接解析？请在新页面完成登录；登录信息不会交给本地助手或 AI 服务。",
+      )
+    ) {
+      throw new Error("已取消视频号验证");
+    }
+    const opened = await requestSubtitleService(
+      "lexihalo:subtitle-ai:channels",
+      { mode: "open", mediaPageUrl },
+      30000,
+    );
+    const startedAt = Date.now();
+    try {
+      for (;;) {
+        if (signal?.aborted) throw new Error("已取消视频号读取");
+        if (Date.now() - startedAt > 180000) throw new Error("请完成元宝登录后重新点击读取");
+        const result = await requestSubtitleService(
+          "lexihalo:subtitle-ai:channels",
+          {
+            mode: "read",
+            mediaPageUrl,
+            sessionId: opened.sessionId,
+          },
+          30000,
+        );
+        if (result.state === "ready") return result;
+        onProgress?.(
+          result.state === "login" ? "请在已打开的元宝页面完成登录…" : "正在等待官方视频号资源…",
+        );
+        await new Promise((resolve) => window.setTimeout(resolve, 3000));
+      }
+    } finally {
+      await requestSubtitleService(
+        "lexihalo:subtitle-ai:channels",
+        {
+          mode: "cancel",
+          mediaPageUrl,
+          sessionId: opened.sessionId,
+        },
+        10000,
+      ).catch(() => {});
+    }
+  };
   const localTranscriptions = new Map();
   const originalCaptionLoad = provider.load.bind(provider);
   provider.installTranscription = (segments, language = "auto") => {
-    if (!Array.isArray(segments) || !segments.length) {
-      throw new Error("音频识别没有返回可用字幕");
-    }
+    segments = globalThis.lexihaloMediaSchema.segments(segments);
     const videoId = provider.id;
     const vid = window.metacontext?.vid || videoId;
     const lines = segments
@@ -71040,8 +74314,173 @@
     }
     return originalCaptionLoad(...args);
   };
-  globalThis.lexihaloTranscribeAudio = (payload) =>
-    requestSubtitleService("lexihalo:subtitle-ai:transcribe", payload);
+  globalThis.lexihaloGetCapturedSources = () =>
+    requestSubtitleService("lexihalo:subtitle-ai:media-sources", {}, 15000);
+  const mediaTasks = globalThis.lexihaloMediaTasks;
+  const runBrowserMedia = async (payload, purpose, finishType, onProgress) => {
+    const requestId = payload.requestId || crypto.randomUUID();
+    const browserTask = mediaTasks.begin(requestId, purpose);
+    const controller = browserTask.controller;
+    let uploadId, keepAlive;
+    const cancelledMessage = purpose === "download" ? "已取消视频下载" : "已取消音频识别";
+    const checkCancelled = () => {
+      if (controller.signal.aborted) throw new Error(cancelledMessage);
+    };
+    try {
+      if (purpose === "transcribe") {
+        const cached = await requestSubtitleService(
+          "lexihalo:subtitle-ai:transcribe",
+          {
+            ...payload,
+            requestId: crypto.randomUUID(),
+            checkCacheOnly: true,
+          },
+          30000,
+        );
+        checkCancelled();
+        if (cached?.cached && cached.segments?.length) return cached;
+      }
+      const started = await requestSubtitleService(
+        "lexihalo:subtitle-ai:browser-audio",
+        {
+          operation: "begin",
+          mediaPageUrl: payload.mediaPageUrl,
+          purpose,
+          title: payload.title || "media",
+          ext: payload.browserSource?.ext || "",
+          isAudio: payload.browserSource?.kind === "audio",
+          mediaResourceId: payload.browserSource?.captureId || "",
+        },
+        30000,
+      );
+      uploadId = started.uploadId;
+      mediaTasks.attachUpload(requestId, uploadId);
+      checkCancelled();
+      keepAlive = window.setInterval(() => {
+        void requestSubtitleService(
+          "lexihalo:subtitle-ai:browser-audio",
+          {
+            operation: "status",
+            uploadId,
+          },
+          10000,
+        ).catch(() => controller.abort());
+      }, 15000);
+      onProgress?.("正在从当前播放器读取媒体…");
+      if (typeof globalThis.lexihaloReadBrowserMedia !== "function")
+        throw new Error("浏览器媒体服务未就绪");
+      if (payload.browserSource?.captureId) {
+        await requestSubtitleService(
+          "lexihalo:subtitle-ai:captured-transfer",
+          {
+            uploadId,
+            captureId: payload.browserSource.captureId,
+            resolution: payload.resolution || 0,
+          },
+          14400000,
+          onProgress,
+        );
+      } else {
+        const transfer = await globalThis.lexihaloReadBrowserMedia({
+          signal: controller.signal,
+          onProgress,
+          purpose,
+          source: payload.browserSource,
+          sendPart: (part) =>
+            requestSubtitleService(
+              "lexihalo:subtitle-ai:browser-audio",
+              {
+                operation: "part",
+                uploadId,
+                ...part,
+              },
+              30000,
+            ),
+        });
+        checkCancelled();
+        await requestSubtitleService(
+          "lexihalo:subtitle-ai:browser-audio",
+          {
+            operation: "seal",
+            uploadId,
+            sequence: transfer.sequence,
+            total: transfer.total,
+          },
+          30000,
+        );
+      }
+      checkCancelled();
+      window.clearInterval(keepAlive);
+      keepAlive = null;
+      mediaTasks.processing(requestId);
+      return await requestSubtitleService(
+        finishType,
+        {
+          ...payload,
+          requestId,
+          browserUploadId: uploadId,
+        },
+        14400000,
+        onProgress,
+      );
+    } finally {
+      window.clearInterval(keepAlive);
+      mediaTasks.finish(requestId);
+      if (uploadId) {
+        await requestSubtitleService(
+          "lexihalo:subtitle-ai:browser-audio",
+          {
+            operation: "abort",
+            uploadId,
+          },
+          10000,
+        ).catch(() => {});
+      }
+    }
+  };
+  globalThis.lexihaloTranscribeAudio = (payload, onProgress) =>
+    payload.useBrowserAudio
+      ? runBrowserMedia(payload, "transcribe", "lexihalo:subtitle-ai:transcribe", onProgress)
+      : requestSubtitleService("lexihalo:subtitle-ai:transcribe", payload, 14400000, onProgress);
+  const cancelBrowserMedia = async (requestId, nativeCancelType) => {
+    const task = mediaTasks.cancel(requestId);
+    const operations = [];
+    if (task?.uploadId)
+      operations.push(
+        requestSubtitleService(
+          "lexihalo:subtitle-ai:browser-audio",
+          { operation: "abort", uploadId: task.uploadId },
+          10000,
+        ),
+      );
+    operations.push(
+      requestSubtitleService(nativeCancelType, { targetRequestId: requestId }, 10000),
+    );
+    const results = await Promise.allSettled(operations);
+    return {
+      cancelled:
+        Boolean(task) ||
+        results.some((result) => result.status === "fulfilled" && result.value?.cancelled),
+    };
+  };
+  globalThis.lexihaloCancelTranscription = (requestId) =>
+    cancelBrowserMedia(requestId, "lexihalo:subtitle-ai:cancel-transcription");
+  window.addEventListener("pagehide", () => {
+    mediaTasks.cancelAll();
+  });
+  globalThis.lexihaloListVideoFormats = (mediaPageUrl) =>
+    requestSubtitleService("lexihalo:subtitle-ai:video-formats", { mediaPageUrl }, 120000);
+  globalThis.lexihaloDownloadVideo = (payload, onProgress) =>
+    payload.browserSource
+      ? runBrowserMedia(payload, "download", "lexihalo:subtitle-ai:video-download", onProgress)
+      : requestSubtitleService(
+          "lexihalo:subtitle-ai:video-download",
+          payload,
+          14400000,
+          onProgress,
+        );
+  globalThis.lexihaloCancelVideoDownload = (requestId) =>
+    cancelBrowserMedia(requestId, "lexihalo:subtitle-ai:cancel-video-download");
 
   let youtubeNativeCaptionWasEnabled = false;
   let youtubeNativeCaptionSuppressionActive = false;

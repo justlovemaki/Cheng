@@ -15,7 +15,7 @@ const refs = [
   manifest.background.service_worker,
   ...manifest.content_scripts.flatMap((entry) => entry.js || []),
 ];
-for (const html of ["popup.html", "byok.html", "site-rules.html"]) {
+for (const html of ["popup.html", "byok.html", "site-rules.html", "offscreen.html"]) {
   const source = fs.readFileSync(path.join(root, html), "utf8");
   for (const match of source.matchAll(/<script[^>]+src=["']([^"']+\.js)["']/g))
     refs.push(match[1]);
@@ -31,6 +31,7 @@ const expected = [
   "assets/popup.js",
   "assets/byok.js",
   "assets/site-rules.js",
+  "assets/asr-offscreen.js",
 ];
 for (const file of expected)
   if (!refs.includes(file)) fail(`Inactive readable entry: ${file}`);
@@ -39,6 +40,23 @@ if (refs.some((file) => /semantic-|materialized|(?:^|\/)src\//.test(file)))
 for (const file of refs)
   if (!fs.existsSync(path.join(root, file)))
     fail(`Missing active script: ${file}`);
+const siteAdaptersSource = fs.readFileSync(path.join(root, "src/video/site-adapters.js"), "utf8");
+for (const marker of ["declaredParentSources", "findPlayerFrame", "lexihaloGetCapturedSources"])
+  if (!siteAdaptersSource.includes(marker)) fail(`Generic media discovery is missing ${marker}`);
+const platformCatalog = JSON.parse(fs.readFileSync(path.join(root, "config/media-platforms.json"), "utf8"));
+const siteCatalog = platformCatalog.filter(entry => entry.mode === "browser");
+const specializedCatalog = platformCatalog.filter(entry => entry.mode === "specialized");
+if (platformCatalog.length !== 32 || siteCatalog.length !== 19 || specializedCatalog.length !== 13 ||
+    new Set(platformCatalog.map(entry => entry.id)).size !== platformCatalog.length)
+  fail("The unified media platform catalogue is incomplete");
+if (!manifest.permissions.includes("scripting")) fail("User-confirmed Channels verification requires scripting");
+for (const permission of ['webRequest', 'declarativeNetRequestWithHostAccess'])
+  if (!manifest.permissions.includes(permission)) fail(`Captured media replay requires ${permission}`);
+const universalVideoMatches = ["http://*/*", "https://*/*", "file://*/*"];
+for (const entry of manifest.content_scripts.slice(0, 2)) {
+  if (universalVideoMatches.some((match) => !entry.matches?.includes(match)))
+    fail("Generic HTML5 video runtime is not enabled for every ordinary page");
+}
 
 const mainBundles = {
   "assets/background.js": [
@@ -48,6 +66,21 @@ const mainBundles = {
     "lexihaloExecuteStructuredAi",
     "max_completion_tokens",
     "audio-transcription",
+    "timestamp_granularities[]",
+    "mediaResource",
+    "lexihalo:subtitle-ai:browser-audio",
+    "beginUpload",
+    "lexihaloSites",
+    "lexihaloMediaContract",
+    "lexihaloPlatformCapabilities",
+    "lexihaloMediaSchema",
+    "lexihaloCreateBackgroundMediaTasks",
+    "lexihaloResolveChannelsRequest",
+    "lexihaloMediaCapture",
+    "onResponseStarted",
+    "lexihalo:subtitle-ai:video-formats",
+    "startDownload",
+    "downloadNativeVideo",
     "subtitle-refresh",
   ],
   "assets/edreader-main.js": [
@@ -71,12 +104,35 @@ const mainBundles = {
     "suppressNativeCaptions",
     "[sourceLanguage, translationLanguage]",
     "distinguish Simplified and Traditional Chinese subtitles",
+    "lineSameLanguage",
+    "sameLangCheckKey",
     "tolerate detached or malformed timed-text nodes",
     "try the signed YouTube caption URL before waiting for interception",
     "retryDelayMs",
     "lexihaloTranscribeAudio",
+    "lexihaloListVideoFormats",
+    "lexihaloDownloadVideo",
+    "data-lexihalo-video-download",
+    "lexihalo-download-progress-track",
+    "lexihalo-download-status",
     "transcription.status",
     "data-lexihalo-audio-transcribe",
+    "lexihaloReadBrowserAudio",
+    "lexihaloSiteAdapters",
+    "lexihaloMediaSiteHooks",
+    "lexihaloMediaContract",
+    "lexihaloPlatformCapabilities",
+    "lexihaloMediaSchema",
+    "lexihaloMediaTasks",
+    "lexihaloReadBrowserMedia",
+    "lexihaloSites",
+    "下载音频/资源",
+    "browserUploadId",
+    "lexihaloPickHtml5Video",
+    "bootLexihaloVideoRuntime",
+    "lexihalo-html5-container",
+    "trancy-pornhub-control",
+    "mgp_controlBar",
     "等待 AI 翻译",
     "originalText",
   ],
@@ -186,6 +242,7 @@ if (JSON.stringify(before) !== JSON.stringify(after))
 const distDir = path.join(root, "dist");
 if (!fs.existsSync(distDir)) fail("Missing dist/ directory after build");
 if (!fs.existsSync(path.join(distDir, "manifest.json"))) fail("Missing dist/manifest.json");
+if (!fs.existsSync(path.join(distDir, "THIRD_PARTY_NOTICES.txt"))) fail("Missing third-party adaptation notice in dist/");
 for (const file of expected) {
   if (!fs.existsSync(path.join(distDir, file))) {
     fail(`Missing file in dist/: ${file}`);

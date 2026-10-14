@@ -1,4 +1,1443 @@
 /* LexiHalo readable single bundle: background. */
+/* LexiHalo-owned browser routing policy derived from config/media-platforms.json. */
+(() => {
+  "use strict";
+  const CATALOG = [
+    {
+      id: "douyin",
+      name: "抖音",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["douyin.com"],
+      routes: ["^/(video|note)/[0-9]+", "[?&](modal_id|vid)=[0-9]+"],
+      mediaHosts: ["douyinvod.com"],
+      browser: true,
+    },
+    {
+      id: "xiaohongshu",
+      name: "小红书",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["xiaohongshu.com"],
+      routes: ["^/(explore|discovery/item)/[a-fA-F0-9]{24}(/|[?]|$)"],
+      mediaHosts: ["xhscdn.com"],
+      browser: true,
+    },
+    {
+      id: "channels",
+      name: "微信视频号",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["weixin.qq.com"],
+      routes: ["^/sph/[A-Za-z0-9]{3,64}", "^/finder-preview/pages/(sph|feed)[?]"],
+      mediaHosts: ["finder.video.qq.com"],
+      browser: true,
+    },
+    {
+      id: "xiaoe",
+      name: "小鹅通",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: [
+        "xiaoeknow.com",
+        "xiaoe-tech.com",
+        "xet.citv.cn",
+        "xet.pomoho.com",
+        "xet.tech",
+        "xetslk.com",
+        "xetlk.com",
+      ],
+      routes: [
+        "^/(v[0-9]+|p)/course/alive/l_[A-Za-z0-9_]+",
+        "^/content_page/",
+        "[?&]params=",
+        "^/sl/",
+      ],
+      mediaHosts: ["xiaoeknow.com", "xiaoe-tech.com", "xet.tech", "xiaoecloud.com"],
+      browser: true,
+    },
+    {
+      id: "weibo",
+      name: "微博视频",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["weibo.com", "weibo.cn"],
+      routes: ["^/tv/show/", "^/[0-9]+/[A-Za-z0-9]+", "^/status/[A-Za-z0-9]+"],
+      mediaHosts: ["weibocdn.com", "sina.com.cn", "sinaimg.cn"],
+      browser: false,
+    },
+    {
+      id: "tiktok",
+      name: "TikTok",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["tiktok.com"],
+      routes: ["^/@[^/]+/(video|photo)/[0-9]+"],
+      mediaHosts: ["tiktok.com", "tiktokcdn.com", "tiktokcdn-us.com"],
+      browser: false,
+    },
+    {
+      id: "x",
+      name: "X / Twitter",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["x.com", "twitter.com"],
+      routes: ["^/([A-Za-z0-9_]{1,15}|i)/status/[0-9]{5,25}"],
+      mediaHosts: ["video.twimg.com"],
+      browser: false,
+    },
+    {
+      id: "instagram",
+      name: "Instagram",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["instagram.com"],
+      routes: ["^/(p|reel|reels)/[^/]+"],
+      mediaHosts: ["cdninstagram.com", "fbcdn.net"],
+      browser: false,
+    },
+    {
+      id: "facebook",
+      name: "Facebook",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["facebook.com", "fb.watch"],
+      routes: ["/videos/", "/reel/", "^/watch/?[?].*v=", "^/[^/?]+/?$"],
+      mediaHosts: ["fbcdn.net"],
+      browser: false,
+    },
+    {
+      id: "reddit",
+      name: "Reddit",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["reddit.com", "v.redd.it"],
+      routes: ["/comments/", "^/[A-Za-z0-9]+/?$"],
+      mediaHosts: ["redd.it", "redditmedia.com"],
+      browser: false,
+    },
+    {
+      id: "twitch",
+      name: "Twitch",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["twitch.tv"],
+      routes: ["^/videos/[0-9]+", "^/[^/]+/clip/[^/]+", "^/[A-Za-z0-9_-]+/?$"],
+      mediaHosts: ["ttvnw.net", "twitch.tv", "twitchcdn.net"],
+      browser: false,
+    },
+    {
+      id: "dailymotion",
+      name: "Dailymotion",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["dailymotion.com", "dai.ly"],
+      routes: ["^/(embed/)?video/[A-Za-z0-9]+", "^/[A-Za-z0-9]+/?$"],
+      mediaHosts: ["dmcdn.net"],
+      browser: false,
+    },
+    {
+      id: "niconico",
+      name: "niconico",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["nicovideo.jp", "nico.ms"],
+      routes: ["^/watch/[A-Za-z0-9]+", "^/(sm|so|nm)?[0-9]+/?$"],
+      mediaHosts: ["nicovideo.jp", "dmc.nico", "domand.nicovideo.jp"],
+      browser: false,
+    },
+    {
+      id: "xiaoyuzhou",
+      name: "小宇宙",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["xiaoyuzhoufm.com"],
+      routes: ["^/episode/[a-fA-F0-9]{24}(/|$)"],
+      mediaHosts: ["xyzcdn.net"],
+      browser: true,
+      audio: true,
+    },
+    {
+      id: "soundcloud",
+      name: "SoundCloud",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["soundcloud.com"],
+      routes: ["^/[^/]+/[^/]+/?$"],
+      mediaHosts: ["sndcdn.com", "soundcloud.com"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "bandcamp",
+      name: "Bandcamp",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["bandcamp.com"],
+      routes: ["^/track/[^/?]+"],
+      mediaHosts: ["bcbits.com"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "ximalaya",
+      name: "喜马拉雅",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["ximalaya.com"],
+      routes: ["/sound/[0-9]+"],
+      mediaHosts: ["xmcdn.com", "ximalaya.com"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "netease",
+      name: "网易云音乐",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["music.163.com"],
+      routes: ["(^/|#/)song[?].*id=[0-9]+"],
+      mediaHosts: ["music.126.net"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "applepodcasts",
+      name: "Apple Podcasts",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["podcasts.apple.com"],
+      routes: ["/podcast/.*[?].*i=[0-9]+"],
+      mediaHosts: ["podcasts.apple.com", "mzstatic.com"],
+      browser: false,
+      audio: true,
+    },
+  ]; // Replaced with mode=browser entries by the build.
+  const hostIn = (host, list) => list.some((entry) => host === entry || host.endsWith(`.${entry}`));
+  const safePage = (address, allowPublicPort = false) => {
+    try {
+      const url = new URL(address);
+      if (
+        url.protocol !== "https:" ||
+        url.username ||
+        url.password ||
+        (!allowPublicPort && url.port) ||
+        url.href.length > 12000
+      )
+        return null;
+      return url;
+    } catch {
+      return null;
+    }
+  };
+  const siteOf = (address) => {
+    const url = safePage(address);
+    return url ? CATALOG.find((site) => hostIn(url.hostname.toLowerCase(), site.hosts)) : undefined;
+  };
+  const xiaoePage = (url) => {
+    const shop = url.hostname.match(
+      /^(app[0-9a-z]{6,24})\.(?:(?:h5|mp)\.(?:xiaoeknow|xiaoe-tech)\.com|(?:(?:h5|mp)\.)?xet\.(?:citv\.cn|pomoho\.com))$/i,
+    );
+    if (!shop) return null;
+    const app = shop[1].toLowerCase();
+    let live = url.pathname.match(/^\/(?:v\d+|p)\/course\/alive\/(l_[0-9a-z_]{8,64})\/?$/i)?.[1];
+    if (!live) {
+      try {
+        const encoded =
+          url.searchParams.get("params") || url.pathname.match(/^\/content_page\/(.+)$/)?.[1];
+        if (encoded && encoded.length <= 10000) {
+          const raw = decodeURIComponent(encoded)
+            .replace(/ /g, "+")
+            .replace(/-/g, "+")
+            .replace(/_/g, "/");
+          const state = JSON.parse(
+            new TextDecoder().decode(Uint8Array.from(atob(raw), (c) => c.charCodeAt(0))),
+          );
+          if (state.app_id && String(state.app_id).toLowerCase() !== app) return null;
+          if (/^l_[0-9a-z_]{8,64}$/i.test(state.resource_id || "")) live = state.resource_id;
+        }
+      } catch {}
+    }
+    if (
+      !live ||
+      (url.searchParams.get("app_id") && url.searchParams.get("app_id").toLowerCase() !== app)
+    )
+      return null;
+    const origin = url.origin.replace(".mp.", ".h5.");
+    return {
+      url: `${origin}/v4/course/alive/${live}?app_id=${app}`,
+      identity: `xiaoe:${app}:${live}`,
+    };
+  };
+  const page = (address, depth = 0) => {
+    if (depth > 3) return null;
+    const url = safePage(address),
+      site = siteOf(address);
+    if (!url || !site) return null;
+    let identity;
+    const path = url.pathname;
+    const route = path + url.search + url.hash;
+    if (site.id === "xiaoe") {
+      const result = xiaoePage(url);
+      return result ? { ...site, ...result } : null;
+    }
+    if (site.id === "douyin") {
+      const id =
+        path.match(/^\/(?:video|note)\/(\d+)/)?.[1] ||
+        url.searchParams.get("modal_id") ||
+        url.searchParams.get("vid");
+      if (!/^\d+$/.test(id || "")) return null;
+      return {
+        ...site,
+        url: `https://www.douyin.com/video/${id}`,
+        identity: `douyin:${id}`,
+        itemId: id,
+      };
+    }
+    if (site.id === "xiaohongshu") {
+      const id = path.match(/^\/(?:explore|discovery\/item)\/([a-f0-9]{24})\/?$/i)?.[1];
+      if (!id) return null;
+      const next = new URL(`https://www.xiaohongshu.com/explore/${id.toLowerCase()}`);
+      for (const key of ["xsec_token", "xsec_source"]) {
+        const value = url.searchParams.get(key);
+        if (value && value.length <= 512) next.searchParams.set(key, value);
+      }
+      return {
+        ...site,
+        url: next.href,
+        identity: `xiaohongshu:${id.toLowerCase()}`,
+        itemId: id.toLowerCase(),
+      };
+    }
+    if (site.id === "channels") {
+      let id;
+      if (url.hostname === "weixin.qq.com" && !url.search)
+        id = path.match(/^\/sph\/([A-Za-z0-9]{3,64})\/?$/)?.[1];
+      else if (url.hostname === "channels.weixin.qq.com" && path === "/finder-preview/pages/sph")
+        id = url.searchParams.get("id");
+      if (/^[A-Za-z0-9]{3,64}$/.test(id || ""))
+        return {
+          ...site,
+          url: `https://weixin.qq.com/sph/${id}`,
+          identity: `channels:share:${id}`,
+          itemId: id,
+        };
+      if (
+        url.hostname === "channels.weixin.qq.com" &&
+        path === "/finder-preview/pages/feed" &&
+        url.searchParams.get("eid") &&
+        url.searchParams.get("token")
+      ) {
+        url.hash = "";
+        return { ...site, url: url.href, identity: `channels:feed:${url.searchParams.get("eid")}` };
+      }
+      return null;
+    }
+    if (site.id === "x") {
+      const match = path.match(/^\/(?:([A-Za-z0-9_]{1,15})|i)\/status\/(\d{5,25})(?:\/|$)/);
+      return match
+        ? {
+            ...site,
+            url: `https://x.com/${match[1] || "i"}/status/${match[2]}`,
+            identity: `x:${match[2]}`,
+            itemId: match[2],
+          }
+        : null;
+    }
+    if (site.id === "tiktok") {
+      const match = path.match(/^\/(@[^/]+)\/(?:video|photo)\/(\d+)/);
+      if (!match) return null;
+      return {
+        ...site,
+        url: `https://www.tiktok.com/${match[1]}/video/${match[2]}`,
+        identity: `tiktok:${match[2]}`,
+        itemId: match[2],
+      };
+    }
+    if (site.id === "twitch") {
+      const video =
+        path.match(/^\/videos\/(\d+)/)?.[1] ||
+        (url.hostname === "player.twitch.tv"
+          ? url.searchParams.get("video")?.replace(/^v/, "")
+          : null);
+      if (/^\d+$/.test(video || ""))
+        return {
+          ...site,
+          url: `https://www.twitch.tv/videos/${video}`,
+          identity: `twitch:video:${video}`,
+        };
+      const clip =
+        path.match(/^\/[^/]+\/clip\/([A-Za-z0-9_-]+)/)?.[1] ||
+        (url.hostname === "clips.twitch.tv"
+          ? path.match(/^\/([A-Za-z0-9_-]+)\/?$/)?.[1] || url.searchParams.get("clip")
+          : null);
+      if (clip)
+        return { ...site, url: `https://clips.twitch.tv/${clip}`, identity: `twitch:clip:${clip}` };
+      return null;
+    }
+    if (site.id === "dailymotion") {
+      const id =
+        path.match(/^\/(?:embed\/)?video\/([A-Za-z0-9]+)/)?.[1] ||
+        (url.hostname === "dai.ly" ? path.match(/^\/([A-Za-z0-9]+)\/?$/)?.[1] : null) ||
+        (url.hostname === "geo.dailymotion.com" ? url.searchParams.get("video") : null);
+      return /^[A-Za-z0-9]+$/.test(id || "")
+        ? { ...site, url: `https://www.dailymotion.com/video/${id}`, identity: `dailymotion:${id}` }
+        : null;
+    }
+    if (site.id === "facebook" && path === "/plugins/video.php") {
+      const linked = url.searchParams.get("href");
+      return siteOf(linked)?.id === "facebook" ? page(linked, depth + 1) : null;
+    }
+    if (site.id === "soundcloud" && url.hostname === "w.soundcloud.com" && path === "/player/") {
+      const linked = url.searchParams.get("url");
+      return siteOf(linked)?.id === "soundcloud" ? page(linked, depth + 1) : null;
+    }
+    if (
+      site.id === "soundcloud" &&
+      /^\/(discover|search|you|stream|charts|stations)(\/|$)/.test(path)
+    )
+      return null;
+    if (
+      site.id === "facebook" &&
+      url.hostname !== "fb.watch" &&
+      !/\/videos\/|\/reel\/|^\/watch\/?\?/.test(route)
+    )
+      return null;
+    if (site.id === "reddit" && url.hostname !== "v.redd.it" && !/\/comments\//.test(path))
+      return null;
+    if (
+      site.id === "twitch" &&
+      url.hostname !== "clips.twitch.tv" &&
+      !/^\/videos\/\d+|^\/[^/]+\/clip\//.test(path)
+    )
+      return null;
+    if (
+      site.id === "dailymotion" &&
+      url.hostname !== "dai.ly" &&
+      !/^\/(embed\/)?video\//.test(path)
+    )
+      return null;
+    if (site.id === "niconico" && url.hostname !== "nico.ms" && !/^\/watch\//.test(path))
+      return null;
+    if (!site.routes.some((pattern) => new RegExp(pattern).test(route))) return null;
+    if (site.id === "netease") {
+      const id = url.searchParams.get("id") || url.hash.match(/[?&]id=(\d+)/)?.[1];
+      if (!/^\d+$/.test(id || "")) return null;
+      return {
+        ...site,
+        url: `https://music.163.com/#/song?id=${id}`,
+        identity: `netease:${id}`,
+        itemId: id,
+      };
+    }
+    url.hash = "";
+    if (site.id === "soundcloud") {
+      const token = url.searchParams.get("secret_token");
+      url.search = "";
+      if (token && token.length <= 512) url.searchParams.set("secret_token", token);
+      return { ...site, url: url.href, identity: `soundcloud:${url.origin}${url.pathname}` };
+    }
+    if (!["applepodcasts", "facebook"].includes(site.id)) url.search = "";
+    if (site.id === "facebook" && /^\/watch/.test(path) && !url.searchParams.get("v")) return null;
+    if (site.id === "applepodcasts" && !/^\d+$/.test(url.searchParams.get("i") || "")) return null;
+    identity = `${site.id}:${url.href}`;
+    return { ...site, url: url.href, identity };
+  };
+  const publicHost = (host) => {
+    const value = String(host || "")
+      .toLowerCase()
+      .replace(/\.$/, "");
+    if (/^\d+(?:\.\d+){3}$/.test(value)) {
+      const octets = value.split(".").map(Number);
+      if (
+        octets.some((number, index) => number > 255 || String(number) !== value.split(".")[index])
+      )
+        return false;
+      const [a, b, c] = octets;
+      return !(
+        a === 0 ||
+        a === 10 ||
+        a === 127 ||
+        a >= 224 ||
+        (a === 100 && b >= 64 && b <= 127) ||
+        (a === 169 && b === 254) ||
+        (a === 172 && b >= 16 && b <= 31) ||
+        (a === 192 && (b === 168 || (b === 0 && c === 0) || (b === 0 && c === 2))) ||
+        (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) ||
+        (a === 203 && b === 0 && c === 113)
+      );
+    }
+    return (
+      /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{1,62}$/.test(value) &&
+      value !== "localhost" &&
+      !/\.(localhost|local|internal|test|invalid)$/.test(value)
+    );
+  };
+  const browserPage = (address) => {
+    const registered = siteOf(address);
+    if (registered) return page(address);
+    const url = safePage(address, true);
+    if (!url || !publicHost(url.hostname) || url.port === "0") return null;
+    url.hash = "";
+    return {
+      id: "generic",
+      name: "当前网站",
+      url: url.href,
+      identity: `generic:${url.href}`,
+      browser: false,
+      mediaHosts: [],
+    };
+  };
+  const nativePage = (address) => {
+    const url = safePage(address, true);
+    if (!url) return null;
+    if (siteOf(address)) return page(address);
+    const host = url.hostname.toLowerCase();
+    if (hostIn(host, ["youtube.com", "youtube-nocookie.com", "youtu.be"])) {
+      const id = hostIn(host, ["youtu.be"])
+        ? url.pathname.match(/^\/([A-Za-z0-9_-]{11})\/?$/)?.[1]
+        : url.searchParams.get("v") ||
+          url.pathname.match(/^\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{11})(?:\/|$)/)?.[1];
+      return /^[A-Za-z0-9_-]{11}$/.test(id || "")
+        ? { url: `https://www.youtube.com/watch?v=${id}`, identity: `youtube:${id}` }
+        : null;
+    }
+    if (hostIn(host, ["bilibili.com"])) {
+      const id =
+        url.pathname.match(/\/video\/(BV[0-9A-Za-z]{10})(?:\/|$)/)?.[1] ||
+        url.searchParams.get("bvid");
+      const rawPart = Number(url.searchParams.get("p") || 1);
+      const part = Number.isInteger(rawPart) && rawPart > 0 ? rawPart : 1;
+      return /^BV[0-9A-Za-z]{10}$/.test(id || "")
+        ? {
+            url: `https://www.bilibili.com/video/${id}${part > 1 ? `?p=${part}` : ""}`,
+            identity: `bilibili:${id}:${part}`,
+          }
+        : null;
+    }
+    if (hostIn(host, ["vimeo.com"])) {
+      const ids = Array.from(url.pathname.matchAll(/\/(\d{5,12})(?=\/|$)/g), (match) => match[1]);
+      const id =
+        url.pathname.match(/^\/(\d{5,12})(?:\/|$)/)?.[1] ||
+        url.pathname.match(/\/(?:video|videos)\/(\d{5,12})(?:\/|$)/)?.[1] ||
+        ids.at(-1);
+      return id ? { url: `https://vimeo.com/${id}`, identity: `vimeo:${id}` } : null;
+    }
+    if (hostIn(host, ["ted.com"])) {
+      const slug = url.pathname.match(/^\/talks\/([A-Za-z0-9_-]+)\/?$/)?.[1];
+      return slug ? { url: `${url.origin}/talks/${slug}`, identity: `ted:${slug}` } : null;
+    }
+    if (hostIn(host, ["pornhub.com"])) {
+      const id =
+        url.searchParams.get("viewkey") || url.pathname.match(/^\/embed\/([A-Za-z0-9]+)\/?$/)?.[1];
+      return /^[A-Za-z0-9]+$/.test(id || "")
+        ? { url: `${url.origin}/view_video.php?viewkey=${id}`, identity: `pornhub:${id}` }
+        : null;
+    }
+    return browserPage(address);
+  };
+  const isMediaUrl = (pageAddress, raw) => {
+    const owner = browserPage(pageAddress);
+    const media = safePage(raw, owner?.id === "generic");
+    if (!owner || !media) return false;
+    if (owner.id === "generic") return publicHost(media.hostname) && media.port !== "0";
+    if (!hostIn(media.hostname.toLowerCase(), owner.mediaHosts)) return false;
+    if (
+      owner.id === "douyin" &&
+      media.searchParams.has("__vid") &&
+      media.searchParams.get("__vid") !== owner.itemId
+    )
+      return false;
+    if (
+      owner.id === "xiaohongshu" &&
+      (!/^sns-video-[a-z0-9-]+\.xhscdn\.com$/.test(media.hostname) ||
+        !/\.(mp4|m4a)$/.test(media.pathname))
+    )
+      return false;
+    if (
+      owner.id === "channels" &&
+      (media.hostname !== "finder.video.qq.com" ||
+        !/^\/(?:\d+\/){2}stodownload$/.test(media.pathname))
+    )
+      return false;
+    return true;
+  };
+  globalThis.lexihaloSites = {
+    catalog: CATALOG,
+    siteOf,
+    page,
+    browserPage,
+    nativePage,
+    publicHost,
+    isMediaUrl,
+    hostIn,
+  };
+})();
+
+/* Canonical media-source contract shared by page adapters and the background.
+ * Legacy isAudio/ext fields remain so existing bridge/native messages stay wire-compatible. */
+(() => {
+  "use strict";
+
+  const KIND = Object.freeze({ AUDIO: "audio", VIDEO: "video" });
+  const TRANSPORT = Object.freeze({
+    DIRECT: "direct",
+    CAPTURE: "capture",
+    NATIVE_PAGE: "native-page",
+  });
+  const AUDIO_EXTENSIONS = new Set(["m4a", "mp3", "aac", "wav", "flac", "ogg", "opus"]);
+  const MEDIA_EXTENSION = /\.(mp4|m4a|webm|mp3|aac|wav|flac|ogg|opus|m3u8)$/i;
+  const REJECT_EXTENSION = /\.(html?|js|css|jpe?g|png|gif|svg)$/i;
+
+  const kindOf = (value = {}) =>
+    value.kind === KIND.AUDIO || value.isAudio === true ? KIND.AUDIO : KIND.VIDEO;
+  const sourceKey = (source) =>
+    source?.transport === TRANSPORT.CAPTURE
+      ? `capture:${source.captureId || ""}`
+      : source?.transport === TRANSPORT.NATIVE_PAGE
+        ? `native:${source.pageUrl || ""}`
+        : `direct:${source?.url || ""}`;
+  const normalize = (value = {}) => {
+    const transport =
+      value.transport ||
+      (value.captureId
+        ? TRANSPORT.CAPTURE
+        : value.pageUrl
+          ? TRANSPORT.NATIVE_PAGE
+          : TRANSPORT.DIRECT);
+    const kind = kindOf(value);
+    return {
+      ...value,
+      transport,
+      kind,
+      isAudio: kind === KIND.AUDIO,
+      size: Number(value.size) || 0,
+      resolution: kind === KIND.AUDIO ? 0 : Number(value.resolution) || 0,
+    };
+  };
+  const append = (list, value) => {
+    if (!value) return null;
+    const source = normalize(value),
+      key = sourceKey(source);
+    if (!key || list.some((item) => sourceKey(item) === key)) return null;
+    list.push(source);
+    return source;
+  };
+  const addDirect = (list, page, raw, metadata = {}) => {
+    if (!page || typeof raw !== "string" || !raw) return null;
+    const { upgradeHttp = false, ...details } = metadata;
+    if (upgradeHttp && raw.startsWith("http:")) {
+      try {
+        const upgraded = new URL(raw);
+        upgraded.protocol = "https:";
+        raw = upgraded.href;
+      } catch {}
+    }
+    try {
+      raw = new URL(raw, page.url).href;
+    } catch {
+      return null;
+    }
+    if (!globalThis.lexihaloSites?.isMediaUrl(page.url, raw)) return null;
+    const url = new URL(raw, page.url);
+    if (REJECT_EXTENSION.test(url.pathname)) return null;
+    const inferredExt = url.pathname.match(MEDIA_EXTENSION)?.[1]?.toLowerCase();
+    const kind = [KIND.AUDIO, KIND.VIDEO].includes(details.kind)
+      ? details.kind
+      : (details.isAudio ?? AUDIO_EXTENSIONS.has(inferredExt))
+        ? KIND.AUDIO
+        : KIND.VIDEO;
+    const ext = /mpegurl/i.test(details.mimeType || "")
+      ? "m3u8"
+      : inferredExt || (kind === KIND.AUDIO ? "m4a" : "mp4");
+    return append(list, {
+      ...details,
+      transport: TRANSPORT.DIRECT,
+      kind,
+      url: url.href,
+      ext,
+      mimeType:
+        details.mimeType || (ext === "m3u8" ? "application/vnd.apple.mpegurl" : `${kind}/${ext}`),
+    });
+  };
+  const addCaptured = (list, value) =>
+    value?.captureId ? append(list, { ...value, transport: TRANSPORT.CAPTURE }) : null;
+  const merge = (...groups) => {
+    const result = [];
+    for (const group of groups)
+      for (const source of group || []) {
+        if (source?.captureId) addCaptured(result, source);
+        else append(result, source);
+      }
+    return result;
+  };
+  const capabilities = (page) =>
+    Object.freeze({
+      audioOnly: page?.audio === true,
+      browserReadable: page?.browser === true || page?.id === "generic",
+      generic: page?.id === "generic",
+    });
+
+  globalThis.lexihaloMediaContract = {
+    KIND,
+    TRANSPORT,
+    kindOf,
+    sourceKey,
+    normalize,
+    append,
+    addDirect,
+    addCaptured,
+    merge,
+    capabilities,
+  };
+})();
+
+/* Platform capability registry generated from config/media-platforms.json. */
+(() => {
+  "use strict";
+  const PLATFORM_CATALOG = [
+    {
+      id: "youtube",
+      name: "YouTube",
+      mode: "specialized",
+      platform: "youtube",
+      mediaKind: "video",
+      hosts: ["youtube.com", "youtu.be", "youtube-nocookie.com"],
+      capabilities: { captions: true, aiTranscription: true, download: true, directAudio: true },
+    },
+    {
+      id: "netflix",
+      name: "Netflix",
+      mode: "specialized",
+      platform: "netflix",
+      mediaKind: "video",
+      hosts: ["netflix.com"],
+      capabilities: { captions: true, aiTranscription: true, download: false, drm: true },
+    },
+    {
+      id: "coursera",
+      name: "Coursera",
+      mode: "specialized",
+      platform: "coursera",
+      mediaKind: "video",
+      hosts: ["coursera.org"],
+      capabilities: { captions: true, aiTranscription: true, download: false },
+    },
+    {
+      id: "udemy",
+      name: "Udemy",
+      mode: "specialized",
+      platform: "udemy",
+      mediaKind: "video",
+      hosts: ["udemy.com"],
+      capabilities: { captions: true, aiTranscription: true, download: false },
+    },
+    {
+      id: "ted",
+      name: "TED",
+      mode: "specialized",
+      platform: "ted",
+      mediaKind: "video",
+      hosts: ["ted.com"],
+      capabilities: { captions: true, aiTranscription: true, download: true, directAudio: true },
+    },
+    {
+      id: "hbo",
+      name: "Max / HBO",
+      mode: "specialized",
+      platform: "hbo",
+      mediaKind: "video",
+      hosts: ["max.com", "hbomax.com"],
+      capabilities: { captions: true, aiTranscription: true, download: false, drm: true },
+    },
+    {
+      id: "disney",
+      name: "Disney+",
+      mode: "specialized",
+      platform: "disney",
+      mediaKind: "video",
+      hosts: ["disneyplus.com"],
+      capabilities: { captions: true, aiTranscription: true, download: false, drm: true },
+    },
+    {
+      id: "edx",
+      name: "edX",
+      mode: "specialized",
+      platform: "edx",
+      mediaKind: "video",
+      hosts: ["edx.org"],
+      capabilities: { captions: true, aiTranscription: true, download: false },
+    },
+    {
+      id: "primevideo",
+      name: "Prime Video",
+      mode: "specialized",
+      platform: "primevideo",
+      mediaKind: "video",
+      hosts: ["primevideo.com", "amazon.com"],
+      capabilities: { captions: true, aiTranscription: true, download: false, drm: true },
+    },
+    {
+      id: "deeplearning",
+      name: "DeepLearning.AI",
+      mode: "specialized",
+      platform: "deeplearning",
+      mediaKind: "video",
+      hosts: ["deeplearning.ai"],
+      capabilities: { captions: true, aiTranscription: true, download: false },
+    },
+    {
+      id: "bilibili",
+      name: "Bilibili",
+      mode: "specialized",
+      platform: "bilibili",
+      mediaKind: "video",
+      hosts: ["bilibili.com"],
+      capabilities: { captions: true, aiTranscription: true, download: true, directAudio: true },
+    },
+    {
+      id: "vimeo",
+      name: "Vimeo",
+      mode: "specialized",
+      platform: "vimeo",
+      mediaKind: "video",
+      hosts: ["vimeo.com"],
+      capabilities: { captions: true, aiTranscription: true, download: true, directAudio: true },
+    },
+    {
+      id: "pornhub",
+      name: "Pornhub",
+      mode: "specialized",
+      platform: "html5",
+      mediaKind: "video",
+      hosts: ["pornhub.com"],
+      capabilities: { captions: true, aiTranscription: true, download: true, browserCapture: true },
+    },
+    {
+      id: "douyin",
+      name: "抖音",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["douyin.com"],
+      routes: ["^/(video|note)/[0-9]+", "[?&](modal_id|vid)=[0-9]+"],
+      mediaHosts: ["douyinvod.com"],
+      browser: true,
+    },
+    {
+      id: "xiaohongshu",
+      name: "小红书",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["xiaohongshu.com"],
+      routes: ["^/(explore|discovery/item)/[a-fA-F0-9]{24}(/|[?]|$)"],
+      mediaHosts: ["xhscdn.com"],
+      browser: true,
+    },
+    {
+      id: "channels",
+      name: "微信视频号",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["weixin.qq.com"],
+      routes: ["^/sph/[A-Za-z0-9]{3,64}", "^/finder-preview/pages/(sph|feed)[?]"],
+      mediaHosts: ["finder.video.qq.com"],
+      browser: true,
+    },
+    {
+      id: "xiaoe",
+      name: "小鹅通",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: [
+        "xiaoeknow.com",
+        "xiaoe-tech.com",
+        "xet.citv.cn",
+        "xet.pomoho.com",
+        "xet.tech",
+        "xetslk.com",
+        "xetlk.com",
+      ],
+      routes: [
+        "^/(v[0-9]+|p)/course/alive/l_[A-Za-z0-9_]+",
+        "^/content_page/",
+        "[?&]params=",
+        "^/sl/",
+      ],
+      mediaHosts: ["xiaoeknow.com", "xiaoe-tech.com", "xet.tech", "xiaoecloud.com"],
+      browser: true,
+    },
+    {
+      id: "weibo",
+      name: "微博视频",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["weibo.com", "weibo.cn"],
+      routes: ["^/tv/show/", "^/[0-9]+/[A-Za-z0-9]+", "^/status/[A-Za-z0-9]+"],
+      mediaHosts: ["weibocdn.com", "sina.com.cn", "sinaimg.cn"],
+      browser: false,
+    },
+    {
+      id: "tiktok",
+      name: "TikTok",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["tiktok.com"],
+      routes: ["^/@[^/]+/(video|photo)/[0-9]+"],
+      mediaHosts: ["tiktok.com", "tiktokcdn.com", "tiktokcdn-us.com"],
+      browser: false,
+    },
+    {
+      id: "x",
+      name: "X / Twitter",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["x.com", "twitter.com"],
+      routes: ["^/([A-Za-z0-9_]{1,15}|i)/status/[0-9]{5,25}"],
+      mediaHosts: ["video.twimg.com"],
+      browser: false,
+    },
+    {
+      id: "instagram",
+      name: "Instagram",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["instagram.com"],
+      routes: ["^/(p|reel|reels)/[^/]+"],
+      mediaHosts: ["cdninstagram.com", "fbcdn.net"],
+      browser: false,
+    },
+    {
+      id: "facebook",
+      name: "Facebook",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["facebook.com", "fb.watch"],
+      routes: ["/videos/", "/reel/", "^/watch/?[?].*v=", "^/[^/?]+/?$"],
+      mediaHosts: ["fbcdn.net"],
+      browser: false,
+    },
+    {
+      id: "reddit",
+      name: "Reddit",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["reddit.com", "v.redd.it"],
+      routes: ["/comments/", "^/[A-Za-z0-9]+/?$"],
+      mediaHosts: ["redd.it", "redditmedia.com"],
+      browser: false,
+    },
+    {
+      id: "twitch",
+      name: "Twitch",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["twitch.tv"],
+      routes: ["^/videos/[0-9]+", "^/[^/]+/clip/[^/]+", "^/[A-Za-z0-9_-]+/?$"],
+      mediaHosts: ["ttvnw.net", "twitch.tv", "twitchcdn.net"],
+      browser: false,
+    },
+    {
+      id: "dailymotion",
+      name: "Dailymotion",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["dailymotion.com", "dai.ly"],
+      routes: ["^/(embed/)?video/[A-Za-z0-9]+", "^/[A-Za-z0-9]+/?$"],
+      mediaHosts: ["dmcdn.net"],
+      browser: false,
+    },
+    {
+      id: "niconico",
+      name: "niconico",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["nicovideo.jp", "nico.ms"],
+      routes: ["^/watch/[A-Za-z0-9]+", "^/(sm|so|nm)?[0-9]+/?$"],
+      mediaHosts: ["nicovideo.jp", "dmc.nico", "domand.nicovideo.jp"],
+      browser: false,
+    },
+    {
+      id: "xiaoyuzhou",
+      name: "小宇宙",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["xiaoyuzhoufm.com"],
+      routes: ["^/episode/[a-fA-F0-9]{24}(/|$)"],
+      mediaHosts: ["xyzcdn.net"],
+      browser: true,
+      audio: true,
+    },
+    {
+      id: "soundcloud",
+      name: "SoundCloud",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["soundcloud.com"],
+      routes: ["^/[^/]+/[^/]+/?$"],
+      mediaHosts: ["sndcdn.com", "soundcloud.com"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "bandcamp",
+      name: "Bandcamp",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["bandcamp.com"],
+      routes: ["^/track/[^/?]+"],
+      mediaHosts: ["bcbits.com"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "ximalaya",
+      name: "喜马拉雅",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["ximalaya.com"],
+      routes: ["/sound/[0-9]+"],
+      mediaHosts: ["xmcdn.com", "ximalaya.com"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "netease",
+      name: "网易云音乐",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["music.163.com"],
+      routes: ["(^/|#/)song[?].*id=[0-9]+"],
+      mediaHosts: ["music.126.net"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "applepodcasts",
+      name: "Apple Podcasts",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["podcasts.apple.com"],
+      routes: ["/podcast/.*[?].*i=[0-9]+"],
+      mediaHosts: ["podcasts.apple.com", "mzstatic.com"],
+      browser: false,
+      audio: true,
+    },
+  ]; // Replaced by the readable-bundle build.
+  const defaults = Object.freeze({
+    captions: true,
+    aiTranscription: true,
+    directAudio: false,
+    browserCapture: false,
+    nativePage: true,
+    download: true,
+    drm: false,
+    specialized: true,
+  });
+  const registry = new Map(
+    PLATFORM_CATALOG.map((entry) => [
+      entry.id,
+      Object.freeze({
+        ...defaults,
+        ...(entry.capabilities || {}),
+        id: entry.id,
+        platform: entry.platform || entry.id,
+        mode: entry.mode,
+        mediaKind: entry.mediaKind || "video",
+        hosts: Object.freeze([...(entry.hosts || [])]),
+        specialized: entry.mode === "specialized",
+      }),
+    ]),
+  );
+  registry.set(
+    "html5",
+    Object.freeze({
+      ...defaults,
+      id: "html5",
+      platform: "html5",
+      mode: "generic",
+      mediaKind: "video",
+      browserCapture: true,
+      specialized: false,
+      hosts: [],
+    }),
+  );
+  const byPlatform = new Map([...registry.values()].map((entry) => [entry.platform, entry]));
+  const hostMatches = (host, entry) =>
+    entry.hosts.some((value) => host === value || host.endsWith(`.${value}`));
+  const resolve = ({ platform, page, host = "" } = {}) => {
+    const normalizedHost = String(host || "").toLowerCase();
+    const hostEntry = [...registry.values()].find(
+      (entry) => entry.specialized && hostMatches(normalizedHost, entry),
+    );
+    const entry =
+      hostEntry ||
+      registry.get(page?.id) ||
+      byPlatform.get(platform) ||
+      registry.get(platform) ||
+      registry.get("html5");
+    const pageCapabilities = globalThis.lexihaloMediaContract?.capabilities(page) || {};
+    return Object.freeze({
+      ...entry,
+      browserCapture:
+        entry.browserCapture === true ||
+        entry.mode === "browser" ||
+        (entry.id === "html5" && pageCapabilities.browserReadable === true),
+      audioOnly: entry.mediaKind === "audio" || pageCapabilities.audioOnly === true,
+      generic: pageCapabilities.generic === true,
+      key: entry.id,
+    });
+  };
+  globalThis.lexihaloPlatformCapabilities = Object.freeze({
+    catalog: Object.freeze(PLATFORM_CATALOG),
+    entries: Object.freeze([...registry.values()]),
+    keys: Object.freeze([...registry.keys()]),
+    get: (id) => registry.get(id) || null,
+    resolve,
+  });
+})();
+
+/* Runtime validation at the untrusted page/background message boundary. */
+(() => {
+  "use strict";
+  const fail = (message) => {
+    throw new Error(`媒体消息无效：${message}`);
+  };
+  const text = (value, max, name, required = false) => {
+    if (value == null || value === "") {
+      if (required) fail(`${name} 缺失`);
+      return "";
+    }
+    if (typeof value !== "string" || value.length > max) fail(name);
+    return value;
+  };
+  const source = (value, required = false) => {
+    if (value == null) {
+      if (required) fail("mediaSource 缺失");
+      return undefined;
+    }
+    if (typeof value !== "object" || Array.isArray(value)) fail("mediaSource");
+    const normalized = globalThis.lexihaloMediaContract.normalize(value);
+    if (normalized.transport === "capture") text(normalized.captureId, 128, "captureId", true);
+    else if (normalized.transport === "direct") text(normalized.url, 12000, "media URL", true);
+    else if (normalized.transport === "native-page")
+      text(normalized.pageUrl, 12000, "page URL", true);
+    else fail("transport");
+    if (!["audio", "video"].includes(normalized.kind)) fail("kind");
+    return normalized;
+  };
+  const request = (message) => {
+    if (!message || typeof message !== "object" || Array.isArray(message)) fail("请求不是对象");
+    const type = text(message.type, 100, "type", true);
+    if (!type.startsWith("lexihalo:subtitle-ai:")) fail("type");
+    const result = { ...message, type };
+    result.requestId = text(message.requestId, 128, "requestId", true);
+    if (message.mediaPageUrl != null)
+      result.mediaPageUrl = text(message.mediaPageUrl, 12000, "mediaPageUrl");
+    if (message.audioUrl != null) result.audioUrl = text(message.audioUrl, 12000, "audioUrl");
+    if (message.browserSource != null || message.mediaSource != null) {
+      result.mediaSource = source(message.mediaSource || message.browserSource, true);
+      result.browserSource = result.mediaSource; // compatibility at the current wire boundary
+    }
+    if (message.uploadId != null) result.uploadId = text(message.uploadId, 64, "uploadId");
+    if (message.browserUploadId != null)
+      result.browserUploadId = text(message.browserUploadId, 64, "browserUploadId");
+    if (message.targetRequestId != null)
+      result.targetRequestId = text(message.targetRequestId, 128, "targetRequestId");
+    if (message.sequence != null && (!Number.isInteger(message.sequence) || message.sequence < 0))
+      fail("sequence");
+    if (message.total != null && (!Number.isSafeInteger(message.total) || message.total < 0))
+      fail("total");
+    return result;
+  };
+  const segments = (value) => {
+    if (!Array.isArray(value) || !value.length || value.length > 20000) fail("字幕分段");
+    return value.map((item, index) => {
+      const start = Number(item?.start),
+        end = Number(item?.end),
+        content = text(item?.text, 20000, `segment[${index}].text`, true);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start)
+        fail(`segment[${index}] 时间`);
+      return { ...item, start, end, text: content };
+    });
+  };
+  globalThis.lexihaloMediaSchema = Object.freeze({ request, source, segments });
+})();
+
+/* Bounded clear-HLS/HTTP reader. Transport is supplied by the caller (page or
+ * extension broker); only media bytes and numeric fragment metadata reach native. */
+(() => {
+  "use strict";
+  const MAX_BYTES = 2 * 1024 ** 3,
+    PART = 192 * 1024,
+    MAX_ENTRIES = 5000;
+  const attrs = (line) =>
+    Object.fromEntries(
+      Array.from(line.matchAll(/([A-Z0-9-]+)=("[^"]*"|[^,]*)/g), (m) => [
+        m[1],
+        m[2].replace(/^"|"$/g, ""),
+      ]),
+    );
+  const rangeOf = (raw, offset) => {
+    const match = /^(\d+)(?:@(\d+))?$/.exec(raw || "");
+    if (!match) throw new Error("HLS 字节范围无效");
+    const length = Number(match[1]),
+      start = match[2] == null ? offset : Number(match[2]);
+    if (
+      !Number.isSafeInteger(start) ||
+      start < 0 ||
+      !Number.isSafeInteger(length) ||
+      length < 1 ||
+      length > MAX_BYTES
+    )
+      throw new Error("HLS 字节范围无效");
+    return { start, end: start + length - 1 };
+  };
+  const textOf = async (response) => {
+    const reader = response.body.getReader();
+    let text = "",
+      bytes = 0;
+    const decoder = new TextDecoder();
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        bytes += value.length;
+        if (bytes > 2 * 1024 * 1024) throw new Error("HLS 清单超过 2 MB");
+        text += decoder.decode(value, { stream: true });
+      }
+      return text + decoder.decode();
+    } finally {
+      await reader.cancel().catch(() => {});
+      reader.releaseLock();
+    }
+  };
+  globalThis.lexihaloMediaReader = async ({
+    source,
+    purpose = "transcribe",
+    fetchResource,
+    safeUrl,
+    signal,
+    onPart,
+    onProgress,
+    resolution = 0,
+  }) => {
+    const abort = () => {
+      if (signal?.aborted) throw new Error("已取消媒体读取");
+    };
+    const load = async (url, range) => {
+      abort();
+      const response = await fetchResource(safeUrl(url), signal, range);
+      if (!response.ok || !response.body)
+        throw new Error(`读取媒体失败（HTTP ${response.status}）`);
+      if (
+        range &&
+        (response.status !== 206 ||
+          !(response.headers.get("content-range") || "").startsWith(
+            `bytes ${range.start}-${range.end}/`,
+          ))
+      )
+        throw new Error("媒体服务器未返回完整字节范围");
+      return response;
+    };
+    const resolve = async (url, depth = 0, mode = purpose) => {
+      if (depth > 4) throw new Error("HLS 清单嵌套过深");
+      const response = await load(url);
+      const base = safeUrl(response.url || url);
+      const text = await textOf(response);
+      const lines = text
+        .replace(/^\uFEFF/, "")
+        .trim()
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+      if (lines[0] !== "#EXTM3U") throw new Error("未返回有效的 HLS 清单");
+      if (
+        lines.some(
+          (l) =>
+            l.startsWith("#EXT-X-SESSION-KEY:") ||
+            (l.startsWith("#EXT-X-KEY:") && attrs(l).METHOD !== "NONE"),
+        )
+      )
+        throw new Error("不处理加密/DRM HLS");
+      const variants = [];
+      for (let i = 0; i < lines.length; i++)
+        if (
+          lines[i].startsWith("#EXT-X-STREAM-INF:") &&
+          lines[i + 1] &&
+          !lines[i + 1].startsWith("#")
+        ) {
+          variants.push({ ...attrs(lines[i]), url: safeUrl(lines[i + 1], base) });
+        }
+      if (variants.length) {
+        variants.sort((a, b) => Number(a.BANDWIDTH || Infinity) - Number(b.BANDWIDTH || Infinity));
+        const qualified =
+          resolution > 0
+            ? variants.filter((v) => {
+                const dimensions = String(v.RESOLUTION || "")
+                  .split("x")
+                  .map(Number);
+                return !dimensions[1] || Math.min(...dimensions) <= resolution;
+              })
+            : variants;
+        const selected = mode === "download" ? qualified.at(-1) || variants.at(-1) : variants[0];
+        const audio = lines
+          .filter((l) => l.startsWith("#EXT-X-MEDIA:"))
+          .map(attrs)
+          .find((a) => a.TYPE === "AUDIO" && a["GROUP-ID"] === selected.AUDIO && a.URI);
+        if (audio && mode === "transcribe")
+          return resolve(safeUrl(audio.URI, base), depth + 1, mode);
+        const main = await resolve(selected.url, depth + 1, mode);
+        if (audio) main.audio = await resolve(safeUrl(audio.URI, base), depth + 1, "transcribe");
+        return main;
+      }
+      if (!lines.includes("#EXT-X-ENDLIST")) throw new Error("暂不处理直播或未结束的 HLS 清单");
+      const entries = [];
+      let duration = 0,
+        seconds = 0,
+        rangeRaw = "",
+        previousUrl = "",
+        nextOffset;
+      let map = null,
+        discontinuity = false;
+      for (const line of lines) {
+        if (line.startsWith("#EXTINF:")) seconds = Number.parseFloat(line.slice(8));
+        else if (line === "#EXT-X-GAP") throw new Error("HLS 媒体存在缺片");
+        else if (line === "#EXT-X-DISCONTINUITY") discontinuity = true;
+        else if (line.startsWith("#EXT-X-BYTERANGE:")) rangeRaw = line.slice(17);
+        else if (line.startsWith("#EXT-X-MAP:")) {
+          const data = attrs(line),
+            mapUrl = safeUrl(data.URI, base);
+          const range = data.BYTERANGE ? rangeOf(data.BYTERANGE) : null;
+          const previous = entries.find(
+            (e) =>
+              e.kind === "init" &&
+              e.url === mapUrl &&
+              JSON.stringify(e.range) === JSON.stringify(range),
+          );
+          map = previous ? previous.index : entries.length;
+          if (!previous) entries.push({ index: map, kind: "init", url: mapUrl, range });
+        } else if (!line.startsWith("#")) {
+          if (!Number.isFinite(seconds) || seconds <= 0) throw new Error("HLS 分段时长无效");
+          const segmentUrl = safeUrl(line, base),
+            range = rangeRaw
+              ? rangeOf(rangeRaw, previousUrl === segmentUrl ? nextOffset : undefined)
+              : null;
+          entries.push({
+            index: entries.length,
+            kind: "segment",
+            url: segmentUrl,
+            range,
+            duration: seconds,
+            map,
+            discontinuity,
+          });
+          duration += seconds;
+          seconds = 0;
+          rangeRaw = "";
+          discontinuity = false;
+          previousUrl = segmentUrl;
+          nextOffset = range ? range.end + 1 : undefined;
+        }
+      }
+      if (!entries.length || entries.length > MAX_ENTRIES || duration <= 0 || duration > 14400)
+        throw new Error("只支持四小时以内、最多 5000 分片的完整媒体");
+      return { entries, duration, hls: true };
+    };
+    let media;
+    if (
+      source.ext === "m3u8" ||
+      /\.m3u8(?:$|[?#])/i.test(source.url) ||
+      /mpegurl/i.test(source.mimeType || "")
+    )
+      media = await resolve(source.url);
+    else
+      media = {
+        entries: [{ index: 0, url: safeUrl(source.url), kind: "raw" }],
+        duration: 0,
+        hls: false,
+      };
+    const streams = [{ stream: "media", ...media }];
+    if (media.audio) streams.push({ stream: "audio", ...media.audio });
+    const entryCount = streams.reduce((n, item) => n + item.entries.length, 0);
+    let total = 0,
+      sequence = 0,
+      completed = 0;
+    for (const stream of streams)
+      for (const entry of stream.entries) {
+        abort();
+        const response = await load(entry.url, entry.range);
+        if (/text\/html|application\/json/i.test(response.headers.get("content-type") || "")) {
+          await response.body.cancel();
+          throw new Error("站点返回登录或错误页面，而不是媒体");
+        }
+        const declared = Number(response.headers.get("content-length")) || 0;
+        if (declared > MAX_BYTES - total) {
+          await response.body.cancel();
+          throw new Error("媒体超过 2 GB");
+        }
+        const reader = response.body.getReader();
+        let bytes = 0;
+        let pending = new Uint8Array(PART),
+          filled = 0;
+        const flush = async () => {
+          if (!filled) return;
+          abort();
+          let raw = "";
+          for (let i = 0; i < filled; i += 8192)
+            raw += String.fromCharCode(...pending.subarray(i, Math.min(filled, i + 8192)));
+          await onPart({
+            sequence: sequence++,
+            stream: stream.stream,
+            data: btoa(raw),
+            ...(stream.hls
+              ? {
+                  entry: {
+                    index: entry.index,
+                    kind: entry.kind,
+                    duration: entry.duration || 0,
+                    discontinuity: entry.discontinuity === true,
+                    map: entry.map ?? null,
+                  },
+                }
+              : {}),
+          });
+          filled = 0;
+        };
+        try {
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            bytes += value.length;
+            total += value.length;
+            if (total > MAX_BYTES || (stream.hls && bytes > 128 * 1024 * 1024))
+              throw new Error("媒体或单个分片超过大小限制");
+            for (let i = 0; i < value.length; ) {
+              const length = Math.min(PART - filled, value.length - i);
+              pending.set(value.subarray(i, i + length), filled);
+              filled += length;
+              i += length;
+              if (filled === PART) await flush();
+            }
+          }
+          await flush();
+        } finally {
+          await reader.cancel().catch(() => {});
+          reader.releaseLock();
+        }
+        if (!bytes || (entry.range && bytes !== entry.range.end - entry.range.start + 1))
+          throw new Error("媒体分片为空或不完整");
+        completed++;
+        const message = `读取媒体 ${completed}/${entryCount}（${(total / 1024 / 1024).toFixed(1)} MB）`;
+        onProgress?.(
+          purpose === "download"
+            ? { message, percent: Math.round((completed / entryCount) * 85) }
+            : message,
+        );
+      }
+    return { total, sequence, duration: media.duration };
+  };
+})();
+
 (() => {
   var __webpack_modules__ = {
       581: (e, t, n) => {
@@ -11645,6 +13084,532 @@
     });
   })();
 })();
+/* Authoritative Background task/owner registry for media transfer, transcription, and download. */
+(() => {
+  "use strict";
+  class BackgroundMediaTaskManager {
+    constructor(storage) {
+      this.storage = storage;
+      this.groups = new Map([
+        ["transcription", new Map()],
+        ["download", new Map()],
+        ["transfer", new Map()],
+      ]);
+    }
+    group(name) {
+      const group = this.groups.get(name);
+      if (!group) throw new Error(`未知媒体任务组：${name}`);
+      return group;
+    }
+    begin(name, requestId, task) {
+      const group = this.group(name);
+      if (!requestId || group.has(requestId)) throw new Error("媒体任务已经存在");
+      const value = Object.assign(task || {}, {
+        requestId,
+        kind: name,
+        state: task?.state || "starting",
+      });
+      group.set(requestId, value);
+      return value;
+    }
+    get(name, requestId) {
+      return this.group(name).get(requestId) || null;
+    }
+    remove(name, requestId) {
+      const task = this.get(name, requestId);
+      this.group(name).delete(requestId);
+      return task;
+    }
+    hasTab(name, tabId) {
+      return [...this.group(name).values()].some((task) => task.tabId === tabId);
+    }
+    startTransfer(uploadId, task) {
+      return this.begin("transfer", uploadId, { ...task, state: "transferring" });
+    }
+    finishTransfer(uploadId) {
+      return this.remove("transfer", uploadId);
+    }
+    ownerKey(sender) {
+      return `lexihalo_media_owner:${sender?.tab?.id}:${sender?.frameId ?? 0}`;
+    }
+    uploadKey(id) {
+      return `lexihalo_media_upload:${id}`;
+    }
+    legacyOwnerKey(sender) {
+      return `lexihalo_browser_audio_owner:${sender?.tab?.id}:${sender?.frameId ?? 0}`;
+    }
+    legacyUploadKey(id) {
+      return `lexihalo_browser_audio_upload:${id}`;
+    }
+    owner(sender, identity) {
+      return {
+        tabId: sender?.tab?.id,
+        frameId: sender?.frameId ?? 0,
+        documentId: String(sender?.documentId || ""),
+        identity,
+      };
+    }
+    async readOwner(sender) {
+      const keys = [this.ownerKey(sender), this.legacyOwnerKey(sender)],
+        stored = await this.storage.get(keys);
+      return stored[keys[0]] || stored[keys[1]] || null;
+    }
+    async readUpload(id) {
+      const keys = [this.uploadKey(id), this.legacyUploadKey(id)],
+        stored = await this.storage.get(keys);
+      return stored[keys[0]] || stored[keys[1]] || null;
+    }
+    async writeUpload(id, task) {
+      await this.storage.set({ [this.uploadKey(id)]: task });
+    }
+    async bindUpload(id, sender, task) {
+      await this.storage.set({ [this.ownerKey(sender)]: id, [this.uploadKey(id)]: task });
+    }
+    async removeUpload(id, sender) {
+      await this.storage.remove([this.uploadKey(id), this.legacyUploadKey(id)]);
+      const ownerKeys = [this.ownerKey(sender), this.legacyOwnerKey(sender)],
+        stored = await this.storage.get(ownerKeys);
+      await this.storage.remove(ownerKeys.filter((key) => stored[key] === id));
+    }
+  }
+  globalThis.lexihaloCreateBackgroundMediaTasks = (storage) =>
+    new BackgroundMediaTaskManager(storage);
+})();
+
+/* Passive network detection inspired by Open Media Downloader. Independent
+ * implementation: frame-bound opaque IDs, bounded reads, no cookie/key export. */
+(() => {
+  "use strict";
+  const candidates = new Map(),
+    frames = new Map(),
+    requestHeaders = new Map();
+  const TTL = 10 * 60 * 1000;
+  const publicUrl = (value, base) => {
+    const url = new URL(value, base);
+    if (
+      url.protocol !== "https:" ||
+      url.username ||
+      url.password ||
+      url.port === "0" ||
+      !globalThis.lexihaloSites.publicHost(url.hostname) ||
+      url.href.length > 8192
+    )
+      throw new Error("媒体地址不是允许的公网 HTTPS 地址");
+    url.hash = "";
+    return url.href;
+  };
+  const headersOf = (list) => {
+    const result = {};
+    for (const { name, value } of list || []) {
+      const lower = String(name).toLowerCase();
+      if (
+        value &&
+        ["referer", "origin", "user-agent", "authorization", "accept", "accept-language"].includes(
+          lower,
+        )
+      )
+        result[lower] = String(value).slice(0, 8192);
+    }
+    return result;
+  };
+  const header = (list, name) => list?.find((h) => h.name?.toLowerCase() === name)?.value || "";
+  const classify = (details) => {
+    let url;
+    try {
+      url = new URL(publicUrl(details.url));
+    } catch {
+      return null;
+    }
+    if (/\.(ts|m4s|m2ts|vtt|srt|key)$/i.test(url.pathname)) return null;
+    const mimeType = header(details.responseHeaders, "content-type").split(";")[0].toLowerCase();
+    if (mimeType === "video/mp2t") return null;
+    const ext =
+      /mpegurl/.test(mimeType) || /\.m3u8$/i.test(url.pathname)
+        ? "m3u8"
+        : /dash\+xml/.test(mimeType) || /\.mpd$/i.test(url.pathname)
+          ? "mpd"
+          : /^(audio|video)\//.test(mimeType) ||
+              /\.(mp4|m4a|webm|mp3|aac|ogg|wav|flac)$/i.test(url.pathname)
+            ? url.pathname.match(/\.(mp4|m4a|webm|mp3|aac|ogg|wav|flac)$/i)?.[1]?.toLowerCase() ||
+              (mimeType.startsWith("audio/") ? "m4a" : "mp4")
+            : "";
+    if (!ext) return null;
+    const total =
+      Number(
+        header(details.responseHeaders, "content-range").match(/\/(\d+)$/)?.[1] ||
+          header(details.responseHeaders, "content-length"),
+      ) || 0;
+    return { url: url.href, ext, mimeType, size: total, isAudio: mimeType.startsWith("audio/") };
+  };
+  const frameKey = (tab, frame) => `${tab}:${frame}`;
+  const prune = () => {
+    const now = Date.now();
+    for (const [id, item] of candidates) if (now - item.at > TTL) candidates.delete(id);
+    for (const [id, item] of requestHeaders) if (now - item.at > 60000) requestHeaders.delete(id);
+    for (const [id, item] of frames) if (now - item.at > 2 * 60 * 60 * 1000) frames.delete(id);
+    while (candidates.size > 400) candidates.delete(candidates.keys().next().value);
+    while (requestHeaders.size > 2000) requestHeaders.delete(requestHeaders.keys().next().value);
+  };
+  const navigate = (details) => {
+    if (details.tabId < 0 || !["main_frame", "sub_frame"].includes(details.type)) return;
+    const key = frameKey(details.tabId, details.frameId);
+    frames.set(key, {
+      url: details.url,
+      parent: details.parentFrameId ?? -1,
+      at: Date.now(),
+      documentId: details.documentId,
+    });
+    for (const [id, item] of candidates)
+      if (
+        item.tabId === details.tabId &&
+        (details.frameId === 0 || item.frameId === details.frameId)
+      )
+        candidates.delete(id);
+  };
+  const capture = (details) => {
+    const sent = requestHeaders.get(details.requestId);
+    requestHeaders.delete(details.requestId);
+    if (details.tabId < 0 || details.statusCode < 200 || details.statusCode > 299) return;
+    const media = classify(details);
+    if (!media) return;
+    prune();
+    const key = frameKey(details.tabId, details.frameId),
+      frame = frames.get(key);
+    const existing = [...candidates.values()].find(
+      (item) =>
+        item.tabId === details.tabId && item.frameId === details.frameId && item.url === media.url,
+    );
+    const id = existing?.id || crypto.randomUUID();
+    candidates.set(id, {
+      ...media,
+      id,
+      tabId: details.tabId,
+      frameId: details.frameId,
+      parentFrameId: details.parentFrameId ?? frame?.parent ?? -1,
+      documentId: details.documentId || frame?.documentId,
+      frameUrl: details.documentUrl || frame?.url || "",
+      headers: sent?.headers || existing?.headers || {},
+      at: Date.now(),
+    });
+  };
+  if (chrome.webRequest?.onResponseStarted) {
+    const filter = {
+      urls: ["<all_urls>"],
+      types: ["main_frame", "sub_frame", "xmlhttprequest", "media", "other"],
+    };
+    chrome.webRequest.onBeforeRequest.addListener(navigate, filter);
+    const sent = (details) => {
+      if (details.tabId < 0) return;
+      prune();
+      requestHeaders.set(details.requestId, {
+        at: Date.now(),
+        headers: headersOf(details.requestHeaders),
+      });
+    };
+    for (const [event, fn, fields] of [
+      [chrome.webRequest.onSendHeaders, sent, ["requestHeaders"]],
+      [chrome.webRequest.onResponseStarted, capture, ["responseHeaders"]],
+    ]) {
+      try {
+        event.addListener(fn, filter, [...fields, "extraHeaders"]);
+      } catch {
+        event.addListener(fn, filter, fields);
+      }
+    }
+    chrome.tabs?.onRemoved?.addListener((tab) => {
+      for (const [id, item] of candidates) if (item.tabId === tab) candidates.delete(id);
+      for (const key of frames.keys()) if (key.startsWith(`${tab}:`)) frames.delete(key);
+    });
+  }
+  const belongs = (item, sender) => {
+    if (item.tabId !== sender?.tab?.id) return false;
+    const ownFrame = sender.frameId ?? 0;
+    if (item.frameId === ownFrame) {
+      if (item.documentId && sender.documentId) return item.documentId === sender.documentId;
+      try {
+        return new URL(item.frameUrl).origin === new URL(sender.url).origin;
+      } catch {
+        return false;
+      }
+    }
+    // A root player may be a cross-origin iframe. Never borrow another tab's
+    // request or a sibling iframe's request; roots may see their descendants.
+    if (ownFrame !== 0) return false;
+    const root = frames.get(frameKey(item.tabId, 0));
+    if (
+      !root ||
+      globalThis.lexihaloSites.nativePage(root.url)?.identity !==
+        globalThis.lexihaloSites.nativePage(sender.url)?.identity
+    )
+      return false;
+    let parent = item.parentFrameId;
+    for (let depth = 0; depth < 8 && parent >= 0; depth++) {
+      if (parent === 0) return true;
+      parent = frames.get(frameKey(item.tabId, parent))?.parent ?? -1;
+    }
+    return false;
+  };
+  const list = (sender) => {
+    prune();
+    return {
+      sources: [...candidates.values()]
+        .filter((item) => belongs(item, sender))
+        .sort((a, b) => b.at - a.at)
+        .slice(0, 16)
+        .map((item) =>
+          globalThis.lexihaloMediaContract.normalize({
+            transport: "capture",
+            captureId: item.id,
+            ext: item.ext,
+            mimeType: item.mimeType,
+            size: item.size,
+            isAudio: item.isAudio,
+            resolution: 0,
+            frameId: item.frameId,
+            label: item.ext === "m3u8" ? "捕获的 HLS 资源" : "捕获的媒体资源",
+          }),
+        ),
+    };
+  };
+  let nextRuleId = 810000000;
+  let headerLease = Promise.resolve();
+  const fetchCaptured = async (url, item, signal, range) => {
+    const target = publicUrl(url);
+    let release;
+    const previous = headerLease;
+    headerLease = new Promise((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    const rules = [],
+      replay = {};
+    for (const [name, value] of Object.entries(item.headers)) {
+      if (["referer", "origin", "user-agent"].includes(name))
+        rules.push({ header: name, operation: "set", value });
+      else if (name !== "authorization" || new URL(target).origin === new URL(item.url).origin)
+        replay[name] = value;
+    }
+    if (range) replay.Range = `bytes=${range.start}-${range.end}`;
+    const ruleId = nextRuleId++;
+    try {
+      if (rules.length) {
+        await chrome.declarativeNetRequest.updateSessionRules({
+          addRules: [
+            {
+              id: ruleId,
+              priority: 2,
+              action: { type: "modifyHeaders", requestHeaders: rules },
+              condition: {
+                regexFilter: "^" + target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$",
+                initiatorDomains: [chrome.runtime.id],
+                resourceTypes: ["xmlhttprequest"],
+              },
+            },
+          ],
+        });
+      }
+      const response = await fetch(target, {
+        method: "GET",
+        credentials: "include",
+        redirect: "manual",
+        headers: replay,
+        signal: AbortSignal.any([signal, AbortSignal.timeout(25000)].filter(Boolean)),
+      });
+      if (response.status >= 300 && response.status < 400) {
+        const redirect = publicUrl(response.headers.get("location"), target);
+        return { redirect };
+      }
+      return response;
+    } finally {
+      if (rules.length)
+        await chrome.declarativeNetRequest
+          .updateSessionRules({ removeRuleIds: [ruleId] })
+          .catch(() => {});
+      release();
+    }
+  };
+  const read = async ({ captureId, sender, signal, purpose, onPart, onProgress, resolution }) => {
+    prune();
+    const item = candidates.get(captureId);
+    if (!item || !belongs(item, sender))
+      throw new Error("捕获资源已过期或不属于当前播放器，请刷新并播放几秒后重试");
+    if (item.ext === "mpd") throw new Error("捕获到 DASH 清单；当前导入流程暂不合并 MPD");
+    const fetchResource = async (url, sig, range) => {
+      let target = publicUrl(url);
+      for (let depth = 0; depth < 4; depth++) {
+        const response = await fetchCaptured(target, item, sig, range);
+        if (response.redirect) {
+          target = response.redirect;
+          continue;
+        }
+        return response;
+      }
+      throw new Error("媒体重定向次数过多");
+    };
+    return globalThis.lexihaloMediaReader({
+      source: { url: item.url, ext: item.ext, mimeType: item.mimeType },
+      purpose,
+      fetchResource,
+      safeUrl: publicUrl,
+      signal,
+      onPart,
+      onProgress,
+      resolution,
+    });
+  };
+  globalThis.lexihaloMediaCapture = { list, read };
+})();
+
+/* User-confirmed WeChat Channels share resolution. Only the requested share is
+ * sent to Tencent Yuanbao; login tokens/cookies never leave the official pages. */
+(() => {
+  "use strict";
+  const sessions = new Map();
+  const inspectYuanbao = async (share) => {
+    if (location.origin !== "https://yuanbao.tencent.com") return { state: "unavailable" };
+    try {
+      const response = await fetch("/api/weixin/get_parse_result", {
+        method: "POST",
+        credentials: "same-origin",
+        signal: AbortSignal.timeout(25000),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "video_channel_url", url: share, scene: 1 }),
+      });
+      if ([401, 403].includes(response.status)) return { state: "login" };
+      if (!response.ok) return { state: "unavailable" };
+      const data = await response.json();
+      const value = data?.data?.playable_url;
+      if (data.code !== 0 || typeof value !== "string" || value.length > 8000)
+        return { state: "unavailable" };
+      const url = new URL(value);
+      if (
+        url.origin !== "https://channels.weixin.qq.com" ||
+        url.pathname !== "/finder-preview/pages/feed" ||
+        url.username ||
+        url.password ||
+        url.hash ||
+        !url.searchParams.get("token") ||
+        !url.searchParams.get("eid")
+      )
+        return { state: "unavailable" };
+      return { state: "ready", playback: url.href };
+    } catch {
+      return { state: "unavailable" };
+    }
+  };
+  const inspectPlayback = async (expected) => {
+    if (location.href !== expected || location.origin !== "https://channels.weixin.qq.com")
+      return { state: "unavailable" };
+    try {
+      const url = new URL(location.href);
+      const response = await fetch("/finder-preview/api/feed/get_feed_info", {
+        method: "POST",
+        credentials: "omit",
+        signal: AbortSignal.timeout(25000),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          baseReq: { generalToken: url.searchParams.get("token") },
+          exportId: url.searchParams.get("eid"),
+        }),
+      });
+      if (!response.ok) return { state: "unavailable" };
+      const data = await response.json();
+      if (data.errCode !== 0 || data.data?.errMsg?.type !== 0 || location.href !== expected)
+        return { state: "unavailable" };
+      const feed = data.data.feedInfo;
+      return {
+        state: "ready",
+        mediaUrl: feed?.h264VideoInfo?.videoUrl || "",
+        title: String(feed?.description || "视频号").slice(0, 240),
+      };
+    } catch {
+      return { state: "unavailable" };
+    }
+  };
+  const execute = async (tabId, fn, args) => {
+    const entries = await chrome.scripting.executeScript({
+      target: { tabId },
+      world: "MAIN",
+      func: fn,
+      args,
+    });
+    return entries?.[0]?.result || { state: "unavailable" };
+  };
+  globalThis.lexihaloResolveChannelsRequest = async (message, sender) => {
+    const page = globalThis.lexihaloSites.page(message.mediaPageUrl);
+    const owner = globalThis.lexihaloSites.page(sender?.url || "");
+    if (
+      page?.id !== "channels" ||
+      !page.identity.startsWith("channels:share:") ||
+      owner?.identity !== page.identity ||
+      !Number.isInteger(sender?.tab?.id)
+    ) {
+      throw new Error("无法确认当前视频号分享页面");
+    }
+    const key = `${sender.tab.id}:${sender.frameId ?? 0}`;
+    if (message.mode === "open") {
+      if (message.userInitiated !== true) throw new Error("请点击播放器菜单并确认打开元宝");
+      for (const [id, session] of sessions)
+        if (Date.now() - session.at > 180000) sessions.delete(id);
+      const tab = await chrome.tabs.create({ url: "https://yuanbao.tencent.com/" });
+      const sessionId = crypto.randomUUID();
+      sessions.set(key, {
+        id: sessionId,
+        identity: page.identity,
+        share: page.url,
+        resolver: tab.id,
+        at: Date.now(),
+      });
+      return { state: "opened", sessionId };
+    }
+    const session = sessions.get(key);
+    if (
+      !session ||
+      session.id !== message.sessionId ||
+      session.identity !== page.identity ||
+      Date.now() - session.at > 180000
+    ) {
+      throw new Error("视频号验证任务已过期，请重新打开菜单");
+    }
+    if (message.mode === "cancel") {
+      sessions.delete(key);
+      return { cancelled: true };
+    }
+    if (message.mode !== "read") throw new Error("未知视频号验证操作");
+    if (session.playback) {
+      const tab = await chrome.tabs.get(session.playback);
+      if (tab.status === "loading") return { state: "loading" };
+      if (tab.url !== session.playbackUrl) throw new Error("官方播放页已切换，请重新验证");
+      const result = await execute(session.playback, inspectPlayback, [session.playbackUrl]);
+      if ((await chrome.tabs.get(session.playback)).url !== session.playbackUrl)
+        throw new Error("官方播放页已切换");
+      if (
+        result.state === "ready" &&
+        globalThis.lexihaloSites.isMediaUrl(page.url, result.mediaUrl)
+      ) {
+        sessions.delete(key);
+        return { state: "ready", mediaUrl: result.mediaUrl, title: result.title };
+      }
+      return { state: "loading" };
+    }
+    const tab = await chrome.tabs.get(session.resolver);
+    if (tab.status === "loading") return { state: "loading" };
+    if (new URL(tab.url || "about:blank").origin !== "https://yuanbao.tencent.com")
+      throw new Error("元宝页面已切换，请重新验证");
+    const result = await execute(session.resolver, inspectYuanbao, [session.share]);
+    if (
+      new URL((await chrome.tabs.get(session.resolver)).url || "about:blank").origin !==
+      "https://yuanbao.tencent.com"
+    )
+      throw new Error("元宝页面已切换");
+    if (result.state !== "ready") return result;
+    const playback = await chrome.tabs.create({ url: result.playback });
+    session.playback = playback.id;
+    session.playbackUrl = result.playback;
+    return { state: "loading" };
+  };
+})();
+
 (() => {
   "use strict";
 
@@ -11657,6 +13622,61 @@
   const MAX_CACHE_ENTRIES = 160;
   const MAX_TRANSCRIPTION_CACHE_ENTRIES = 20;
   const MAX_AUDIO_BYTES = 24 * 1024 * 1024;
+  const ASR_REQUEST_TIMEOUT_MS = 30 * 60 * 1000;
+  const uploadStorage = chrome.storage.session || chrome.storage.local;
+  const mediaTasks = globalThis.lexihaloCreateBackgroundMediaTasks(uploadStorage);
+  const removeBrowserUpload = (id, sender) => mediaTasks.removeUpload(id, sender);
+  const browserUploadOwner = (sender) =>
+    mediaTasks.owner(sender, nativeMediaIdentity(sender?.url || ""));
+  const loadBrowserUpload = async (id, sender, cancelOnly = false) => {
+    if (!/^[0-9a-f]{32}$/.test(String(id || ""))) throw new Error("浏览器音频任务标识无效");
+    const task = await mediaTasks.readUpload(id);
+    const owner = browserUploadOwner(sender);
+    if (
+      !task ||
+      task.tabId !== owner.tabId ||
+      task.frameId !== owner.frameId ||
+      (!cancelOnly &&
+        ((task.documentId && owner.documentId && task.documentId !== owner.documentId) ||
+          task.identity !== owner.identity ||
+          Date.now() - task.at > 30 * 60 * 1000))
+    ) {
+      throw new Error("浏览器音频任务不属于当前页面或已过期");
+    }
+    return task;
+  };
+  const nativeMessage = (message) =>
+    new Promise((resolve, reject) => {
+      chrome.runtime.sendNativeMessage("ai.lexihalo.asr", message, (response) => {
+        const error = chrome.runtime.lastError;
+        if (error)
+          reject(
+            new Error(`本地音频助手未连接：${error.message}。安装方法见 docs/AI_SUBTITLES.md`),
+          );
+        else if (!response?.ok) reject(new Error(response?.error || "本地音频助手失败"));
+        else resolve(response);
+      });
+    });
+  const cleanupBrowserUploadOwner = async (tabId, frameId = 0) => {
+    if (!Number.isInteger(tabId)) return;
+    const sender = { tab: { id: tabId }, frameId };
+    const uploadId = await mediaTasks.readOwner(sender);
+    if (!/^[0-9a-f]{32}$/.test(String(uploadId || ""))) return;
+    mediaTasks.get("transfer", uploadId)?.controller?.abort();
+    await nativeMessage({ action: "cancel", jobId: uploadId }).catch(() => {});
+    await mediaTasks.removeUpload(uploadId, sender);
+  };
+  if (chrome.webRequest?.onBeforeRequest) {
+    chrome.webRequest.onBeforeRequest.addListener(
+      (details) => {
+        void cleanupBrowserUploadOwner(details.tabId, details.frameId);
+      },
+      { urls: ["<all_urls>"], types: ["main_frame", "sub_frame"] },
+    );
+  }
+  chrome.tabs?.onRemoved?.addListener((tabId) => {
+    void cleanupBrowserUploadOwner(tabId, 0);
+  });
   const MAX_DIAGNOSTIC_ENTRIES = 40;
   const AI_PROVIDER_IDS = new Set([
     "OpenAI",
@@ -12304,7 +14324,11 @@
     return groups.filter((group) => group.text);
   };
 
-  const normalizeTranscriptionSegments = (payload, expectedDuration) => {
+  const normalizeTranscriptionSegments = (
+    payload,
+    expectedDuration,
+    { allowEmpty = false } = {},
+  ) => {
     const root =
       [payload, payload?.data, payload?.result].find(
         (value) =>
@@ -12351,8 +14375,17 @@
           : segment.end,
     }));
     if (!segments.length) {
+      const explicitTimedResponse = [
+        root?.segments,
+        root?.chunks,
+        root?.utterances,
+        root?.words,
+      ].some(Array.isArray);
+      const transcript = String(root?.text || root?.transcript || root?.content || "").trim();
+      if (allowEmpty && explicitTimedResponse && !transcript) return [];
+      const count = (value) => (Array.isArray(value) ? value.length : "缺失");
       throw new Error(
-        "音频识别接口未返回分段时间戳。需要 verbose_json 的 segments/chunks/utterances/words，并包含 start、end 和文本。",
+        `音频识别接口未返回分段时间戳（segments=${count(root?.segments)}，chunks=${count(root?.chunks)}，utterances=${count(root?.utterances)}，words=${count(root?.words)}，text=${transcript.length} 字）。需要 verbose_json 的时间戳数组，并包含 start、end 和文本。`,
       );
     }
     return segments;
@@ -12360,14 +14393,23 @@
 
   const fetchWithTimeout = async (url, options, timeoutMs) => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    let timedOut = false;
+    const onAbort = () => controller.abort();
+    if (options.signal?.aborted) controller.abort();
+    options.signal?.addEventListener("abort", onAbort, { once: true });
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
     try {
       return await fetch(url, { ...options, signal: controller.signal });
     } catch (error) {
-      if (controller.signal.aborted) throw new Error("请求超时，请稍后重试");
+      if (timedOut) throw new Error("请求超时，请稍后重试");
+      if (options.signal?.aborted) throw new Error("已取消音频识别");
       throw error;
     } finally {
       clearTimeout(timeout);
+      options.signal?.removeEventListener("abort", onAbort);
     }
   };
 
@@ -12383,7 +14425,459 @@
     }
   };
 
-  const transcribeAudio = async (message, sender) => {
+  const OFFSCREEN_CACHE = "lexihalo-asr-payloads-v1";
+  let creatingOffscreen;
+  const ensureAsrOffscreen = async () => {
+    if (!chrome.offscreen?.createDocument || typeof caches === "undefined") return false;
+    const url = chrome.runtime.getURL("offscreen.html");
+    const exists = chrome.offscreen.hasDocument
+      ? await chrome.offscreen.hasDocument()
+      : chrome.runtime.getContexts
+        ? (
+            await chrome.runtime.getContexts({
+              contextTypes: ["OFFSCREEN_DOCUMENT"],
+              documentUrls: [url],
+            })
+          ).length > 0
+        : false;
+    if (exists) return true;
+    if (!creatingOffscreen) {
+      creatingOffscreen = chrome.offscreen
+        .createDocument({
+          url: "offscreen.html",
+          reasons: ["BLOBS"],
+          justification:
+            "Upload user-requested BYOK audio outside the 30-second service-worker fetch lifetime limit",
+        })
+        .finally(() => {
+          creatingOffscreen = null;
+        });
+    }
+    await creatingOffscreen;
+    return true;
+  };
+
+  const transcribeBlob = async ({
+    audioBlob,
+    filename,
+    endpoint,
+    headers,
+    credentials,
+    model,
+    language,
+    prompt,
+    signal,
+  }) => {
+    if (!(await ensureAsrOffscreen())) {
+      const form = new FormData();
+      form.append("file", audioBlob, filename);
+      form.append("model", model);
+      if (language) form.append("language", language);
+      form.append("prompt", prompt);
+      form.append("response_format", "verbose_json");
+      form.append("timestamp_granularities[]", "segment");
+      form.append("temperature", "0");
+      const response = await fetchWithTimeout(
+        endpoint,
+        {
+          method: "POST",
+          headers,
+          body: form,
+          credentials,
+          signal,
+        },
+        ASR_REQUEST_TIMEOUT_MS,
+      );
+      if (!response.ok)
+        throw new Error(
+          `OpenAI 音频识别失败（HTTP ${response.status}）：${await readResponseError(response)}`,
+        );
+      return response.json();
+    }
+
+    const offscreenRequestId = crypto.randomUUID();
+    const cacheUrl = `https://lexihalo.invalid/__asr_payload__/${offscreenRequestId}`;
+    const cache = await caches.open(OFFSCREEN_CACHE);
+    await cache.put(
+      cacheUrl,
+      new Response(audioBlob, {
+        headers: { "content-type": audioBlob.type || "application/octet-stream" },
+      }),
+    );
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (error, value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        signal?.removeEventListener("abort", abort);
+        cache.delete(cacheUrl).catch(() => {});
+        error ? reject(error) : resolve(value);
+      };
+      const abort = () => {
+        chrome.runtime
+          .sendMessage({
+            target: "lexihalo-asr-offscreen",
+            action: "abort",
+            requestId: offscreenRequestId,
+          })
+          .catch(() => {});
+        finish(new Error("已取消音频识别"));
+      };
+      const timer = setTimeout(() => {
+        chrome.runtime
+          .sendMessage({
+            target: "lexihalo-asr-offscreen",
+            action: "abort",
+            requestId: offscreenRequestId,
+          })
+          .catch(() => {});
+        finish(new Error("音频识别请求超过 30 分钟"));
+      }, ASR_REQUEST_TIMEOUT_MS);
+      signal?.addEventListener("abort", abort, { once: true });
+      if (signal?.aborted) return abort();
+      chrome.runtime.sendMessage(
+        {
+          target: "lexihalo-asr-offscreen",
+          action: "transcribe",
+          requestId: offscreenRequestId,
+          cacheName: OFFSCREEN_CACHE,
+          cacheUrl,
+          filename,
+          endpoint,
+          headers,
+          credentials,
+          model,
+          language,
+          prompt,
+        },
+        (result) => {
+          const lastError = chrome.runtime.lastError;
+          if (lastError) finish(new Error(`ASR 后台页面连接断开：${lastError.message}`));
+          else if (!result?.ok) finish(new Error(result?.error || "ASR 后台页面请求失败"));
+          else finish(null, result.payload);
+        },
+      );
+    });
+  };
+
+  const nativeMediaIdentity = (raw) => globalThis.lexihaloSites?.nativePage(raw)?.identity || null;
+
+  const currentDocumentSender = (message, sender) => {
+    if (sender?.id && chrome.runtime.id && sender.id !== chrome.runtime.id)
+      throw new Error("拒绝其他扩展发起的媒体请求");
+    if (!message.documentUrl) return sender;
+    // This field is assigned AFTER page payload by our ISOLATED bridge. A
+    // MessageSender URL can still name the initial document after SPA navigation.
+    if (!chrome.runtime.id || sender?.id !== chrome.runtime.id)
+      throw new Error("无法验证当前页面地址来源，请刷新网页");
+    try {
+      const initial = new URL(sender.url);
+      const live = new URL(String(message.documentUrl));
+      if (
+        live.origin !== initial.origin ||
+        live.protocol !== initial.protocol ||
+        live.username ||
+        live.password ||
+        live.href.length > 12000
+      ) {
+        throw new Error("页面来源已改变，请刷新网页后重试");
+      }
+      return { ...sender, url: live.href };
+    } catch (error) {
+      throw new Error(error?.message || "无法读取当前播放器页面地址");
+    }
+  };
+
+  const requireNativeVideoPage = (message, sender) => {
+    const pageUrl = String(message.mediaPageUrl || "");
+    const requestedMedia = nativeMediaIdentity(pageUrl);
+    const senderMedia = nativeMediaIdentity(sender?.url || "");
+    if (!requestedMedia)
+      throw new Error("无法确认当前视频页面：请求地址不是可识别的 HTTPS 媒体页面");
+    if (!senderMedia)
+      throw new Error(
+        "无法确认当前视频页面：播放器所在 frame 缺少可识别的页面地址，请从原站播放页重新开启",
+      );
+    if (requestedMedia !== senderMedia)
+      throw new Error("无法确认当前视频页面：页面或视频已切换，请关闭菜单后重新打开");
+    return pageUrl;
+  };
+
+  const listNativeVideoFormats = async (message, sender) => {
+    if (message.userInitiated !== true) throw new Error("请从播放器菜单打开视频下载");
+    const pageUrl = requireNativeVideoPage(message, sender);
+    const result = await nativeMessage({ action: "formats", url: pageUrl });
+    const formats = Array.isArray(result.formats)
+      ? result.formats.slice(0, 160).map((format) => ({
+          formatId: String(format.formatId || ""),
+          label: String(format.label || "").slice(0, 100),
+          width: Number(format.width) || 0,
+          height: Number(format.height) || 0,
+          resolution: Number(format.resolution) || 0,
+          fps: Number(format.fps) || 0,
+          ext: String(format.ext || "").slice(0, 12),
+          vcodec: String(format.vcodec || "").slice(0, 40),
+          codecLabel: String(format.codecLabel || "").slice(0, 16),
+          hasAudio: format.hasAudio === true,
+          isAudio: format.isAudio === true,
+          filesize: Number(format.filesize) || 0,
+          note: String(format.note || "").slice(0, 60),
+        }))
+      : [];
+    if (!formats.length) throw new Error("本地助手没有返回可下载清晰度");
+    return {
+      title: String(result.title || "video").slice(0, 240),
+      duration: Number(result.duration) || 0,
+      formats,
+    };
+  };
+
+  const downloadNativeVideo = async (message, sender, progress = () => {}, requestId) => {
+    if (message.userInitiated !== true) throw new Error("视频下载必须由用户点击触发");
+    const pageUrl = requireNativeVideoPage(message, sender);
+    const formatId = String(message.formatId || "");
+    const resolution = Number(message.resolution) || 0;
+    if (!/^[0-9A-Za-z._-]{1,80}$/.test(formatId)) throw new Error("视频清晰度标识无效");
+    if (!Number.isInteger(resolution) || resolution < 0 || resolution > 4320)
+      throw new Error("视频分辨率无效");
+    if (!requestId || !Number.isInteger(sender?.tab?.id))
+      throw new Error("无法确认视频下载任务来源");
+    if (mediaTasks.hasTab("download", sender.tab.id)) throw new Error("当前标签页已有视频下载任务");
+    const imported = message.browserUploadId
+      ? await loadBrowserUpload(message.browserUploadId, sender)
+      : null;
+    if (imported && (imported.state !== "sealed" || imported.purpose !== "download"))
+      throw new Error("浏览器资源尚未完整上传或任务用途不符");
+    if (!imported && nativeMediaIdentity(pageUrl)?.startsWith("pornhub:")) {
+      const helper = await nativeMessage({ action: "ping" });
+      if (Number(helper.version) < 9)
+        throw new Error("请更新到版本 9 的本地助手以使用 Pornhub yt-dlp HLS 下载修复");
+    }
+    const task = mediaTasks.begin("download", requestId, {
+      cancelled: false,
+      jobId: null,
+      tabId: sender.tab.id,
+      frameId: sender?.frameId ?? 0,
+      pageUrl,
+    });
+    try {
+      if (imported) {
+        imported.state = "consumed";
+        await mediaTasks.writeUpload(message.browserUploadId, imported);
+        task.jobId = message.browserUploadId;
+      } else {
+        const started = await nativeMessage({
+          action: "startDownload",
+          url: pageUrl,
+          formatId,
+          resolution,
+        });
+        task.jobId = started.jobId;
+      }
+      const startedAt = Date.now();
+      for (;;) {
+        if (task.cancelled) throw new Error("已取消视频下载");
+        if (Date.now() - startedAt > 4 * 60 * 60 * 1000)
+          throw new Error("视频下载超过四小时，任务已停止");
+        const status = await nativeMessage({
+          action: "status",
+          jobId: task.jobId,
+        });
+        if (status.state === "ready") {
+          return {
+            filename: String(status.filename || ""),
+            directory: "Downloads/LexiHalo",
+            format: status.format || null,
+          };
+        }
+        if (status.state === "error") throw new Error(status.error || "视频下载失败");
+        progress({
+          message: status.stage || "本地助手正在下载视频…",
+          percent: Math.max(0, Math.min(99, Number(status.percent) || 0)),
+          speed: String(status.speed || "").slice(0, 40),
+          eta: String(status.eta || "").slice(0, 20),
+        });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    } finally {
+      if (task.jobId) {
+        await nativeMessage({
+          action: task.cancelled ? "cancel" : "finish",
+          jobId: task.jobId,
+        }).catch(() => {});
+      }
+      mediaTasks.remove("download", requestId);
+      if (imported) await removeBrowserUpload(message.browserUploadId, sender);
+    }
+  };
+
+  const mediaUpload = async (message, sender) => {
+    const operation = message.operation;
+    if (operation === "begin") {
+      if (message.userInitiated !== true) throw new Error("浏览器音频读取必须由用户点击触发");
+      const pageUrl = requireNativeVideoPage(message, sender);
+      if (
+        !(
+          nativeMediaIdentity(pageUrl)?.startsWith("pornhub:") ||
+          globalThis.lexihaloSites?.browserPage(pageUrl)
+        ) ||
+        !Number.isInteger(sender?.tab?.id)
+      ) {
+        throw new Error("当前页面未启用浏览器媒体准备");
+      }
+      if (mediaTasks.hasTab("transcription", sender.tab.id))
+        throw new Error("当前标签页已有音频识别任务");
+      const previousId = await mediaTasks.readOwner(sender);
+      if (previousId) {
+        const previous = await mediaTasks.readUpload(previousId);
+        const owner = browserUploadOwner(sender);
+        const requestedResource = String(message.mediaResourceId || "").slice(0, 128);
+        const sameDocument = Boolean(
+          previous &&
+            (!previous.documentId || !owner.documentId || previous.documentId === owner.documentId),
+        );
+        const sameResource = Boolean(
+          previous &&
+            (!previous.mediaResourceId ||
+              !requestedResource ||
+              previous.mediaResourceId === requestedResource),
+        );
+        // Only an in-memory broker transfer is demonstrably active. Records
+        // left by a refresh, SPA episode switch, worker restart, failed abort,
+        // or already-removed native job are stale and must not block retries.
+        if (sameDocument && sameResource && mediaTasks.get("transfer", previousId)) {
+          throw new Error("当前播放器已有浏览器媒体传输任务，请等待完成或再次点击取消");
+        }
+        mediaTasks.get("transfer", previousId)?.controller?.abort();
+        await nativeMessage({ action: "cancel", jobId: previousId }).catch(() => {});
+        await removeBrowserUpload(previousId, sender);
+      }
+      const purpose = message.purpose || "transcribe";
+      if (!["transcribe", "download"].includes(purpose)) throw new Error("媒体任务用途无效");
+      if (purpose === "transcribe") {
+        const config = await getConfig();
+        if (!config.engines.some(isTranscriptionEngine))
+          throw new Error("请先在 BYOK 配置音频识别服务");
+      }
+      const helper = await nativeMessage({ action: "ping" });
+      if (helper.version < 10 || !helper.browserAudio)
+        throw new Error("请先更新到版本 10 的本地助手以处理网络捕获、HLS 时间轴和音频格式封装");
+      const siteId =
+        globalThis.lexihaloSites?.page(pageUrl)?.id ||
+        (nativeMediaIdentity(pageUrl)?.startsWith("pornhub:") ? "pornhub" : "generic");
+      if (siteId === "generic" && helper.version < 6)
+        throw new Error("请先更新到版本 6 的本地助手以导入通用播放器资源");
+      const started = await nativeMessage({
+        action: "beginUpload",
+        siteId,
+        purpose,
+        title: String(message.title || "media").slice(0, 240),
+        ext: String(message.ext || "").slice(0, 12),
+        isAudio: message.isAudio === true,
+      });
+      const uploadId = started.jobId;
+      if (!/^[0-9a-f]{32}$/.test(uploadId || "")) throw new Error("本地助手返回了无效任务");
+      await mediaTasks.bindUpload(uploadId, sender, {
+        ...browserUploadOwner(sender),
+        pageUrl,
+        purpose,
+        mediaResourceId: String(message.mediaResourceId || "").slice(0, 128),
+        at: Date.now(),
+        state: "uploading",
+      });
+      return { uploadId };
+    }
+    const uploadId = String(message.uploadId || "");
+    const task = await loadBrowserUpload(uploadId, sender, operation === "abort");
+    if (operation === "abort") {
+      if (task.state === "consumed") return { cancelled: false };
+      mediaTasks.get("transfer", uploadId)?.controller?.abort();
+      await nativeMessage({ action: "cancel", jobId: uploadId }).catch(() => {});
+      await removeBrowserUpload(uploadId, sender);
+      return { cancelled: true };
+    }
+    if (operation === "status") return { state: task.state };
+    if (task.state !== "uploading") throw new Error("浏览器音频任务已结束上传");
+    if (operation === "part") {
+      if (
+        !Number.isInteger(message.sequence) ||
+        message.sequence < 0 ||
+        typeof message.data !== "string" ||
+        !message.data.length ||
+        message.data.length > 262144
+      ) {
+        throw new Error("浏览器音频分片无效");
+      }
+      const result = await nativeMessage({
+        action: "uploadPart",
+        jobId: uploadId,
+        sequence: message.sequence,
+        data: message.data,
+        stream: message.stream || "media",
+        entry: message.entry,
+      });
+      task.at = Date.now();
+      await mediaTasks.writeUpload(uploadId, task);
+      return { bytes: result.bytes, sequence: result.sequence };
+    }
+    if (operation === "seal") {
+      await nativeMessage({
+        action: "sealUpload",
+        jobId: uploadId,
+        sequence: message.sequence,
+        total: message.total,
+      });
+      task.state = "sealed";
+      task.at = Date.now();
+      await mediaTasks.writeUpload(uploadId, task);
+      return { sealed: true };
+    }
+    throw new Error("未知浏览器音频操作");
+  };
+
+  const transferCaptured = async (message, sender) => {
+    const uploadId = String(message.uploadId || "");
+    const task = await loadBrowserUpload(uploadId, sender);
+    if (task.state !== "uploading" || mediaTasks.get("transfer", uploadId))
+      throw new Error("该资源任务已开始或已经结束");
+    const abort = new AbortController();
+    mediaTasks.startTransfer(uploadId, {
+      controller: abort,
+      tabId: sender?.tab?.id,
+      frameId: sender?.frameId ?? 0,
+    });
+    try {
+      const result = await globalThis.lexihaloMediaCapture.read({
+        captureId: String(message.captureId || ""),
+        sender,
+        signal: abort.signal,
+        purpose: task.purpose,
+        resolution: Number(message.resolution) || 0,
+        onProgress: message.reportProgress,
+        onPart: async (part) => {
+          if (abort.signal.aborted) throw new Error("已取消捕获资源读取");
+          await nativeMessage({ action: "uploadPart", jobId: uploadId, ...part });
+          task.at = Date.now();
+          await mediaTasks.writeUpload(uploadId, task);
+        },
+      });
+      if (abort.signal.aborted) throw new Error("已取消捕获资源读取");
+      await nativeMessage({
+        action: "sealUpload",
+        jobId: uploadId,
+        sequence: result.sequence,
+        total: result.total,
+      });
+      task.state = "sealed";
+      await mediaTasks.writeUpload(uploadId, task);
+      return { total: result.total, duration: result.duration };
+    } finally {
+      mediaTasks.finishTransfer(uploadId);
+    }
+  };
+
+  const transcribeAudio = async (message, sender, progress = () => {}, requestId) => {
     let senderUrl;
     try {
       senderUrl = new URL(String(sender?.url || ""));
@@ -12392,10 +14886,24 @@
     }
     const supportedPage =
       senderUrl.protocol === "chrome-extension:" ||
-      /(^|\.)(youtube\.com|youtube-nocookie\.com|netflix\.com|coursera\.org|udemy\.com|udemy\.cn|ted\.com|hbomax\.com|max\.com|disneyplus\.com|edx\.org|primevideo\.com|deeplearning\.ai|bilibili\.com|vimeo\.com)$/i.test(
-        senderUrl.hostname,
-      );
-    if (!supportedPage) throw new Error("当前网站不支持视频音频转写");
+      ["http:", "https:", "file:"].includes(senderUrl.protocol);
+    if (!supportedPage) throw new Error("当前页面不支持视频音频转写");
+    const browserUpload = message.browserUploadId
+      ? await loadBrowserUpload(message.browserUploadId, sender)
+      : null;
+    if (
+      browserUpload &&
+      (browserUpload.state !== "sealed" ||
+        browserUpload.purpose !== "transcribe" ||
+        message.useNativeHelper !== true)
+    )
+      throw new Error("浏览器音频尚未完整上传或已被使用");
+    if (
+      senderUrl.protocol !== "chrome-extension:" &&
+      message.userInitiated !== true &&
+      !browserUpload
+    )
+      throw new Error("音频转写必须由播放器中的用户操作触发");
 
     let sourceUrl;
     try {
@@ -12405,6 +14913,13 @@
     }
     if (sourceUrl.protocol !== "https:" && sourceUrl.protocol !== "http:") {
       throw new Error("音频地址必须使用 HTTP 或 HTTPS");
+    }
+    const nativePageUrl =
+      message.useNativeHelper === true
+        ? String(message.mediaPageUrl || message.audioUrl || "")
+        : "";
+    if (message.useNativeHelper === true) {
+      requireNativeVideoPage({ mediaPageUrl: nativePageUrl }, sender);
     }
 
     const { engines } = await getConfig();
@@ -12451,7 +14966,20 @@
     const videoId = String(message.videoId || sourceUrl.href).slice(0, 500);
     const cacheKey = await digest(
       JSON.stringify({
-        version: 4,
+        version: 7,
+        source:
+          message.useNativeHelper === true
+            ? nativeMediaIdentity(sourceUrl.href)
+            : nativeMediaIdentity(sender?.url || "") || "direct",
+        // Generic SPA episode selectors often do not change location.href.
+        // Bind browser-import caches to the selected captured/direct resource;
+        // the raw URL/opaque ID is hashed here and is never stored in the key.
+        mediaResource: message.useBrowserAudio
+          ? String(message.browserSource?.captureId || message.browserSource?.url || "").slice(
+              0,
+              12000,
+            )
+          : "",
         videoId,
         engine: engine._id,
         model,
@@ -12471,9 +14999,157 @@
       return { ...cached, cached: true };
     }
 
+    if (message.checkCacheOnly === true) return null;
     const startedAt = performance.now();
     let audioBlob;
     try {
+      if (message.useNativeHelper === true) {
+        // The host receives only this content script's video page URL, never an
+        // arbitrary audio URL or API key. The extension performs all BYOK calls.
+        if (!requestId || !Number.isInteger(sender?.tab?.id))
+          throw new Error("无法确认本地音频任务来源");
+        if (mediaTasks.hasTab("transcription", sender.tab.id))
+          throw new Error("当前标签页已有音频识别任务");
+        const pageUrl = nativePageUrl;
+        const task = {
+          cancelled: false,
+          jobId: null,
+          tabId: sender?.tab?.id,
+          frameId: sender?.frameId ?? 0,
+          pageUrl,
+          abort: new AbortController(),
+        };
+        if (requestId) mediaTasks.begin("transcription", requestId, task);
+        const report = (text) => {
+          if (!task.cancelled) progress(text);
+        };
+        try {
+          if (browserUpload) {
+            browserUpload.state = "consumed";
+            await mediaTasks.writeUpload(message.browserUploadId, browserUpload);
+            task.jobId = message.browserUploadId;
+          } else {
+            const started = await nativeMessage({ action: "start", url: pageUrl });
+            task.jobId = started.jobId;
+          }
+          let status;
+          const preparationStartedAt = Date.now();
+          for (;;) {
+            if (task.cancelled) throw new Error("已取消音频识别");
+            if (Date.now() - preparationStartedAt > 15 * 60 * 1000)
+              throw new Error("本地音频准备超过 15 分钟，请检查下载工具或网络");
+            status = await nativeMessage({ action: "status", jobId: task.jobId });
+            if (status.state === "ready") break;
+            if (status.state === "error") throw new Error(status.error || "音频准备失败");
+            report(status.stage || "本地助手正在准备音频…");
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+          if (
+            !Number.isInteger(status.count) ||
+            status.count < 1 ||
+            status.count > 240 ||
+            !Array.isArray(status.sizes) ||
+            status.sizes.length !== status.count
+          )
+            throw new Error("本地助手返回了无效的分块数量");
+          const all = [];
+          let nativeAudioBytes = 0;
+          for (let index = 0; index < status.count; index++) {
+            if (task.cancelled) throw new Error("已取消音频识别");
+            report(`正在识别音频片段 ${index + 1}/${status.count}…`);
+            const expectedSize = Number(status.sizes[index]);
+            if (
+              !Number.isInteger(expectedSize) ||
+              expectedSize < 44 ||
+              expectedSize > 4 * 1024 * 1024
+            )
+              throw new Error("本地助手返回了无效的 WAV 大小");
+            const wavParts = [];
+            let received = 0;
+            let chunkOffset;
+            for (let part = 0; part < 16; part++) {
+              const chunk = await nativeMessage({
+                action: "chunkPart",
+                jobId: task.jobId,
+                index,
+                part,
+              });
+              const bytes = Uint8Array.from(atob(chunk.audio), (char) => char.charCodeAt(0));
+              if (
+                !bytes.length ||
+                bytes.length > 600000 ||
+                chunk.total !== expectedSize ||
+                !Number.isFinite(chunk.offset) ||
+                chunk.offset < 0 ||
+                (chunkOffset != null && chunkOffset !== chunk.offset)
+              )
+                throw new Error("本地助手返回了无效的 WAV 分片");
+              chunkOffset = chunk.offset;
+              wavParts.push(bytes);
+              received += bytes.length;
+              if (received > expectedSize) throw new Error("本地助手返回的 WAV 超出声明大小");
+              if (chunk.done === true) break;
+            }
+            if (received !== expectedSize || chunkOffset == null)
+              throw new Error("本地助手返回的 WAV 不完整");
+            nativeAudioBytes += received;
+            const headers = { Accept: "*/*" };
+            for (const [name, value] of Object.entries(engine.requestHeaders || {})) {
+              if (name.toLowerCase() !== "content-type") headers[name] = String(value);
+            }
+            if (
+              engine.key &&
+              !isLocalEndpoint &&
+              !Object.keys(headers).some((name) => name.toLowerCase() === "authorization")
+            )
+              headers.Authorization = `Bearer ${engine.key}`;
+            const payload = await transcribeBlob({
+              audioBlob: new Blob(wavParts, { type: "audio/wav" }),
+              filename: `part-${index}.wav`,
+              endpoint,
+              headers,
+              credentials: isLocalEndpoint ? "include" : "omit",
+              model,
+              language,
+              prompt,
+              signal: task.abort.signal,
+            });
+            if (task.cancelled) throw new Error("已取消音频识别");
+            const segments = normalizeTranscriptionSegments(
+              payload,
+              Math.min(90, status.duration - chunkOffset),
+              { allowEmpty: true },
+            );
+            all.push(
+              ...segments.map((segment) => ({
+                ...segment,
+                start: segment.start + Math.round(chunkOffset * 1000),
+                end: segment.end + Math.round(chunkOffset * 1000),
+              })),
+            );
+          }
+          if (task.cancelled) throw new Error("已取消音频识别");
+          if (!all.length) throw new Error("音频识别完成，但所有分块都没有识别到可用语音");
+          const result = {
+            segments: all.map((segment, index) => ({ ...segment, index })),
+            language: language || "auto",
+            duration: status.duration,
+            engineId: engine._id,
+            model,
+            audioBytes: nativeAudioBytes,
+          };
+          await setTranscriptionCached(cacheKey, result);
+          return { ...result, cached: false };
+        } finally {
+          if (task.jobId)
+            await nativeMessage({
+              action: task.cancelled ? "cancel" : "finish",
+              jobId: task.jobId,
+            }).catch(() => {});
+          if (requestId) mediaTasks.remove("transcription", requestId);
+          if (browserUpload) await removeBrowserUpload(message.browserUploadId, sender);
+        }
+      }
       const audioResponse = await fetchWithTimeout(
         sourceUrl.href,
         { method: "GET", cache: "no-store", credentials: "omit" },
@@ -12488,24 +15164,31 @@
           `音频文件 ${(declaredSize / 1024 / 1024).toFixed(1)} MB，超过 24 MB 上传限制`,
         );
       }
-      audioBlob = await audioResponse.blob();
-      if (!audioBlob.size) throw new Error("获取到的音频文件为空");
-      if (audioBlob.size > MAX_AUDIO_BYTES) {
-        throw new Error(
-          `音频文件 ${(audioBlob.size / 1024 / 1024).toFixed(1)} MB，超过 24 MB 上传限制`,
-        );
+      // Check the real byte count while streaming: many signed media URLs omit
+      // Content-Length, and calling blob() first could exhaust extension memory.
+      if (!audioResponse.body) throw new Error("获取到的音频流不可读取");
+      const reader = audioResponse.body.getReader();
+      const chunks = [];
+      let totalBytes = 0;
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          totalBytes += value.byteLength;
+          if (totalBytes > MAX_AUDIO_BYTES) {
+            await reader.cancel().catch(() => {});
+            throw new Error("音频文件超过 24 MB 上传限制");
+          }
+          chunks.push(value);
+        }
+      } finally {
+        reader.releaseLock();
       }
+      if (!totalBytes) throw new Error("获取到的音频文件为空");
+      audioBlob = new Blob(chunks, { type: audioResponse.headers.get("content-type") || "" });
 
-      const form = new FormData();
       const mimeType =
         String(message.mimeType || "").split(";")[0] || audioBlob.type || "audio/webm";
-      form.append("file", new Blob([audioBlob], { type: mimeType }), audioFilename(mimeType));
-      form.append("model", model);
-      if (language) form.append("language", language);
-      form.append("prompt", prompt);
-      form.append("response_format", "verbose_json");
-      form.append("temperature", "0");
-
       const customHeaders =
         engine.requestHeaders && typeof engine.requestHeaders === "object"
           ? engine.requestHeaders
@@ -12525,22 +15208,16 @@
       ) {
         headers.Authorization = `Bearer ${engine.key}`;
       }
-      const transcriptionResponse = await fetchWithTimeout(
+      const payload = await transcribeBlob({
+        audioBlob: new Blob([audioBlob], { type: mimeType }),
+        filename: audioFilename(mimeType),
         endpoint,
-        {
-          method: "POST",
-          headers,
-          body: form,
-          credentials: useCookieAuthentication ? "include" : "omit",
-        },
-        10 * 60 * 1000,
-      );
-      if (!transcriptionResponse.ok) {
-        throw new Error(
-          `OpenAI 音频识别失败（HTTP ${transcriptionResponse.status}）：${await readResponseError(transcriptionResponse)}`,
-        );
-      }
-      const payload = await transcriptionResponse.json();
+        headers,
+        credentials: useCookieAuthentication ? "include" : "omit",
+        model,
+        language,
+        prompt,
+      });
       const segments = normalizeTranscriptionSegments(payload, Number(message.duration) || 0);
       const result = {
         segments,
@@ -13002,6 +15679,7 @@
   };
 
   const handleMessage = async (message, sender) => {
+    sender = currentDocumentSender(message, sender);
     switch (message?.type) {
       case "lexihalo:subtitle-ai:get-config": {
         const { settings, engines } = await getConfig();
@@ -13032,6 +15710,32 @@
             message.requestGeneration,
           ) || { cancelled: 0 }
         );
+      case "lexihalo:subtitle-ai:video-formats":
+        return listNativeVideoFormats(message, sender);
+      case "lexihalo:subtitle-ai:video-download":
+        return downloadNativeVideo(message, sender, message.reportProgress, message.requestId);
+      case "lexihalo:subtitle-ai:cancel-video-download": {
+        const task = mediaTasks.get("download", message.targetRequestId);
+        if (!task || task.tabId !== sender?.tab?.id || task.frameId !== (sender?.frameId ?? 0))
+          return { cancelled: false };
+        task.cancelled = true;
+        if (task.jobId)
+          await nativeMessage({ action: "cancel", jobId: task.jobId }).catch(() => {});
+        return { cancelled: true };
+      }
+      case "lexihalo:subtitle-ai:helper-status": {
+        try {
+          const status = await nativeMessage({ action: "ping" });
+          return {
+            installed: true,
+            ready: status.ready === true,
+            tools: status.tools || {},
+            version: status.version || 1,
+          };
+        } catch (error) {
+          return { installed: false, error: error?.message || String(error) };
+        }
+      }
       case "lexihalo:subtitle-ai:get-diagnostics": {
         await diagnosticsWrite;
         const stored = await chrome.storage.local.get(DIAGNOSTICS_KEY);
@@ -13044,12 +15748,39 @@
         return { cleared: true };
       case "lexihalo:subtitle-ai:process":
         return processSubtitles(message);
+      case "lexihalo:subtitle-ai:media-sources":
+        return globalThis.lexihaloMediaCapture?.list(sender) || { sources: [] };
+      case "lexihalo:subtitle-ai:captured-transfer":
+        return transferCaptured(message, sender);
+      case "lexihalo:subtitle-ai:channels":
+        return globalThis.lexihaloResolveChannelsRequest(message, sender);
+      case "lexihalo:subtitle-ai:browser-audio":
+        return mediaUpload(message, sender);
       case "lexihalo:subtitle-ai:transcribe":
-        return transcribeAudio(message, sender);
+        return transcribeAudio(message, sender, message.reportProgress, message.requestId);
+      case "lexihalo:subtitle-ai:cancel-transcription": {
+        const task = mediaTasks.get("transcription", message.targetRequestId);
+        if (!task || task.tabId !== sender?.tab?.id || task.frameId !== (sender?.frameId ?? 0))
+          return { cancelled: false };
+        task.cancelled = true;
+        task.abort.abort();
+        if (task.jobId)
+          await nativeMessage({ action: "cancel", jobId: task.jobId }).catch(() => {});
+        return { cancelled: true };
+      }
       default:
         throw new Error("未知的 AI 字幕请求");
     }
   };
+
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (
+      message?.type === "lexihalo:asr-offscreen:keepalive" &&
+      sender?.url === chrome.runtime.getURL("offscreen.html")
+    ) {
+      sendResponse({ ok: true });
+    }
+  });
 
   chrome.runtime.onConnect.addListener((port) => {
     if (port.name !== "lexihalo-subtitle-ai") return;
@@ -13061,7 +15792,37 @@
         !message.type.startsWith("lexihalo:subtitle-ai:")
       )
         return;
-      handleMessage(message, port.sender)
+      let safeMessage;
+      try {
+        safeMessage = globalThis.lexihaloMediaSchema.request(message);
+      } catch (error) {
+        port.postMessage({
+          requestId,
+          response: { ok: false, error: error?.message || String(error) },
+        });
+        return;
+      }
+      if (
+        message.type === "lexihalo:subtitle-ai:transcribe" ||
+        message.type === "lexihalo:subtitle-ai:video-download" ||
+        message.type === "lexihalo:subtitle-ai:captured-transfer"
+      ) {
+        safeMessage.reportProgress = (value) => {
+          const progress =
+            value && typeof value === "object"
+              ? {
+                  message: String(value.message || "").slice(0, 160),
+                  percent: Math.max(0, Math.min(100, Number(value.percent) || 0)),
+                  speed: String(value.speed || "").slice(0, 40),
+                  eta: String(value.eta || "").slice(0, 20),
+                }
+              : String(value).slice(0, 160);
+          try {
+            port.postMessage({ requestId, progress });
+          } catch {}
+        };
+      }
+      handleMessage(safeMessage, port.sender)
         .then(
           (data) => port.postMessage({ requestId, response: { ok: true, data } }),
           (error) =>

@@ -7,6 +7,8 @@
     "recover": "node tools/recover-webpack.cjs && node tools/recover-semantics.cjs && prettier --write \"recovered/**/*.{js,json,md}\" \"src-recovered/**/*.{js,css,json,md}\"",
     "build": "node tools/build-readable-bundles.mjs",
     "test:browser": "node tools/test-readable-bundles.mjs",
+    "test:audio-source": "node tools/test-media-sites.mjs && node tools/test-media-contract.mjs && node tools/test-media-schema.mjs && node tools/test-background-media-tasks.mjs && node tools/test-site-adapters.mjs && node tools/test-channels-resolver.mjs && node tools/test-audio-source.mjs && node tools/test-browser-audio.mjs && node tools/test-generic-media.mjs && node tools/test-media-capture.mjs && node tools/test-browser-audio-pipeline.mjs && node tools/test-native-bridge.mjs",
+    "test:native": "python -m unittest discover -s native -p \"test_*.py\"",
     "check:recovered": "node tools/check-recovered.cjs",
     "check": "npm run build && node tools/check-readable-bundles.mjs"
   },

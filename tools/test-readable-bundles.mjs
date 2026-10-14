@@ -12,6 +12,27 @@ const aiRequests = [];
 const transcriptionRequests = [];
 const transcriptionRequestHeaders = [];
 const server = http.createServer((request, response) => {
+  if (request.url?.startsWith("/html5-fixture")) {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.end(`<!doctype html><html><body style="margin:0;background:#111">
+      <div id="generic-player" style="width:640px;height:360px;position:relative">
+        <video controls style="display:block;width:640px;height:360px;background:#000">
+          <source src="/audio-fixture" type="video/webm">
+        </video>
+        <div id="site-player-overlay" style="position:absolute;inset:0;z-index:2147483647;pointer-events:auto"></div>
+      </div>
+      <script>
+        const video = document.querySelector("video");
+        Object.defineProperty(video, "duration", { value: 60 });
+        const track = video.addTextTrack("subtitles", "English", "en");
+        track.mode = "showing";
+        for (let index = 0; index < 3; index += 1) {
+          track.addCue(new VTTCue(index * 2, index * 2 + 1.8, "Generic caption line " + index));
+        }
+      </script>
+    </body></html>`);
+    return;
+  }
   if (request.url?.startsWith("/audio-fixture")) {
     response.writeHead(200, {
       "content-type": "audio/webm",
@@ -27,18 +48,22 @@ const server = http.createServer((request, response) => {
       const body = Buffer.concat(chunks).toString("latin1");
       transcriptionRequests.push(body);
       transcriptionRequestHeaders.push(request.headers);
-      response.writeHead(200, { "content-type": "application/json" });
-      response.end(
-        JSON.stringify({
-          language: "en",
-          duration: 5,
-          text: "generated from audio second timed caption",
-          segments: [
-            { start: 0, end: 2500, text: "generated from audio" },
-            { start: 2500, end: 5000, text: "second timed caption" },
-          ],
-        }),
-      );
+      const send = () => {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(
+          JSON.stringify({
+            language: "en",
+            duration: 5,
+            text: "generated from audio second timed caption",
+            segments: [
+              { start: 0, end: 2500, text: "generated from audio" },
+              { start: 2500, end: 5000, text: "second timed caption" },
+            ],
+          }),
+        );
+      };
+      if (request.url?.startsWith("/transcribe-slow")) setTimeout(send, 35000);
+      else send();
     });
     return;
   }
@@ -406,15 +431,15 @@ try {
   if (!Array.isArray(cacheConfig.engines) || cacheConfig.engines[0]?._id !== engineId)
     throw new Error("Subtitle cache/config port failed");
 
-  const transcribeAudio = () =>
+  const transcribeAudio = ({ videoId = "e2e-audio-video", timeoutMs = 10000 } = {}) =>
     byok.evaluate(
-      ({ engineId, audioUrl }) =>
+      ({ engineId, audioUrl, videoId, timeoutMs }) =>
         new Promise((resolve, reject) => {
           const port = chrome.runtime.connect({ name: "lexihalo-subtitle-ai" });
           const requestId = crypto.randomUUID();
           const timer = setTimeout(
             () => reject(new Error("audio transcription timeout")),
-            10000,
+            timeoutMs,
           );
           port.onMessage.addListener((message) => {
             if (message?.requestId !== requestId) return;
@@ -430,12 +455,12 @@ try {
             engineId,
             audioUrl,
             mimeType: "audio/webm",
-            videoId: "e2e-audio-video",
+            videoId,
             language: "en-US",
             duration: 2500,
           });
         }),
-      { engineId, audioUrl: `${localUrl}audio-fixture` },
+      { engineId, audioUrl: `${localUrl}audio-fixture`, videoId, timeoutMs },
     );
   const transcription = await transcribeAudio();
   if (
@@ -465,10 +490,31 @@ try {
     !transcriptionRequests[0]?.includes('name="response_format"') ||
     !transcriptionRequests[0]?.includes("verbose_json") ||
     !transcriptionRequests[0]?.includes('name="temperature"') ||
-    transcriptionRequests[0]?.includes('name="timestamp_granularities[]"')
+    !transcriptionRequests[0]?.includes('name="timestamp_granularities[]"') ||
+    !transcriptionRequests[0]?.includes("segment")
   ) {
     throw new Error("OpenAI transcription multipart request is incomplete");
   }
+
+  await byok.evaluate(async (endpoint) => {
+    const key = "trancy_byok_engines";
+    const stored = await chrome.storage.local.get(key);
+    stored[key][0].transcriptionEndpoint = endpoint;
+    await chrome.storage.local.set({ [key]: stored[key] });
+  }, `${localUrl}transcribe-slow`);
+  const slowTranscription = await transcribeAudio({
+    videoId: "e2e-audio-video-over-30-seconds",
+    timeoutMs: 50000,
+  });
+  if (slowTranscription?.segments?.length !== 2 || transcriptionRequests.length !== 2) {
+    throw new Error("Offscreen ASR did not survive a response taking longer than 30 seconds");
+  }
+  await byok.evaluate(async (endpoint) => {
+    const key = "trancy_byok_engines";
+    const stored = await chrome.storage.local.get(key);
+    stored[key][0].transcriptionEndpoint = endpoint;
+    await chrome.storage.local.set({ [key]: stored[key] });
+  }, `${localUrl}transcribe`);
 
   const processSubtitle = () =>
     byok.evaluate(
@@ -669,18 +715,503 @@ try {
     .first()
     .waitFor({ state: "attached", timeout: 10000 });
 
+  const genericVideo = await context.newPage();
+  genericVideo.on("pageerror", (error) =>
+    errors.push(`generic-video:${error.stack || error.message}`),
+  );
+  await genericVideo.goto(`${localUrl}html5-fixture`);
+  await genericVideo
+    .locator('html[data-lexihalo-video-runtime="readable"]')
+    .waitFor({ timeout: 30000 });
+  await genericVideo.locator("#xt-toggle-button .trancy-button-logo").waitFor({
+    state: "attached",
+    timeout: 15000,
+  });
+  await genericVideo.waitForFunction(
+    () =>
+      window.captionProvider?.platform === "html5" &&
+      window.captionProvider?.lines?.length >= 3,
+    null,
+    { timeout: 15000 },
+  );
+  const genericVideoState = await genericVideo.evaluate(() => {
+    const button = document.querySelector("#xt-toggle-button");
+    const style = button ? getComputedStyle(button) : null;
+    const rect = button?.getBoundingClientRect();
+    const hit = rect
+      ? document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+      : null;
+    return {
+      platform: window.captionProvider?.platform,
+      contextPlatform: window.metacontext?.platform,
+      lines: window.captionProvider?.lines?.length,
+      buttonClass: button?.className,
+      pointerEvents: style?.pointerEvents,
+      position: style?.position,
+      top: style?.top,
+      parentIsPlayer: button?.parentElement?.id === "generic-player",
+      insideVideo:
+        Boolean(rect) &&
+        rect.left >= document.querySelector("video").getBoundingClientRect().left &&
+        rect.right <= document.querySelector("video").getBoundingClientRect().right &&
+        rect.top >= document.querySelector("video").getBoundingClientRect().top &&
+        rect.bottom <= document.querySelector("video").getBoundingClientRect().bottom,
+      hitIsButton: Boolean(hit?.closest?.("#xt-toggle-button")),
+      containerClass: document.querySelector("#generic-player")?.className,
+    };
+  });
+  if (
+    genericVideoState.platform !== "html5" ||
+    genericVideoState.contextPlatform !== "html5" ||
+    genericVideoState.lines < 3 ||
+    !genericVideoState.buttonClass?.includes("trancy-html5-button") ||
+    genericVideoState.pointerEvents !== "auto" ||
+    genericVideoState.position !== "absolute" ||
+    !genericVideoState.parentIsPlayer ||
+    !genericVideoState.insideVideo ||
+    !genericVideoState.hitIsButton ||
+    !genericVideoState.containerClass?.includes("lexihalo-html5-container")
+  ) {
+    throw new Error(`Generic HTML5 video mode failed: ${JSON.stringify(genericVideoState)}`);
+  }
+  const captionWrap = await genericVideo.evaluate(async () => {
+    const player=document.querySelector('#generic-player');
+    const root=document.createElement('trancy-caption-window');
+    Object.assign(root.style,{position:'absolute',inset:'0',display:'block',width:'640px',height:'360px'});
+    root.innerHTML=`<div class="trancy-caption-container" style="position:relative;width:100%;height:100%">
+      <div class="trancy-caption"><div class="trancy-caption-content" style="font-size:20px">
+        <div class="trancy-caption-primary"><span class="token">${'UnbrokenLongToken'.repeat(28)}</span></div>
+        <div class="trancy-caption-secondary">${'这是一条需要在播放器宽度内自动换行的超长中文字幕'.repeat(10)}</div>
+      </div></div></div>`;
+    player.appendChild(root);
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    const caption=root.querySelector('.trancy-caption'),content=root.querySelector('.trancy-caption-content');
+    const primary=root.querySelector('.trancy-caption-primary'),secondary=root.querySelector('.trancy-caption-secondary');
+    const token=root.querySelector('.token'),lineHeight=parseFloat(getComputedStyle(primary).lineHeight);
+    const result={captionWidth:caption.getBoundingClientRect().width,contentWidth:content.getBoundingClientRect().width,
+      primaryHeight:primary.getBoundingClientRect().height,secondaryHeight:secondary.getBoundingClientRect().height,
+      lineHeight,primaryOverflow:primary.scrollWidth-primary.clientWidth,secondaryOverflow:secondary.scrollWidth-secondary.clientWidth,
+      tokenWhiteSpace:getComputedStyle(token).whiteSpace,tokenWrap:getComputedStyle(token).overflowWrap};
+    root.remove();return result;
+  });
+  if (captionWrap.captionWidth > 641 || captionWrap.contentWidth > captionWrap.captionWidth ||
+      captionWrap.primaryHeight < captionWrap.lineHeight * 1.8 || captionWrap.secondaryHeight < captionWrap.lineHeight * 1.8 ||
+      captionWrap.primaryOverflow > 1 || captionWrap.secondaryOverflow > 1 ||
+      captionWrap.tokenWhiteSpace !== 'pre-wrap' || captionWrap.tokenWrap !== 'anywhere') {
+    throw new Error(`Long captions did not wrap inside the player: ${JSON.stringify(captionWrap)}`);
+  }
+  await genericVideo.locator("#xt-toggle-button .trancy-button-logo").click();
+  const genericTranscriptionRequestsBefore = transcriptionRequests.length;
+  await genericVideo
+    .locator('#xt-toggle-button [data-lexihalo-audio-transcribe="true"]')
+    .click({ timeout: 10000 });
+  await genericVideo.waitForFunction(
+    () => window.captionProvider?.lines?.[0]?.text === "generated from audio",
+    null,
+    { timeout: 15000 },
+  );
+  if (transcriptionRequests.length !== genericTranscriptionRequestsBefore + 1) {
+    throw new Error("Generic HTML5 AI caption request was blocked");
+  }
+
+  // Reproduce XgPlayer/MSE: DOM is blob-backed, only the network reveals HLS.
+  await context.route('https://208.69.102.250:21302/fixture/index.m3u8', route => route.fulfill({
+    status: 200, contentType: 'application/vnd.apple.mpegurl',
+    headers: { 'access-control-allow-origin': '*' },
+    body: '#EXTM3U\n#EXTINF:1,\nhttps://208.69.102.249:11302/fixture/part.ts\n#EXT-X-ENDLIST',
+  }));
+  await context.route('https://www.kkys02.com/play/capture-fixture.html', route => route.fulfill({
+    status: 200, contentType: 'text/html',
+    body: `<!doctype html><html><body><div id="fixture-player" class="video-js" style="width:640px;height:360px;position:relative">
+      <video id="fixture-player_html5_api" controls style="width:640px;height:360px"></video></div>
+      <script>
+        const v=document.querySelector('video'), wrapper=document.getElementById('fixture-player');
+        Object.defineProperty(v,'duration',{value:60});
+        window.videojs={getPlayer:()=>({el:()=>wrapper,
+          currentSource:()=>({src:'https://media.example.com/direct-fallback.m3u8',type:'application/x-mpegURL'}),
+          currentSources:()=>[]})};
+        fetch('https://208.69.102.250:21302/fixture/index.m3u8').then(r=>r.text());
+      </script></body></html>`,
+  }));
+  const capturePage = await context.newPage();
+  capturePage.on('pageerror', error => errors.push(`capture:${error.message}`));
+  await capturePage.goto('https://www.kkys02.com/play/capture-fixture.html');
+  await capturePage.locator('#xt-toggle-button .trancy-button-logo').waitFor({ timeout: 15000 });
+  await capturePage.waitForFunction(async () => {
+    const result = await window.lexihaloGetCapturedSources?.();
+    return result?.sources?.some(source => source.captureId && source.ext === 'm3u8');
+  }, null, { timeout: 15000 });
+  const captured = await capturePage.evaluate(async () => (await window.lexihaloSiteAdapters.prepare()).sources);
+  if (!captured.some(source => source.captureId && source.ext === 'm3u8') || !captured.some(source => source.url)) {
+    throw new Error('Captured and direct media sources were not attached to the current player');
+  }
+  await capturePage.evaluate(() => {
+    window.confirm=()=>true;
+    window.lexihaloTranscribeAudio=async payload=>{
+      window.__captureAiPayload=payload;
+      return {language:'en',segments:[{start:0,end:1000,text:'captured AI'}]};
+    };
+  });
+  await capturePage.locator('#xt-toggle-button .trancy-button-logo').click();
+  await capturePage.locator('[data-lexihalo-audio-transcribe="true"]').click();
+  await capturePage.waitForFunction(() => window.__captureAiPayload, null, { timeout: 15000 });
+  const captureAiPayload = await capturePage.evaluate(() => window.__captureAiPayload);
+  if (!captureAiPayload.useBrowserAudio || !captureAiPayload.browserSource?.captureId) {
+    throw new Error(`AI transcription lost the background capture beside a direct source: ${JSON.stringify(captureAiPayload)}`);
+  }
+  await capturePage.close();
+
+  const platformCatalog = JSON.parse(fs.readFileSync(path.join(root, "config/media-platforms.json"), "utf8"));
+  const siteCatalog = platformCatalog.filter(entry => entry.mode === "browser");
+  const sitePages = JSON.parse(fs.readFileSync(path.join(root, "tools/fixtures/media-site-pages.json"), "utf8"));
+  const testedSites = [];
+  for (const site of siteCatalog) {
+    const address = sitePages[site.id];
+    const mediaHost = site.id === "xiaohongshu" ? "sns-video-fixture.xhscdn.com" : site.mediaHosts[0];
+    const mediaUrl = site.id === "channels"
+      ? "https://finder.video.qq.com/1/2/stodownload?fixture=1"
+      : `https://${mediaHost}/lexihalo-fixture.${site.audio ? "m4a" : "mp4"}`;
+    await context.route(mediaUrl, (route) => route.fulfill({
+      status: 200, contentType: site.audio ? "audio/mp4" : "video/mp4", body: "fixture media",
+    }));
+    const attributes = site.id === "xiaohongshu"
+      ? 'id="noteContainer" note-id="0123456789abcdef01234567" data-type="video"'
+      : 'id="site-player"';
+    const tag = site.audio ? "audio" : "video";
+    await context.route(address.split("#")[0], (route) => route.fulfill({
+      status: 200, contentType: "text/html",
+      body: `<!doctype html><html><body style="margin:0;background:#111">
+        <section ${attributes} style="position:relative;width:640px;height:360px">
+          <${tag} src="${mediaUrl}" controls style="display:block;width:640px;height:${site.audio ? "70" : "360"}px"></${tag}>
+        </section>
+        <script>
+          const m=document.querySelector('${tag}');Object.defineProperty(m,'duration',{value:60});
+          const t=m.addTextTrack('subtitles','English','en');t.mode='showing';
+          for(let i=0;i<3;i++)t.addCue(new VTTCue(i*2,i*2+1.8,'Site adapter caption '+i));
+        </script></body></html>`,
+    }));
+    const page = await context.newPage();
+    page.on("pageerror", (error) => errors.push(`${site.id}:${error.stack || error.message}`));
+    await page.goto(address);
+    await page.locator("#xt-toggle-button .trancy-button-logo").waitFor({ timeout: 15000 });
+    const info = await page.evaluate(() => ({
+      site: window.lexihaloSites.page(location.href)?.id,
+      platform: window.captionProvider?.platform,
+      mediaTag: window.lexihaloSiteAdapters.pickMedia()?.tagName,
+      generatedAudioHosts: document.querySelectorAll('.lexihalo-audio-host').length,
+    }));
+    if (info.site !== site.id || info.platform !== "html5" || info.mediaTag !== tag.toUpperCase() ||
+        (site.audio && info.generatedAudioHosts !== 0)) {
+      throw new Error(`Site media adapter failed: ${site.id}: ${JSON.stringify(info)}`);
+    }
+    await page.evaluate((id) => {
+      window.confirm = () => true;
+      window.lexihaloTranscribeAudio = async (payload) => {
+        window.__siteAsr = payload;
+        return { language: 'en', segments: [{ start: 0, end: 1000, text: `fixture-asr-${id}` }] };
+      };
+      window.lexihaloListVideoFormats = async () => ({ formats: [{
+        formatId: 'native-fixture', resolution: 720, height: 720,
+        label: '720p', ext: 'mp4', hasAudio: true,
+      }] });
+      window.lexihaloDownloadVideo = async (payload) => {
+        window.__siteDownload = payload;
+        return { filename: `fixture-download-${id}.mp4`, directory: 'Downloads/LexiHalo' };
+      };
+    }, site.id);
+    await page.locator("#xt-toggle-button .trancy-button-logo").click();
+    await page.locator('[data-lexihalo-audio-transcribe="true"]').click();
+    await page.waitForFunction(() => Boolean(window.__siteAsr), null, { timeout: 10000 });
+    await page.waitForFunction((id) => window.captionProvider?.lines?.[0]?.text === `fixture-asr-${id}`, site.id, { timeout: 10000 });
+    await page.locator("#xt-toggle-button .trancy-button-logo").click();
+    await page.locator('[data-lexihalo-video-download="true"]').click();
+    await page.locator('.lexihalo-download-format').first().waitFor({ timeout: 10000 });
+    await page.locator('.lexihalo-download-format').first().click();
+    await page.waitForFunction(() => Boolean(window.__siteDownload), null, { timeout: 10000 });
+    const payloads = await page.evaluate(() => ({ asr: window.__siteAsr, download: window.__siteDownload }));
+    if (!payloads.asr.mediaPageUrl || !payloads.asr.useNativeHelper || !payloads.asr.useBrowserAudio ||
+        !payloads.download.mediaPageUrl || !payloads.download.formatId) {
+      throw new Error(`Site ASR/download pipeline failed: ${site.id}: ${JSON.stringify(payloads)}`);
+    }
+    testedSites.push(site.id);
+    await page.close();
+  }
+  if (testedSites.length !== 19) throw new Error("The 19-site browser matrix is incomplete");
+
+  await context.route('https://soundcloud.com/fixture/no-dom-audio', route => route.fulfill({
+    status:200,contentType:'text/html',body:'<!doctype html><html><body><h1>Audio fixture without a media element</h1></body></html>',
+  }));
+  const audioToolPage = await context.newPage();
+  audioToolPage.on('pageerror', error => errors.push(`audio-tool:${error.message}`));
+  await audioToolPage.goto('https://soundcloud.com/fixture/no-dom-audio');
+  await audioToolPage.locator('#xt-toggle-button .trancy-button-logo').waitFor({timeout:15000});
+  const audioTool = await audioToolPage.evaluate(() => {
+    const host=document.querySelector('.lexihalo-audio-tool-host'),audio=host?.querySelector('audio');
+    const rect=host?.getBoundingClientRect();
+    return {host:!!host,width:rect?.width||0,height:rect?.height||0,text:host?.innerText||'',
+      audioDisplay:audio?getComputedStyle(audio).display:null,controls:audio?.controls,
+      cards:document.querySelectorAll('.lexihalo-audio-host:not(.lexihalo-audio-tool-host)').length};
+  });
+  if (!audioTool.host || audioTool.width > 60 || audioTool.height > 60 || audioTool.text ||
+      audioTool.audioDisplay !== 'none' || audioTool.controls || audioTool.cards) {
+    throw new Error(`Audio-only fallback rendered an intrusive module: ${JSON.stringify(audioTool)}`);
+  }
+  await audioToolPage.close();
+
+  // X uses absolute placementTracking/videoPlayer layers inside a ratio box.
+  // Plugin layout overrides must not collapse them or intercept native controls.
+  await context.route('https://x.com/fixture/status/1111111111111111111', route => route.fulfill({
+    status: 200, contentType: 'text/html',
+    body: `<!doctype html><html><head><style>
+      .ratio { position:relative;width:640px;padding-top:360px;height:0; }
+      .native-placement,.native-player { position:absolute;inset:0; }
+      .component { position:relative;width:100%;height:100%; }
+      .media-layer { position:absolute;inset:0; }
+      video { position:absolute;width:100%;height:100%; }
+      #native-play {position:absolute;left:40%;top:40%;width:90px;height:50px;z-index:20;}
+    </style></head><body style="margin:0"><div class="ratio">
+      <div data-testid="placementTracking" class="native-placement">
+        <div data-testid="videoPlayer" class="native-player">
+          <div data-testid="videoComponent" class="component"><div class="media-layer">
+            <div style="position:relative;width:100%;height:100%"><video src="data:video/mp4;base64,"></video></div>
+          </div></div><button id="native-play">Play</button>
+        </div>
+      </div></div><script>
+        const v=document.querySelector('video');Object.defineProperty(v,'duration',{value:60});
+        window.nativePlayClicks=0;document.getElementById('native-play').addEventListener('click',()=>window.nativePlayClicks++);
+      </script></body></html>`,
+  }));
+  const xLayoutPage = await context.newPage();
+  xLayoutPage.on('pageerror', error => errors.push(`x-layout:${error.message}`));
+  await xLayoutPage.goto('https://x.com/fixture/status/1111111111111111111');
+  await xLayoutPage.locator('#xt-toggle-button .trancy-button-logo').waitFor({ timeout: 15000 });
+  const xNativeLayout = await xLayoutPage.evaluate(() => {
+    const v=document.querySelector('video'), player=document.querySelector('[data-testid="videoPlayer"]');
+    return { height:v.getBoundingClientRect().height,
+      trackingPosition:getComputedStyle(document.querySelector('[data-testid="placementTracking"]')).position,
+      playerPosition:getComputedStyle(player).position,
+      hostIsPlayer:document.querySelector('#xt-toggle-button')?.parentElement===player,
+      isolation:getComputedStyle(player).isolation,
+      placeholder:!!document.querySelector('audio[data-lexihalo-placeholder]') };
+  });
+  if (xNativeLayout.height < 350 || xNativeLayout.trackingPosition !== 'absolute' ||
+      xNativeLayout.playerPosition !== 'absolute' || !xNativeLayout.hostIsPlayer ||
+      xNativeLayout.isolation !== 'auto' || xNativeLayout.placeholder) {
+    throw new Error(`X native layout changed: ${JSON.stringify(xNativeLayout)}`);
+  }
+  await xLayoutPage.locator('#native-play').click();
+  if (await xLayoutPage.evaluate(() => window.nativePlayClicks) !== 1) throw new Error('X native play click was intercepted');
+  await xLayoutPage.locator('#xt-toggle-button .trancy-button-logo').click();
+  await xLayoutPage.locator('#xt-toggle-button .trancy-panel-menu.visible').waitFor({ timeout: 10000 });
+  await xLayoutPage.close();
+
+  for (const wrapperHost of ['hsck123.com', 'wrappers.example.org']) {
+  await context.route(`https://${wrapperHost}/detail/fixture.html`, (route) => route.fulfill({
+    status: 200, contentType: "text/html",
+    body: '<html><body><img id="video_img" src="https://stream.example.com/current.m3u8"><iframe src="/downvideo/videoTest.html" style="width:700px;height:420px"></iframe></body></html>',
+  }));
+  await context.route("https://stream.example.com/**", (route) => route.fulfill({
+    status: 200, contentType: "application/vnd.apple.mpegurl", body: '#EXTM3U\n#EXTINF:1,\npart.ts\n#EXT-X-ENDLIST',
+  }));
+  await context.route(`https://${wrapperHost}/downvideo/videoTest.html`, (route) => route.fulfill({
+    status: 200, contentType: "text/html",
+    body: `<!doctype html><html><body><div style="width:640px;height:360px;position:relative">
+      <video id="my-video" controls style="width:640px;height:360px"><source id="mp4m3u8" type="application/x-mpegURL"></video>
+      </div><script>
+        const v=document.querySelector('video');Object.defineProperty(v,'duration',{value:60});
+        document.querySelector('source').src=parent.document.getElementById('video_img').src;
+        const t=v.addTextTrack('subtitles','English','en');t.mode='showing';
+        for(let i=0;i<3;i++)t.addCue(new VTTCue(i*2,i*2+1.8,'Wrapper caption '+i));
+      </script></body></html>`,
+  }));
+  const wrapperPage = await context.newPage();
+  wrapperPage.on("pageerror", (error) => errors.push(`wrapper:${error.message}`));
+  await wrapperPage.goto(`https://${wrapperHost}/detail/fixture.html`);
+  const wrapperFrame = wrapperPage.frameLocator('iframe');
+  await wrapperFrame.locator('#xt-toggle-button .trancy-button-logo').waitFor({ timeout: 15000 });
+  const playerFrame = wrapperPage.frames().find(frame => frame.url().endsWith('/downvideo/videoTest.html'));
+  const runtimeOwners = {
+    top: await wrapperPage.evaluate(() => ({
+      buttons:document.querySelectorAll('#xt-toggle-button').length,
+      proxies:document.querySelectorAll('.lexihalo-media-proxy-host').length,
+      loadingTips:Array.from(document.querySelectorAll('*')).filter(node => /字幕加载中/.test(node.textContent || '') && !Array.from(node.children).some(child => /字幕加载中/.test(child.textContent || ''))).length,
+    })),
+    frame: await playerFrame.evaluate(() => ({ buttons:document.querySelectorAll('#xt-toggle-button').length })),
+  };
+  if (runtimeOwners.top.buttons !== 0 || runtimeOwners.top.proxies !== 0 || runtimeOwners.top.loadingTips !== 0 || runtimeOwners.frame.buttons !== 1) {
+    throw new Error(`Ordinary iframe must have exactly one child runtime owner: ${JSON.stringify(runtimeOwners)}`);
+  }
+  const wrapperSource = await playerFrame.evaluate(() => window.lexihaloSiteAdapters.snapshot().sources[0]);
+  if (wrapperSource?.url !== 'https://stream.example.com/current.m3u8' || wrapperSource.ext !== 'm3u8') {
+    throw new Error(`Wrapper real-source detection failed: ${JSON.stringify(wrapperSource)}`);
+  }
+  await playerFrame.evaluate(() => {
+    window.lexihaloTranscribeAudio = async payload => {
+      window.__wrapperAsr = payload;
+      return { language: 'en', segments: [{ start: 0, end: 1000, text: 'wrapper-asr' }] };
+    };
+  });
+  await wrapperFrame.locator('#xt-toggle-button .trancy-button-logo').click();
+  wrapperPage.once('dialog', dialog => dialog.accept());
+  await wrapperFrame.locator('[data-lexihalo-audio-transcribe="true"]').click();
+  await playerFrame.waitForFunction(() => window.__wrapperAsr?.useBrowserAudio === true, null, { timeout: 10000 });
+  await wrapperPage.close();
+  }
+
+  await context.route("https://www.pornhub.com/**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "text/html",
+      body: `<!doctype html><html><body style="margin:0;background:#111">
+        <div id="mgp" class="mgp_container" style="position:relative;width:640px;height:360px">
+          <div class="mgp_videoWrapper" style="position:absolute;inset:0;z-index:1">
+            <video class="mgp_videoElement" src="data:video/mp4;base64," style="width:100%;height:100%"></video>
+          </div>
+          <div class="mgp_eventCatcher" style="position:absolute;inset:0;z-index:10;pointer-events:auto"></div>
+          <div class="mgp_controls" style="position:absolute;inset:0;z-index:20;pointer-events:none">
+            <div class="mgp_controlBar" style="position:absolute;left:0;right:0;bottom:0;height:48px;pointer-events:auto">
+              <div class="mgp_front" style="height:48px;display:flex;align-items:center;justify-content:flex-end;pointer-events:auto">
+                <div class="mgp_fullscreen" style="width:42px;height:48px;pointer-events:auto"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <script>const v=document.querySelector('video');Object.defineProperty(v,'duration',{value:60});</script>
+      </body></html>`,
+    }),
+  );
+  const pornhubVideo = await context.newPage();
+  pornhubVideo.on("pageerror", (error) =>
+    errors.push(`pornhub-video:${error.stack || error.message}`),
+  );
+  await pornhubVideo.goto(
+    "https://www.pornhub.com/view_video.php?viewkey=ph123fixture",
+  );
+  await pornhubVideo
+    .locator("#xt-toggle-button.trancy-pornhub-control .trancy-button-logo")
+    .waitFor({ timeout: 15000 });
+  const pornhubButtonState = await pornhubVideo.evaluate(() => {
+    const button = document.querySelector("#xt-toggle-button");
+    const rect = button?.getBoundingClientRect();
+    const hit = rect
+      ? document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+      : null;
+    return {
+      parentClass: button?.parentElement?.className,
+      beforeFullscreen:
+        button?.nextElementSibling?.classList.contains("mgp_fullscreen") || false,
+      pointerEvents: button ? getComputedStyle(button).pointerEvents : "",
+      hitIsButton: Boolean(hit?.closest?.("#xt-toggle-button")),
+    };
+  });
+  if (
+    !String(pornhubButtonState.parentClass).includes("mgp_front") ||
+    !pornhubButtonState.beforeFullscreen ||
+    pornhubButtonState.pointerEvents !== "auto" ||
+    !pornhubButtonState.hitIsButton
+  ) {
+    throw new Error(
+      `Pornhub player adapter failed: ${JSON.stringify(pornhubButtonState)}`,
+    );
+  }
+  await pornhubVideo
+    .locator("#xt-toggle-button.trancy-pornhub-control .trancy-button-logo")
+    .click();
+  await pornhubVideo
+    .locator("#xt-toggle-button .trancy-panel-menu.visible")
+    .waitFor({ timeout: 10000 });
+  await pornhubVideo.evaluate(() => {
+    window.lexihaloTranscribeAudio = async (payload) => {
+      window.__pornhubTranscriptionPayload = payload;
+      return {
+        language: "en",
+        segments: [{ start: 0, end: 1000, text: "native helper fixture" }],
+      };
+    };
+  });
+  pornhubVideo.once("dialog", (dialog) => dialog.accept());
+  await pornhubVideo
+    .locator('[data-lexihalo-audio-transcribe="true"]')
+    .click();
+  await pornhubVideo.waitForFunction(
+    () => window.__pornhubTranscriptionPayload?.useNativeHelper === true &&
+      window.__pornhubTranscriptionPayload?.useBrowserAudio === true,
+    null,
+    { timeout: 10000 },
+  );
+  const pornhubTranscriptionPayload = await pornhubVideo.evaluate(
+    () => window.__pornhubTranscriptionPayload,
+  );
+  if (
+    pornhubTranscriptionPayload.mediaPageUrl !==
+    "https://www.pornhub.com/view_video.php?viewkey=ph123fixture"
+  ) {
+    throw new Error(
+      `Pornhub did not prefer native helper: ${JSON.stringify(pornhubTranscriptionPayload)}`,
+    );
+  }
+  await pornhubVideo.evaluate(() => {
+    window.lexihaloListVideoFormats = async () => {
+      window.__pornhubNativeFormatFallback = true;
+      return { formats: [{ formatId:'native-720',height:720,resolution:720,label:'720p',ext:'mp4' }] };
+    };
+    window.lexihaloDownloadVideo = payload => new Promise((_resolve,reject) => {
+      window.__pendingDownloadRequest = payload.requestId;
+      window.__rejectPendingDownload = reject;
+    });
+    window.lexihaloCancelVideoDownload = async requestId => {
+      window.__cancelledDownloadRequest = requestId;
+      window.__rejectPendingDownload?.(new Error('已取消视频下载'));
+      return {cancelled:true};
+    };
+  });
+  if (!(await pornhubVideo.locator('#xt-toggle-button .trancy-panel-menu').evaluate(element => element.classList.contains('visible')))) {
+    await pornhubVideo.locator('#xt-toggle-button .trancy-button-logo').click();
+  }
+  await pornhubVideo.locator('[data-lexihalo-video-download="true"]').click();
+  await pornhubVideo.locator('.lexihalo-download-format').waitFor({ timeout: 10000 });
+  if (!(await pornhubVideo.evaluate(() => window.__pornhubNativeFormatFallback === true))) {
+    throw new Error('Pornhub yt-dlp format fallback was incorrectly removed');
+  }
+  pornhubVideo.once('dialog', dialog => dialog.accept());
+  await pornhubVideo.locator('.lexihalo-download-format').first().click();
+  const cancelButton = pornhubVideo.locator('.lexihalo-download-cancel');
+  await cancelButton.waitFor({state:'visible',timeout:10000});
+  const cancelContrast = await cancelButton.evaluate(element => {
+    const style=getComputedStyle(element);
+    const rgb=value=>(value.match(/\d+/g)||[]).slice(0,3).map(Number);
+    const luminance=values=>{
+      const linear=values.map(value=>{const x=value/255;return x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4)});
+      return .2126*linear[0]+.7152*linear[1]+.0722*linear[2];
+    };
+    let parent=element.parentElement,effectiveBackground='rgb(0, 0, 0)';
+    while(parent){const value=getComputedStyle(parent).backgroundColor;if(value!=='transparent'&&!/rgba\([^)]*,\s*0\s*\)$/.test(value)){effectiveBackground=value;break}parent=parent.parentElement}
+    const foreground=luminance(rgb(style.color)),background=luminance(rgb(effectiveBackground));
+    return {color:style.color,background:style.backgroundColor,effectiveBackground,
+      borderWidth:style.borderTopWidth,fontWeight:Number(style.fontWeight),
+      ratio:(Math.max(foreground,background)+.05)/(Math.min(foreground,background)+.05)};
+  });
+  if (cancelContrast.ratio < 4.5 || cancelContrast.fontWeight < 600 ||
+      cancelContrast.color !== 'rgb(255, 180, 171)' || cancelContrast.background !== 'rgba(0, 0, 0, 0)' ||
+      cancelContrast.borderWidth !== '0px') {
+    throw new Error(`Download cancel contrast is not stable: ${JSON.stringify(cancelContrast)}`);
+  }
+  await cancelButton.click();
+  await pornhubVideo.waitForFunction(() => window.__pendingDownloadRequest &&
+    window.__cancelledDownloadRequest === window.__pendingDownloadRequest, null, {timeout:10000});
+
   await context.route("https://www.youtube.com/**", (route) =>
     route.fulfill({
       status: 200,
       contentType: "text/html",
-      body: `<!doctype html><html><body><div id="movie_player" class="html5-video-player"><video src="data:video/mp4;base64,"></video><button class="ytp-subtitles-button" aria-pressed="true"></button><button class="ytp-fullscreen-button"></button></div><script>const p=document.getElementById('movie_player');const v=p.querySelector('video');Object.defineProperty(v,'duration',{value:60});p.getPlayerState=()=>1;p.getPlayerResponse=()=>({videoDetails:{videoId:'readable-test',title:'Readable Test',lengthSeconds:'60'},captions:{playerCaptionsTracklistRenderer:{captionTracks:[{baseUrl:'${localUrl}caption',languageCode:'en',vssId:'.en',name:{simpleText:'English'}}]}}});p.getVolume=()=>100;p.setVolume=()=>{};p.play=()=>{};p.pause=()=>{};p.toggleSubtitlesCalls=[];p.toggleSubtitles=(enabled)=>{p.toggleSubtitlesCalls.push(enabled);p.querySelector('.ytp-subtitles-button').setAttribute('aria-pressed',String(enabled));};</script></body></html>`,
+      body: `<!doctype html><html><body><div id="movie_player" class="html5-video-player"><video src="data:video/mp4;base64,"></video><button class="ytp-subtitles-button" aria-pressed="true"></button><button class="ytp-fullscreen-button"></button></div><script>const p=document.getElementById('movie_player');const v=p.querySelector('video');Object.defineProperty(v,'duration',{value:60});p.getPlayerState=()=>1;p.getPlayerResponse=()=>({videoDetails:{videoId:'abcdefghijk',title:'Readable Test',lengthSeconds:'60'},captions:{playerCaptionsTracklistRenderer:{captionTracks:[{baseUrl:'${localUrl}caption',languageCode:'en',vssId:'.en',name:{simpleText:'English'}}]}}});p.getVolume=()=>100;p.setVolume=()=>{};p.play=()=>{};p.pause=()=>{};p.toggleSubtitlesCalls=[];p.toggleSubtitles=(enabled)=>{p.toggleSubtitlesCalls.push(enabled);p.querySelector('.ytp-subtitles-button').setAttribute('aria-pressed',String(enabled));};</script></body></html>`,
     }),
   );
   const video = await context.newPage();
   video.on("pageerror", (error) =>
     errors.push(`video:${error.stack || error.message}`),
   );
-  await video.goto("https://www.youtube.com/watch?v=readable-test");
+  await video.goto("https://www.youtube.com/watch?v=abcdefghijk");
   await video
     .locator('html[data-lexihalo-video-runtime="readable"]')
     .waitFor({ timeout: 30000 });
@@ -698,6 +1229,10 @@ try {
   if (primaryDownloadCount !== 0) {
     throw new Error("Bilingual download must not appear beside More Features");
   }
+  await video
+    .locator("#xt-toggle-button .trancy-primary-panel-menu")
+    .getByText("下载视频（多清晰度）", { exact: true })
+    .waitFor({ timeout: 10000 });
   await video
     .locator("#xt-toggle-button .trancy-primary-panel-menu")
     .getByText("更多功能", { exact: true })
@@ -1108,6 +1643,89 @@ try {
     throw new Error(`Bilingual download gating test failed: ${JSON.stringify(bilingualDownloadTest)}`);
   }
 
+  const mixedLanguageTest = await video.evaluate(() => {
+    const provider=window.captionProvider,target='zh-CN';
+    const originalCache=provider.captionCache.get(provider.id),originalTo=provider.to;
+    const originalWhisper=provider.endableWhisper;
+    const texts=[
+      '这是完整的中文字幕内容',
+      'This is English with 中文 words mixed in',
+      'Hello 世界 hello 世界',
+      '这是一段包含 OpenAI 名称但主体仍然是中文的字幕内容',
+      '今日は good weather です',
+    ];
+    const decisions=texts.map(text=>provider.lineSameLanguage(text,target));
+    provider.to=target;provider.endableWhisper=false;
+    provider.captionCache.set(provider.id,{...(originalCache||{}),builtinLines:texts.map((text,idx)=>({idx,text,start:idx*1000,end:idx*1000+900}))});
+    const allSame=provider.syncCorpusSameLang();
+    provider.evalSameLanguage();
+    const tagged=provider.lines.map(line=>line.sameLangTo===target);
+    const aggregate=provider.isSameLanguage;
+    provider.captionCache.set(provider.id,originalCache||{});provider.to=originalTo;provider.endableWhisper=originalWhisper;
+    return {decisions,tagged,allSame,aggregate,
+      englishDominant:provider.lineSameLanguage('This is English with 中文 words mixed in','en')};
+  });
+  if (JSON.stringify(mixedLanguageTest.decisions)!==JSON.stringify([true,false,false,true,false]) ||
+      JSON.stringify(mixedLanguageTest.tagged)!==JSON.stringify([true,false,false,true,false]) ||
+      mixedLanguageTest.allSame || mixedLanguageTest.aggregate || !mixedLanguageTest.englishDominant) {
+    throw new Error(`Mixed-language same-language detection failed: ${JSON.stringify(mixedLanguageTest)}`);
+  }
+
+  await video.evaluate(() => {
+    window.__youtubeGenericPrepareCalls = 0;
+    window.lexihaloSiteAdapters.prepare = async () => {
+      window.__youtubeGenericPrepareCalls++;
+      return { sources: [{ captureId:'wrong-page-sound',ext:'mp3',isAudio:true,size:7000 }] };
+    };
+    window.lexihaloSiteAdapters.snapshot = () => ({
+      page:{id:'generic'},media:document.querySelector('video'),sources:[
+        { captureId:'wrong-page-sound',ext:'mp3',isAudio:true,size:7000 },
+      ],
+    });
+    window.lexihaloTranscribeAudio = async payload => {
+      window.__youtubeAudioPayload = payload;
+      return { language:'en',segments:[{start:0,end:1000,text:'youtube native audio'}] };
+    };
+    window.confirm = () => true;
+  });
+  await video.locator('#movie_player').scrollIntoViewIfNeeded();
+  const youtubeMenu = video.locator('#xt-toggle-button .trancy-panel-menu');
+  if (!(await youtubeMenu.evaluate(element => element.classList.contains('visible')))) {
+    await video.locator('#xt-toggle-button .trancy-button-logo').click();
+  }
+  const youtubeBack = video.locator('#xt-toggle-button .btn-back-panel:visible');
+  if (await youtubeBack.count()) await youtubeBack.last().click();
+  const youtubeAudioButton = video.locator('[data-lexihalo-audio-transcribe="true"]');
+  await youtubeAudioButton.evaluate(element => {
+    const root=element.closest('#xt-toggle-button');
+    document.body.appendChild(root);
+    Object.assign(root.style, {position:'fixed',top:'80px',left:'80px',display:'block',zIndex:'2147483647'});
+    root.querySelector('.trancy-panel-menu')?.classList.add('visible');
+    const primary=root.querySelector('.trancy-primary-panel-menu');
+    if(primary) Object.assign(primary.style,{transform:'none',position:'relative',left:'0'});
+    Object.assign(element.style, {position:'relative',display:'flex',transform:'none'});
+  });
+  await youtubeAudioButton.click();
+  await video.waitForFunction(() => window.__youtubeAudioPayload, null, {timeout:10000});
+  const youtubeAudioRoute = await video.evaluate(() => ({
+    payload:window.__youtubeAudioPayload,prepareCalls:window.__youtubeGenericPrepareCalls,
+  }));
+  if (!youtubeAudioRoute.payload.useNativeHelper || youtubeAudioRoute.payload.useBrowserAudio ||
+      youtubeAudioRoute.payload.browserSource || youtubeAudioRoute.prepareCalls !== 0) {
+    throw new Error(`YouTube consumed a generic captured page sound: ${JSON.stringify(youtubeAudioRoute)}`);
+  }
+  await video.evaluate(() => {
+    window.lexihaloListVideoFormats=async()=>({formats:[{formatId:'yt-audio',resolution:0,height:0,isAudio:true,label:'音频',ext:'m4a'}]});
+  });
+  if (!(await youtubeMenu.evaluate(element => element.classList.contains('visible')))) {
+    await video.locator('#xt-toggle-button .trancy-button-logo').click();
+  }
+  await video.locator('[data-lexihalo-video-download="true"]').click();
+  await video.locator('.lexihalo-download-format').waitFor({timeout:10000});
+  if (await video.evaluate(() => window.__youtubeGenericPrepareCalls !== 0)) {
+    throw new Error('YouTube download consumed generic captured page sounds');
+  }
+
   const severe = errors.filter(
     (value) =>
       !/NotSupportedError|Failed to load resource: net::ERR_FAILED|ResizeObserver loop/i.test(
@@ -1133,6 +1751,8 @@ try {
           "cache",
           "site-rules",
         ],
+        siteAdapterFixtures: testedSites,
+        siteAdapterExecution: { asr: "mock", download: "mock", liveAccounts: false },
         errors: [],
       },
       null,

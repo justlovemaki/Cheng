@@ -4,9 +4,9 @@
   const provider = window.captionProvider;
   if (!provider) return;
 
-  const requestSubtitleService = (type, payload = {}, timeoutMs = 720000) =>
+  const requestSubtitleService = (type, payload = {}, timeoutMs = 720000, onProgress) =>
     new Promise((resolve, reject) => {
-      const requestId = crypto.randomUUID();
+      const requestId = payload.requestId || crypto.randomUUID();
       let settled = false;
       const finish = (response, error) => {
         if (settled) return;
@@ -20,11 +20,10 @@
             : reject(new Error(response?.error || "音频识别请求失败"));
       };
       const onMessage = (event) => {
-        if (
-          event.source === window &&
-          event.data?.eventName === "lexihalo:subtitle-ai-response" &&
-          event.data?.requestId === requestId
-        ) {
+        if (event.source !== window || event.data?.requestId !== requestId) return;
+        if (event.data?.eventName === "lexihalo:subtitle-ai-progress") {
+          onProgress?.(event.data.progress);
+        } else if (event.data?.eventName === "lexihalo:subtitle-ai-response") {
           finish(event.data.response);
         }
       };
@@ -44,12 +43,33 @@
       );
     });
 
+  globalThis.lexihaloResolveChannels = async (mediaPageUrl, { signal, onProgress } = {}) => {
+    if (!window.confirm("这条视频号分享需要官方验证。是否打开腾讯元宝，仅提交当前分享链接解析？请在新页面完成登录；登录信息不会交给本地助手或 AI 服务。")) {
+      throw new Error("已取消视频号验证");
+    }
+    const opened = await requestSubtitleService("lexihalo:subtitle-ai:channels", { mode: "open", mediaPageUrl }, 30000);
+    const startedAt = Date.now();
+    try {
+      for (;;) {
+        if (signal?.aborted) throw new Error("已取消视频号读取");
+        if (Date.now() - startedAt > 180000) throw new Error("请完成元宝登录后重新点击读取");
+        const result = await requestSubtitleService("lexihalo:subtitle-ai:channels", {
+          mode: "read", mediaPageUrl, sessionId: opened.sessionId,
+        }, 30000);
+        if (result.state === "ready") return result;
+        onProgress?.(result.state === "login" ? "请在已打开的元宝页面完成登录…" : "正在等待官方视频号资源…");
+        await new Promise((resolve) => window.setTimeout(resolve, 3000));
+      }
+    } finally {
+      await requestSubtitleService("lexihalo:subtitle-ai:channels", {
+        mode: "cancel", mediaPageUrl, sessionId: opened.sessionId,
+      }, 10000).catch(() => {});
+    }
+  };
   const localTranscriptions = new Map();
   const originalCaptionLoad = provider.load.bind(provider);
   provider.installTranscription = (segments, language = "auto") => {
-    if (!Array.isArray(segments) || !segments.length) {
-      throw new Error("音频识别没有返回可用字幕");
-    }
+    segments = globalThis.lexihaloMediaSchema.segments(segments);
     const videoId = provider.id;
     const vid = window.metacontext?.vid || videoId;
     const lines = segments
@@ -105,8 +125,107 @@
     }
     return originalCaptionLoad(...args);
   };
-  globalThis.lexihaloTranscribeAudio = (payload) =>
-    requestSubtitleService("lexihalo:subtitle-ai:transcribe", payload);
+  globalThis.lexihaloGetCapturedSources = () => requestSubtitleService(
+    "lexihalo:subtitle-ai:media-sources", {}, 15000,
+  );
+  const mediaTasks = globalThis.lexihaloMediaTasks;
+  const runBrowserMedia = async (payload, purpose, finishType, onProgress) => {
+    const requestId = payload.requestId || crypto.randomUUID();
+    const browserTask = mediaTasks.begin(requestId, purpose);
+    const controller = browserTask.controller;
+    let uploadId, keepAlive;
+    const cancelledMessage = purpose === "download" ? "已取消视频下载" : "已取消音频识别";
+    const checkCancelled = () => {
+      if (controller.signal.aborted) throw new Error(cancelledMessage);
+    };
+    try {
+      if (purpose === "transcribe") {
+        const cached = await requestSubtitleService("lexihalo:subtitle-ai:transcribe", {
+          ...payload, requestId: crypto.randomUUID(), checkCacheOnly: true,
+        }, 30000);
+        checkCancelled();
+        if (cached?.cached && cached.segments?.length) return cached;
+      }
+      const started = await requestSubtitleService("lexihalo:subtitle-ai:browser-audio", {
+        operation: "begin", mediaPageUrl: payload.mediaPageUrl, purpose,
+        title: payload.title || "media", ext: payload.browserSource?.ext || "",
+        isAudio: payload.browserSource?.kind === "audio",
+        mediaResourceId: payload.browserSource?.captureId || "",
+      }, 30000);
+      uploadId = started.uploadId;
+      mediaTasks.attachUpload(requestId, uploadId);
+      checkCancelled();
+      keepAlive = window.setInterval(() => {
+        void requestSubtitleService("lexihalo:subtitle-ai:browser-audio", {
+          operation: "status", uploadId,
+        }, 10000).catch(() => controller.abort());
+      }, 15000);
+      onProgress?.("正在从当前播放器读取媒体…");
+      if (typeof globalThis.lexihaloReadBrowserMedia !== "function") throw new Error("浏览器媒体服务未就绪");
+      if (payload.browserSource?.captureId) {
+        await requestSubtitleService("lexihalo:subtitle-ai:captured-transfer", {
+          uploadId, captureId: payload.browserSource.captureId, resolution: payload.resolution || 0,
+        }, 14400000, onProgress);
+      } else {
+      const transfer = await globalThis.lexihaloReadBrowserMedia({
+        signal: controller.signal, onProgress, purpose, source: payload.browserSource,
+        sendPart: (part) => requestSubtitleService("lexihalo:subtitle-ai:browser-audio", {
+          operation: "part", uploadId, ...part,
+        }, 30000),
+      });
+      checkCancelled();
+      await requestSubtitleService("lexihalo:subtitle-ai:browser-audio", {
+        operation: "seal", uploadId, sequence: transfer.sequence, total: transfer.total,
+      }, 30000);
+      }
+      checkCancelled();
+      window.clearInterval(keepAlive);
+      keepAlive = null;
+      mediaTasks.processing(requestId);
+      return await requestSubtitleService(finishType, {
+        ...payload, requestId, browserUploadId: uploadId,
+      }, 14400000, onProgress);
+    } finally {
+      window.clearInterval(keepAlive);
+      mediaTasks.finish(requestId);
+      if (uploadId) {
+        await requestSubtitleService("lexihalo:subtitle-ai:browser-audio", {
+          operation: "abort", uploadId,
+        }, 10000).catch(() => {});
+      }
+    }
+  };
+  globalThis.lexihaloTranscribeAudio = (payload, onProgress) => payload.useBrowserAudio
+    ? runBrowserMedia(payload, "transcribe", "lexihalo:subtitle-ai:transcribe", onProgress)
+    : requestSubtitleService("lexihalo:subtitle-ai:transcribe", payload, 14400000, onProgress);
+  const cancelBrowserMedia = async (requestId, nativeCancelType) => {
+    const task = mediaTasks.cancel(requestId);
+    const operations = [];
+    if (task?.uploadId) operations.push(requestSubtitleService(
+      "lexihalo:subtitle-ai:browser-audio",
+      { operation: "abort", uploadId: task.uploadId },
+      10000,
+    ));
+    operations.push(requestSubtitleService(nativeCancelType, { targetRequestId: requestId }, 10000));
+    const results = await Promise.allSettled(operations);
+    return { cancelled: Boolean(task) || results.some(result => result.status === "fulfilled" && result.value?.cancelled) };
+  };
+  globalThis.lexihaloCancelTranscription = (requestId) =>
+    cancelBrowserMedia(requestId, "lexihalo:subtitle-ai:cancel-transcription");
+  window.addEventListener("pagehide", () => {
+    mediaTasks.cancelAll();
+  });
+  globalThis.lexihaloListVideoFormats = (mediaPageUrl) =>
+    requestSubtitleService(
+      "lexihalo:subtitle-ai:video-formats",
+      { mediaPageUrl },
+      120000,
+    );
+  globalThis.lexihaloDownloadVideo = (payload, onProgress) => payload.browserSource
+    ? runBrowserMedia(payload, "download", "lexihalo:subtitle-ai:video-download", onProgress)
+    : requestSubtitleService("lexihalo:subtitle-ai:video-download", payload, 14400000, onProgress);
+  globalThis.lexihaloCancelVideoDownload = (requestId) =>
+    cancelBrowserMedia(requestId, "lexihalo:subtitle-ai:cancel-video-download");
 
   let youtubeNativeCaptionWasEnabled = false;
   let youtubeNativeCaptionSuppressionActive = false;

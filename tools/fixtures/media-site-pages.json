@@ -1,0 +1,21 @@
+{
+  "douyin": "https://www.douyin.com/video/1234567890123456789",
+  "xiaohongshu": "https://www.xiaohongshu.com/explore/0123456789abcdef01234567?xsec_token=fixture",
+  "channels": "https://channels.weixin.qq.com/finder-preview/pages/feed?eid=fixture123&token=fixture-only",
+  "xiaoe": "https://appabc123.h5.xiaoeknow.com/v4/course/alive/l_12345678?app_id=appabc123",
+  "weibo": "https://weibo.com/123456/AbCdEf",
+  "tiktok": "https://www.tiktok.com/@someone/video/1234567890123456789",
+  "x": "https://x.com/someone/status/1234567890123456789",
+  "instagram": "https://www.instagram.com/reel/AbCdEf/",
+  "facebook": "https://www.facebook.com/watch/?v=1234567890",
+  "reddit": "https://www.reddit.com/r/test/comments/abc123/a_post/",
+  "twitch": "https://www.twitch.tv/videos/123456789",
+  "dailymotion": "https://www.dailymotion.com/video/x123abc",
+  "niconico": "https://www.nicovideo.jp/watch/sm12345678",
+  "xiaoyuzhou": "https://www.xiaoyuzhoufm.com/episode/0123456789abcdef01234567",
+  "soundcloud": "https://soundcloud.com/someone/a_track",
+  "bandcamp": "https://someone.bandcamp.com/track/a_track",
+  "ximalaya": "https://www.ximalaya.com/sound/12345678",
+  "netease": "https://music.163.com/#/song?id=12345678",
+  "applepodcasts": "https://podcasts.apple.com/us/podcast/a_show/id123456789?i=1234567890123"
+}

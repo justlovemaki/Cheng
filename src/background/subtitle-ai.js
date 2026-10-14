@@ -10,6 +10,46 @@
   const MAX_CACHE_ENTRIES = 160;
   const MAX_TRANSCRIPTION_CACHE_ENTRIES = 20;
   const MAX_AUDIO_BYTES = 24 * 1024 * 1024;
+  const ASR_REQUEST_TIMEOUT_MS = 30 * 60 * 1000;
+  const uploadStorage = chrome.storage.session || chrome.storage.local;
+  const mediaTasks = globalThis.lexihaloCreateBackgroundMediaTasks(uploadStorage);
+  const removeBrowserUpload = (id, sender) => mediaTasks.removeUpload(id, sender);
+  const browserUploadOwner = (sender) => mediaTasks.owner(sender, nativeMediaIdentity(sender?.url || ""));
+  const loadBrowserUpload = async (id, sender, cancelOnly = false) => {
+    if (!/^[0-9a-f]{32}$/.test(String(id || ""))) throw new Error("浏览器音频任务标识无效");
+    const task = await mediaTasks.readUpload(id);
+    const owner = browserUploadOwner(sender);
+    if (!task || task.tabId !== owner.tabId || task.frameId !== owner.frameId ||
+        (!cancelOnly && ((task.documentId && owner.documentId && task.documentId !== owner.documentId) ||
+          task.identity !== owner.identity || Date.now() - task.at > 30 * 60 * 1000))) {
+      throw new Error("浏览器音频任务不属于当前页面或已过期");
+    }
+    return task;
+  };
+  const nativeMessage = (message) => new Promise((resolve, reject) => {
+    chrome.runtime.sendNativeMessage("ai.lexihalo.asr", message, (response) => {
+      const error = chrome.runtime.lastError;
+      if (error) reject(new Error(`本地音频助手未连接：${error.message}。安装方法见 docs/AI_SUBTITLES.md`));
+      else if (!response?.ok) reject(new Error(response?.error || "本地音频助手失败"));
+      else resolve(response);
+    });
+  });
+  const cleanupBrowserUploadOwner = async (tabId, frameId = 0) => {
+    if (!Number.isInteger(tabId)) return;
+    const sender = { tab: { id: tabId }, frameId };
+    const uploadId = await mediaTasks.readOwner(sender);
+    if (!/^[0-9a-f]{32}$/.test(String(uploadId || ""))) return;
+    mediaTasks.get("transfer", uploadId)?.controller?.abort();
+    await nativeMessage({ action: "cancel", jobId: uploadId }).catch(() => {});
+    await mediaTasks.removeUpload(uploadId, sender);
+  };
+  if (chrome.webRequest?.onBeforeRequest) {
+    chrome.webRequest.onBeforeRequest.addListener(
+      details => { void cleanupBrowserUploadOwner(details.tabId, details.frameId); },
+      { urls: ["<all_urls>"], types: ["main_frame", "sub_frame"] },
+    );
+  }
+  chrome.tabs?.onRemoved?.addListener(tabId => { void cleanupBrowserUploadOwner(tabId, 0); });
   const MAX_DIAGNOSTIC_ENTRIES = 40;
   const AI_PROVIDER_IDS = new Set([
     "OpenAI",
@@ -716,7 +756,7 @@
     return groups.filter((group) => group.text);
   };
 
-  const normalizeTranscriptionSegments = (payload, expectedDuration) => {
+  const normalizeTranscriptionSegments = (payload, expectedDuration, { allowEmpty = false } = {}) => {
     const root =
       [payload, payload?.data, payload?.result].find(
         (value) =>
@@ -775,8 +815,13 @@
           : segment.end,
     }));
     if (!segments.length) {
+      const explicitTimedResponse = [root?.segments, root?.chunks, root?.utterances, root?.words]
+        .some(Array.isArray);
+      const transcript = String(root?.text || root?.transcript || root?.content || "").trim();
+      if (allowEmpty && explicitTimedResponse && !transcript) return [];
+      const count = (value) => Array.isArray(value) ? value.length : "缺失";
       throw new Error(
-        "音频识别接口未返回分段时间戳。需要 verbose_json 的 segments/chunks/utterances/words，并包含 start、end 和文本。",
+        `音频识别接口未返回分段时间戳（segments=${count(root?.segments)}，chunks=${count(root?.chunks)}，utterances=${count(root?.utterances)}，words=${count(root?.words)}，text=${transcript.length} 字）。需要 verbose_json 的时间戳数组，并包含 start、end 和文本。`,
       );
     }
     return segments;
@@ -784,14 +829,20 @@
 
   const fetchWithTimeout = async (url, options, timeoutMs) => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    let timedOut = false;
+    const onAbort = () => controller.abort();
+    if (options.signal?.aborted) controller.abort();
+    options.signal?.addEventListener("abort", onAbort, { once: true });
+    const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
     try {
       return await fetch(url, { ...options, signal: controller.signal });
     } catch (error) {
-      if (controller.signal.aborted) throw new Error("请求超时，请稍后重试");
+      if (timedOut) throw new Error("请求超时，请稍后重试");
+      if (options.signal?.aborted) throw new Error("已取消音频识别");
       throw error;
     } finally {
       clearTimeout(timeout);
+      options.signal?.removeEventListener("abort", onAbort);
     }
   };
 
@@ -810,7 +861,342 @@
     }
   };
 
-  const transcribeAudio = async (message, sender) => {
+  const OFFSCREEN_CACHE = "lexihalo-asr-payloads-v1";
+  let creatingOffscreen;
+  const ensureAsrOffscreen = async () => {
+    if (!chrome.offscreen?.createDocument || typeof caches === "undefined") return false;
+    const url = chrome.runtime.getURL("offscreen.html");
+    const exists = chrome.offscreen.hasDocument
+      ? await chrome.offscreen.hasDocument()
+      : chrome.runtime.getContexts
+        ? (await chrome.runtime.getContexts({ contextTypes: ["OFFSCREEN_DOCUMENT"], documentUrls: [url] })).length > 0
+        : false;
+    if (exists) return true;
+    if (!creatingOffscreen) {
+      creatingOffscreen = chrome.offscreen.createDocument({
+        url: "offscreen.html",
+        reasons: ["BLOBS"],
+        justification: "Upload user-requested BYOK audio outside the 30-second service-worker fetch lifetime limit",
+      }).finally(() => { creatingOffscreen = null; });
+    }
+    await creatingOffscreen;
+    return true;
+  };
+
+  const transcribeBlob = async ({
+    audioBlob, filename, endpoint, headers, credentials, model, language, prompt, signal,
+  }) => {
+    if (!(await ensureAsrOffscreen())) {
+      const form = new FormData();
+      form.append("file", audioBlob, filename);
+      form.append("model", model);
+      if (language) form.append("language", language);
+      form.append("prompt", prompt);
+      form.append("response_format", "verbose_json");
+      form.append("timestamp_granularities[]", "segment");
+      form.append("temperature", "0");
+      const response = await fetchWithTimeout(endpoint, {
+        method: "POST", headers, body: form, credentials, signal,
+      }, ASR_REQUEST_TIMEOUT_MS);
+      if (!response.ok)
+        throw new Error(`OpenAI 音频识别失败（HTTP ${response.status}）：${await readResponseError(response)}`);
+      return response.json();
+    }
+
+    const offscreenRequestId = crypto.randomUUID();
+    const cacheUrl = `https://lexihalo.invalid/__asr_payload__/${offscreenRequestId}`;
+    const cache = await caches.open(OFFSCREEN_CACHE);
+    await cache.put(cacheUrl, new Response(audioBlob, { headers: { "content-type": audioBlob.type || "application/octet-stream" } }));
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (error, value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        signal?.removeEventListener("abort", abort);
+        cache.delete(cacheUrl).catch(() => {});
+        error ? reject(error) : resolve(value);
+      };
+      const abort = () => {
+        chrome.runtime.sendMessage({ target: "lexihalo-asr-offscreen", action: "abort", requestId: offscreenRequestId }).catch(() => {});
+        finish(new Error("已取消音频识别"));
+      };
+      const timer = setTimeout(() => {
+        chrome.runtime.sendMessage({ target: "lexihalo-asr-offscreen", action: "abort", requestId: offscreenRequestId }).catch(() => {});
+        finish(new Error("音频识别请求超过 30 分钟"));
+      }, ASR_REQUEST_TIMEOUT_MS);
+      signal?.addEventListener("abort", abort, { once: true });
+      if (signal?.aborted) return abort();
+      chrome.runtime.sendMessage({
+        target: "lexihalo-asr-offscreen",
+        action: "transcribe",
+        requestId: offscreenRequestId,
+        cacheName: OFFSCREEN_CACHE,
+        cacheUrl,
+        filename,
+        endpoint,
+        headers,
+        credentials,
+        model,
+        language,
+        prompt,
+      }, (result) => {
+        const lastError = chrome.runtime.lastError;
+        if (lastError) finish(new Error(`ASR 后台页面连接断开：${lastError.message}`));
+        else if (!result?.ok) finish(new Error(result?.error || "ASR 后台页面请求失败"));
+        else finish(null, result.payload);
+      });
+    });
+  };
+
+  const nativeMediaIdentity = (raw) => globalThis.lexihaloSites?.nativePage(raw)?.identity || null;
+
+  const currentDocumentSender = (message, sender) => {
+    if (sender?.id && chrome.runtime.id && sender.id !== chrome.runtime.id)
+      throw new Error("拒绝其他扩展发起的媒体请求");
+    if (!message.documentUrl) return sender;
+    // This field is assigned AFTER page payload by our ISOLATED bridge. A
+    // MessageSender URL can still name the initial document after SPA navigation.
+    if (!chrome.runtime.id || sender?.id !== chrome.runtime.id)
+      throw new Error("无法验证当前页面地址来源，请刷新网页");
+    try {
+      const initial = new URL(sender.url);
+      const live = new URL(String(message.documentUrl));
+      if (live.origin !== initial.origin || live.protocol !== initial.protocol ||
+          live.username || live.password || live.href.length > 12000) {
+        throw new Error("页面来源已改变，请刷新网页后重试");
+      }
+      return { ...sender, url: live.href };
+    } catch (error) {
+      throw new Error(error?.message || "无法读取当前播放器页面地址");
+    }
+  };
+
+  const requireNativeVideoPage = (message, sender) => {
+    const pageUrl = String(message.mediaPageUrl || "");
+    const requestedMedia = nativeMediaIdentity(pageUrl);
+    const senderMedia = nativeMediaIdentity(sender?.url || "");
+    if (!requestedMedia) throw new Error("无法确认当前视频页面：请求地址不是可识别的 HTTPS 媒体页面");
+    if (!senderMedia) throw new Error("无法确认当前视频页面：播放器所在 frame 缺少可识别的页面地址，请从原站播放页重新开启");
+    if (requestedMedia !== senderMedia) throw new Error("无法确认当前视频页面：页面或视频已切换，请关闭菜单后重新打开");
+    return pageUrl;
+  };
+
+  const listNativeVideoFormats = async (message, sender) => {
+    if (message.userInitiated !== true)
+      throw new Error("请从播放器菜单打开视频下载");
+    const pageUrl = requireNativeVideoPage(message, sender);
+    const result = await nativeMessage({ action: "formats", url: pageUrl });
+    const formats = Array.isArray(result.formats)
+      ? result.formats.slice(0, 160).map((format) => ({
+          formatId: String(format.formatId || ""),
+          label: String(format.label || "").slice(0, 100),
+          width: Number(format.width) || 0,
+          height: Number(format.height) || 0,
+          resolution: Number(format.resolution) || 0,
+          fps: Number(format.fps) || 0,
+          ext: String(format.ext || "").slice(0, 12),
+          vcodec: String(format.vcodec || "").slice(0, 40),
+          codecLabel: String(format.codecLabel || "").slice(0, 16),
+          hasAudio: format.hasAudio === true,
+          isAudio: format.isAudio === true,
+          filesize: Number(format.filesize) || 0,
+          note: String(format.note || "").slice(0, 60),
+        }))
+      : [];
+    if (!formats.length) throw new Error("本地助手没有返回可下载清晰度");
+    return {
+      title: String(result.title || "video").slice(0, 240),
+      duration: Number(result.duration) || 0,
+      formats,
+    };
+  };
+
+  const downloadNativeVideo = async (
+    message,
+    sender,
+    progress = () => {},
+    requestId,
+  ) => {
+    if (message.userInitiated !== true)
+      throw new Error("视频下载必须由用户点击触发");
+    const pageUrl = requireNativeVideoPage(message, sender);
+    const formatId = String(message.formatId || "");
+    const resolution = Number(message.resolution) || 0;
+    if (!/^[0-9A-Za-z._-]{1,80}$/.test(formatId))
+      throw new Error("视频清晰度标识无效");
+    if (!Number.isInteger(resolution) || resolution < 0 || resolution > 4320)
+      throw new Error("视频分辨率无效");
+    if (!requestId || !Number.isInteger(sender?.tab?.id))
+      throw new Error("无法确认视频下载任务来源");
+    if (mediaTasks.hasTab("download", sender.tab.id))
+      throw new Error("当前标签页已有视频下载任务");
+    const imported = message.browserUploadId ? await loadBrowserUpload(message.browserUploadId, sender) : null;
+    if (imported && (imported.state !== "sealed" || imported.purpose !== "download")) throw new Error("浏览器资源尚未完整上传或任务用途不符");
+    if (!imported && nativeMediaIdentity(pageUrl)?.startsWith("pornhub:")) {
+      const helper = await nativeMessage({ action: "ping" });
+      if (Number(helper.version) < 9) throw new Error("请更新到版本 9 的本地助手以使用 Pornhub yt-dlp HLS 下载修复");
+    }
+    const task = mediaTasks.begin("download", requestId, {
+      cancelled: false, jobId: null, tabId: sender.tab.id,
+      frameId: sender?.frameId ?? 0, pageUrl,
+    });
+    try {
+      if (imported) {
+        imported.state = "consumed";
+        await mediaTasks.writeUpload(message.browserUploadId, imported);
+        task.jobId = message.browserUploadId;
+      } else {
+        const started = await nativeMessage({
+          action: "startDownload", url: pageUrl, formatId, resolution,
+        });
+        task.jobId = started.jobId;
+      }
+      const startedAt = Date.now();
+      for (;;) {
+        if (task.cancelled) throw new Error("已取消视频下载");
+        if (Date.now() - startedAt > 4 * 60 * 60 * 1000)
+          throw new Error("视频下载超过四小时，任务已停止");
+        const status = await nativeMessage({
+          action: "status",
+          jobId: task.jobId,
+        });
+        if (status.state === "ready") {
+          return {
+            filename: String(status.filename || ""),
+            directory: "Downloads/LexiHalo",
+            format: status.format || null,
+          };
+        }
+        if (status.state === "error")
+          throw new Error(status.error || "视频下载失败");
+        progress({
+          message: status.stage || "本地助手正在下载视频…",
+          percent: Math.max(0, Math.min(99, Number(status.percent) || 0)),
+          speed: String(status.speed || "").slice(0, 40),
+          eta: String(status.eta || "").slice(0, 20),
+        });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    } finally {
+      if (task.jobId) {
+        await nativeMessage({
+          action: task.cancelled ? "cancel" : "finish",
+          jobId: task.jobId,
+        }).catch(() => {});
+      }
+      mediaTasks.remove("download", requestId);
+      if (imported) await removeBrowserUpload(message.browserUploadId, sender);
+    }
+  };
+
+  const mediaUpload = async (message, sender) => {
+    const operation = message.operation;
+    if (operation === "begin") {
+      if (message.userInitiated !== true) throw new Error("浏览器音频读取必须由用户点击触发");
+      const pageUrl = requireNativeVideoPage(message, sender);
+      if (!(nativeMediaIdentity(pageUrl)?.startsWith("pornhub:") || globalThis.lexihaloSites?.browserPage(pageUrl)) || !Number.isInteger(sender?.tab?.id)) {
+        throw new Error("当前页面未启用浏览器媒体准备");
+      }
+      if (mediaTasks.hasTab("transcription", sender.tab.id))
+        throw new Error("当前标签页已有音频识别任务");
+      const previousId = await mediaTasks.readOwner(sender);
+      if (previousId) {
+        const previous = await mediaTasks.readUpload(previousId);
+        const owner = browserUploadOwner(sender);
+        const requestedResource = String(message.mediaResourceId || "").slice(0, 128);
+        const sameDocument = Boolean(previous && (!previous.documentId || !owner.documentId || previous.documentId === owner.documentId));
+        const sameResource = Boolean(previous && (!previous.mediaResourceId || !requestedResource || previous.mediaResourceId === requestedResource));
+        // Only an in-memory broker transfer is demonstrably active. Records
+        // left by a refresh, SPA episode switch, worker restart, failed abort,
+        // or already-removed native job are stale and must not block retries.
+        if (sameDocument && sameResource && mediaTasks.get("transfer", previousId)) {
+          throw new Error("当前播放器已有浏览器媒体传输任务，请等待完成或再次点击取消");
+        }
+        mediaTasks.get("transfer", previousId)?.controller?.abort();
+        await nativeMessage({ action: "cancel", jobId: previousId }).catch(() => {});
+        await removeBrowserUpload(previousId, sender);
+      }
+      const purpose = message.purpose || "transcribe";
+      if (!["transcribe", "download"].includes(purpose)) throw new Error("媒体任务用途无效");
+      if (purpose === "transcribe") {
+        const config = await getConfig();
+        if (!config.engines.some(isTranscriptionEngine)) throw new Error("请先在 BYOK 配置音频识别服务");
+      }
+      const helper = await nativeMessage({ action: "ping" });
+      if (helper.version < 10 || !helper.browserAudio) throw new Error("请先更新到版本 10 的本地助手以处理网络捕获、HLS 时间轴和音频格式封装");
+      const siteId = globalThis.lexihaloSites?.page(pageUrl)?.id ||
+        (nativeMediaIdentity(pageUrl)?.startsWith("pornhub:") ? "pornhub" : "generic");
+      if (siteId === "generic" && helper.version < 6) throw new Error("请先更新到版本 6 的本地助手以导入通用播放器资源");
+      const started = await nativeMessage({ action: "beginUpload", siteId, purpose,
+        title: String(message.title || "media").slice(0, 240),
+        ext: String(message.ext || "").slice(0, 12), isAudio: message.isAudio === true });
+      const uploadId = started.jobId;
+      if (!/^[0-9a-f]{32}$/.test(uploadId || "")) throw new Error("本地助手返回了无效任务");
+      await mediaTasks.bindUpload(uploadId, sender, {
+        ...browserUploadOwner(sender), pageUrl, purpose,
+        mediaResourceId: String(message.mediaResourceId || "").slice(0, 128),
+        at: Date.now(), state: "uploading",
+      });
+      return { uploadId };
+    }
+    const uploadId = String(message.uploadId || "");
+    const task = await loadBrowserUpload(uploadId, sender, operation === "abort");
+    if (operation === "abort") {
+      if (task.state === "consumed") return { cancelled: false };
+      mediaTasks.get("transfer", uploadId)?.controller?.abort();
+      await nativeMessage({ action: "cancel", jobId: uploadId }).catch(() => {});
+      await removeBrowserUpload(uploadId, sender);
+      return { cancelled: true };
+    }
+    if (operation === "status") return { state: task.state };
+    if (task.state !== "uploading") throw new Error("浏览器音频任务已结束上传");
+    if (operation === "part") {
+      if (!Number.isInteger(message.sequence) || message.sequence < 0 ||
+          typeof message.data !== "string" || !message.data.length || message.data.length > 262144) {
+        throw new Error("浏览器音频分片无效");
+      }
+      const result = await nativeMessage({ action: "uploadPart", jobId: uploadId,
+        sequence: message.sequence, data: message.data, stream: message.stream || "media", entry: message.entry });
+      task.at = Date.now();
+      await mediaTasks.writeUpload(uploadId, task);
+      return { bytes: result.bytes, sequence: result.sequence };
+    }
+    if (operation === "seal") {
+      await nativeMessage({ action: "sealUpload", jobId: uploadId,
+        sequence: message.sequence, total: message.total });
+      task.state = "sealed";
+      task.at = Date.now();
+      await mediaTasks.writeUpload(uploadId, task);
+      return { sealed: true };
+    }
+    throw new Error("未知浏览器音频操作");
+  };
+
+  const transferCaptured = async (message, sender) => {
+    const uploadId = String(message.uploadId || "");
+    const task = await loadBrowserUpload(uploadId, sender);
+    if (task.state !== "uploading" || mediaTasks.get("transfer", uploadId)) throw new Error("该资源任务已开始或已经结束");
+    const abort = new AbortController();
+    mediaTasks.startTransfer(uploadId, { controller: abort, tabId: sender?.tab?.id, frameId: sender?.frameId ?? 0 });
+    try {
+      const result = await globalThis.lexihaloMediaCapture.read({
+        captureId: String(message.captureId || ""), sender, signal: abort.signal, purpose: task.purpose,
+        resolution: Number(message.resolution) || 0, onProgress: message.reportProgress,
+        onPart: async part => {
+          if (abort.signal.aborted) throw new Error("已取消捕获资源读取");
+          await nativeMessage({ action: "uploadPart", jobId: uploadId, ...part });
+          task.at = Date.now(); await mediaTasks.writeUpload(uploadId, task);
+        },
+      });
+      if (abort.signal.aborted) throw new Error("已取消捕获资源读取");
+      await nativeMessage({ action: "sealUpload", jobId: uploadId, sequence: result.sequence, total: result.total });
+      task.state = "sealed"; await mediaTasks.writeUpload(uploadId, task);
+      return { total: result.total, duration: result.duration };
+    } finally { mediaTasks.finishTransfer(uploadId); }
+  };
+
+  const transcribeAudio = async (message, sender, progress = () => {}, requestId) => {
     let senderUrl;
     try {
       senderUrl = new URL(String(sender?.url || ""));
@@ -819,10 +1205,18 @@
     }
     const supportedPage =
       senderUrl.protocol === "chrome-extension:" ||
-      /(^|\.)(youtube\.com|youtube-nocookie\.com|netflix\.com|coursera\.org|udemy\.com|udemy\.cn|ted\.com|hbomax\.com|max\.com|disneyplus\.com|edx\.org|primevideo\.com|deeplearning\.ai|bilibili\.com|vimeo\.com)$/i.test(
-        senderUrl.hostname,
-      );
-    if (!supportedPage) throw new Error("当前网站不支持视频音频转写");
+      ["http:", "https:", "file:"].includes(senderUrl.protocol);
+    if (!supportedPage) throw new Error("当前页面不支持视频音频转写");
+    const browserUpload = message.browserUploadId
+      ? await loadBrowserUpload(message.browserUploadId, sender)
+      : null;
+    if (browserUpload && (browserUpload.state !== "sealed" || browserUpload.purpose !== "transcribe" || message.useNativeHelper !== true))
+      throw new Error("浏览器音频尚未完整上传或已被使用");
+    if (
+      senderUrl.protocol !== "chrome-extension:" &&
+      message.userInitiated !== true && !browserUpload
+    )
+      throw new Error("音频转写必须由播放器中的用户操作触发");
 
     let sourceUrl;
     try {
@@ -832,6 +1226,12 @@
     }
     if (sourceUrl.protocol !== "https:" && sourceUrl.protocol !== "http:") {
       throw new Error("音频地址必须使用 HTTP 或 HTTPS");
+    }
+    const nativePageUrl = message.useNativeHelper === true
+      ? String(message.mediaPageUrl || message.audioUrl || "")
+      : "";
+    if (message.useNativeHelper === true) {
+      requireNativeVideoPage({ mediaPageUrl: nativePageUrl }, sender);
     }
 
     const { engines } = await getConfig();
@@ -882,7 +1282,16 @@
     const videoId = String(message.videoId || sourceUrl.href).slice(0, 500);
     const cacheKey = await digest(
       JSON.stringify({
-        version: 4,
+        version: 7,
+        source: message.useNativeHelper === true
+          ? nativeMediaIdentity(sourceUrl.href)
+          : nativeMediaIdentity(sender?.url || "") || "direct",
+        // Generic SPA episode selectors often do not change location.href.
+        // Bind browser-import caches to the selected captured/direct resource;
+        // the raw URL/opaque ID is hashed here and is never stored in the key.
+        mediaResource: message.useBrowserAudio
+          ? String(message.browserSource?.captureId || message.browserSource?.url || "").slice(0, 12000)
+          : "",
         videoId,
         engine: engine._id,
         model,
@@ -902,9 +1311,103 @@
       return { ...cached, cached: true };
     }
 
+    if (message.checkCacheOnly === true) return null;
     const startedAt = performance.now();
     let audioBlob;
     try {
+      if (message.useNativeHelper === true) {
+        // The host receives only this content script's video page URL, never an
+        // arbitrary audio URL or API key. The extension performs all BYOK calls.
+        if (!requestId || !Number.isInteger(sender?.tab?.id))
+          throw new Error("无法确认本地音频任务来源");
+        if (mediaTasks.hasTab("transcription", sender.tab.id))
+          throw new Error("当前标签页已有音频识别任务");
+        const pageUrl = nativePageUrl;
+        const task = { cancelled: false, jobId: null, tabId: sender?.tab?.id,
+          frameId: sender?.frameId ?? 0, pageUrl, abort: new AbortController() };
+        if (requestId) mediaTasks.begin("transcription", requestId, task);
+        const report = (text) => { if (!task.cancelled) progress(text); };
+        try {
+          if (browserUpload) {
+            browserUpload.state = "consumed";
+            await mediaTasks.writeUpload(message.browserUploadId, browserUpload);
+            task.jobId = message.browserUploadId;
+          } else {
+            const started = await nativeMessage({ action: "start", url: pageUrl });
+            task.jobId = started.jobId;
+          }
+          let status;
+          const preparationStartedAt = Date.now();
+          for (;;) {
+            if (task.cancelled) throw new Error("已取消音频识别");
+            if (Date.now() - preparationStartedAt > 15 * 60 * 1000)
+              throw new Error("本地音频准备超过 15 分钟，请检查下载工具或网络");
+            status = await nativeMessage({ action: "status", jobId: task.jobId });
+            if (status.state === "ready") break;
+            if (status.state === "error") throw new Error(status.error || "音频准备失败");
+            report(status.stage || "本地助手正在准备音频…");
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+          if (!Number.isInteger(status.count) || status.count < 1 || status.count > 240 ||
+              !Array.isArray(status.sizes) || status.sizes.length !== status.count)
+            throw new Error("本地助手返回了无效的分块数量");
+          const all = [];
+          let nativeAudioBytes = 0;
+          for (let index = 0; index < status.count; index++) {
+            if (task.cancelled) throw new Error("已取消音频识别");
+            report(`正在识别音频片段 ${index + 1}/${status.count}…`);
+            const expectedSize = Number(status.sizes[index]);
+            if (!Number.isInteger(expectedSize) || expectedSize < 44 || expectedSize > 4 * 1024 * 1024)
+              throw new Error("本地助手返回了无效的 WAV 大小");
+            const wavParts = [];
+            let received = 0;
+            let chunkOffset;
+            for (let part = 0; part < 16; part++) {
+              const chunk = await nativeMessage({ action: "chunkPart", jobId: task.jobId, index, part });
+              const bytes = Uint8Array.from(atob(chunk.audio), (char) => char.charCodeAt(0));
+              if (!bytes.length || bytes.length > 600000 || chunk.total !== expectedSize ||
+                  !Number.isFinite(chunk.offset) || chunk.offset < 0 ||
+                  (chunkOffset != null && chunkOffset !== chunk.offset))
+                throw new Error("本地助手返回了无效的 WAV 分片");
+              chunkOffset = chunk.offset;
+              wavParts.push(bytes); received += bytes.length;
+              if (received > expectedSize) throw new Error("本地助手返回的 WAV 超出声明大小");
+              if (chunk.done === true) break;
+            }
+            if (received !== expectedSize || chunkOffset == null)
+              throw new Error("本地助手返回的 WAV 不完整");
+            nativeAudioBytes += received;
+            const headers = { Accept: "*/*" };
+            for (const [name, value] of Object.entries(engine.requestHeaders || {})) {
+              if (name.toLowerCase() !== "content-type") headers[name] = String(value);
+            }
+            if (engine.key && !isLocalEndpoint && !Object.keys(headers).some(name => name.toLowerCase() === "authorization"))
+              headers.Authorization = `Bearer ${engine.key}`;
+            const payload = await transcribeBlob({
+              audioBlob: new Blob(wavParts, { type: "audio/wav" }),
+              filename: `part-${index}.wav`, endpoint, headers,
+              credentials: isLocalEndpoint ? "include" : "omit",
+              model, language, prompt, signal: task.abort.signal,
+            });
+            if (task.cancelled) throw new Error("已取消音频识别");
+            const segments = normalizeTranscriptionSegments(
+              payload,
+              Math.min(90, status.duration - chunkOffset),
+              { allowEmpty: true },
+            );
+            all.push(...segments.map(segment => ({ ...segment, start: segment.start + Math.round(chunkOffset * 1000), end: segment.end + Math.round(chunkOffset * 1000) })));
+          }
+          if (task.cancelled) throw new Error("已取消音频识别");
+          if (!all.length) throw new Error("音频识别完成，但所有分块都没有识别到可用语音");
+          const result = { segments: all.map((segment, index) => ({ ...segment, index })), language: language || "auto", duration: status.duration, engineId: engine._id, model, audioBytes: nativeAudioBytes };
+          await setTranscriptionCached(cacheKey, result);
+          return { ...result, cached: false };
+        } finally {
+          if (task.jobId) await nativeMessage({ action: task.cancelled ? "cancel" : "finish", jobId: task.jobId }).catch(() => {});
+          if (requestId) mediaTasks.remove("transcription", requestId);
+          if (browserUpload) await removeBrowserUpload(message.browserUploadId, sender);
+        }
+      }
       const audioResponse = await fetchWithTimeout(
         sourceUrl.href,
         { method: "GET", cache: "no-store", credentials: "omit" },
@@ -919,30 +1422,31 @@
           `音频文件 ${(declaredSize / 1024 / 1024).toFixed(1)} MB，超过 24 MB 上传限制`,
         );
       }
-      audioBlob = await audioResponse.blob();
-      if (!audioBlob.size) throw new Error("获取到的音频文件为空");
-      if (audioBlob.size > MAX_AUDIO_BYTES) {
-        throw new Error(
-          `音频文件 ${(audioBlob.size / 1024 / 1024).toFixed(1)} MB，超过 24 MB 上传限制`,
-        );
-      }
+      // Check the real byte count while streaming: many signed media URLs omit
+      // Content-Length, and calling blob() first could exhaust extension memory.
+      if (!audioResponse.body) throw new Error("获取到的音频流不可读取");
+      const reader = audioResponse.body.getReader();
+      const chunks = [];
+      let totalBytes = 0;
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          totalBytes += value.byteLength;
+          if (totalBytes > MAX_AUDIO_BYTES) {
+            await reader.cancel().catch(() => {});
+            throw new Error("音频文件超过 24 MB 上传限制");
+          }
+          chunks.push(value);
+        }
+      } finally { reader.releaseLock(); }
+      if (!totalBytes) throw new Error("获取到的音频文件为空");
+      audioBlob = new Blob(chunks, { type: audioResponse.headers.get("content-type") || "" });
 
-      const form = new FormData();
       const mimeType =
         String(message.mimeType || "").split(";")[0] ||
         audioBlob.type ||
         "audio/webm";
-      form.append(
-        "file",
-        new Blob([audioBlob], { type: mimeType }),
-        audioFilename(mimeType),
-      );
-      form.append("model", model);
-      if (language) form.append("language", language);
-      form.append("prompt", prompt);
-      form.append("response_format", "verbose_json");
-      form.append("temperature", "0");
-
       const customHeaders =
         engine.requestHeaders && typeof engine.requestHeaders === "object"
           ? engine.requestHeaders
@@ -964,22 +1468,12 @@
       ) {
         headers.Authorization = `Bearer ${engine.key}`;
       }
-      const transcriptionResponse = await fetchWithTimeout(
-        endpoint,
-        {
-          method: "POST",
-          headers,
-          body: form,
-          credentials: useCookieAuthentication ? "include" : "omit",
-        },
-        10 * 60 * 1000,
-      );
-      if (!transcriptionResponse.ok) {
-        throw new Error(
-          `OpenAI 音频识别失败（HTTP ${transcriptionResponse.status}）：${await readResponseError(transcriptionResponse)}`,
-        );
-      }
-      const payload = await transcriptionResponse.json();
+      const payload = await transcribeBlob({
+        audioBlob: new Blob([audioBlob], { type: mimeType }),
+        filename: audioFilename(mimeType), endpoint, headers,
+        credentials: useCookieAuthentication ? "include" : "omit",
+        model, language, prompt,
+      });
       const segments = normalizeTranscriptionSegments(
         payload,
         Number(message.duration) || 0,
@@ -1514,6 +2008,7 @@
   };
 
   const handleMessage = async (message, sender) => {
+    sender = currentDocumentSender(message, sender);
     switch (message?.type) {
       case "lexihalo:subtitle-ai:get-config": {
         const { settings, engines } = await getConfig();
@@ -1542,6 +2037,36 @@
           message.requestGroup,
           message.requestGeneration,
         ) || { cancelled: 0 };
+      case "lexihalo:subtitle-ai:video-formats":
+        return listNativeVideoFormats(message, sender);
+      case "lexihalo:subtitle-ai:video-download":
+        return downloadNativeVideo(
+          message,
+          sender,
+          message.reportProgress,
+          message.requestId,
+        );
+      case "lexihalo:subtitle-ai:cancel-video-download": {
+        const task = mediaTasks.get("download", message.targetRequestId);
+        if (
+          !task ||
+          task.tabId !== sender?.tab?.id ||
+          task.frameId !== (sender?.frameId ?? 0)
+        )
+          return { cancelled: false };
+        task.cancelled = true;
+        if (task.jobId)
+          await nativeMessage({ action: "cancel", jobId: task.jobId }).catch(() => {});
+        return { cancelled: true };
+      }
+      case "lexihalo:subtitle-ai:helper-status": {
+        try {
+          const status = await nativeMessage({ action: "ping" });
+          return { installed: true, ready: status.ready === true, tools: status.tools || {}, version: status.version || 1 };
+        } catch (error) {
+          return { installed: false, error: error?.message || String(error) };
+        }
+      }
       case "lexihalo:subtitle-ai:get-diagnostics": {
         await diagnosticsWrite;
         const stored = await chrome.storage.local.get(DIAGNOSTICS_KEY);
@@ -1556,12 +2081,42 @@
         return { cleared: true };
       case "lexihalo:subtitle-ai:process":
         return processSubtitles(message);
+      case "lexihalo:subtitle-ai:media-sources":
+        return globalThis.lexihaloMediaCapture?.list(sender) || { sources: [] };
+      case "lexihalo:subtitle-ai:captured-transfer":
+        return transferCaptured(message, sender);
+      case "lexihalo:subtitle-ai:channels":
+        return globalThis.lexihaloResolveChannelsRequest(message, sender);
+      case "lexihalo:subtitle-ai:browser-audio":
+        return mediaUpload(message, sender);
       case "lexihalo:subtitle-ai:transcribe":
-        return transcribeAudio(message, sender);
+        return transcribeAudio(message, sender, message.reportProgress, message.requestId);
+      case "lexihalo:subtitle-ai:cancel-transcription": {
+        const task = mediaTasks.get("transcription", message.targetRequestId);
+        if (
+          !task ||
+          task.tabId !== sender?.tab?.id ||
+          task.frameId !== (sender?.frameId ?? 0)
+        )
+          return { cancelled: false };
+        task.cancelled = true;
+        task.abort.abort();
+        if (task.jobId) await nativeMessage({ action: "cancel", jobId: task.jobId }).catch(() => {});
+        return { cancelled: true };
+      }
       default:
         throw new Error("未知的 AI 字幕请求");
     }
   };
+
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (
+      message?.type === "lexihalo:asr-offscreen:keepalive" &&
+      sender?.url === chrome.runtime.getURL("offscreen.html")
+    ) {
+      sendResponse({ ok: true });
+    }
+  });
 
   chrome.runtime.onConnect.addListener((port) => {
     if (port.name !== "lexihalo-subtitle-ai") return;
@@ -1573,7 +2128,36 @@
         !message.type.startsWith("lexihalo:subtitle-ai:")
       )
         return;
-      handleMessage(message, port.sender)
+      let safeMessage;
+      try { safeMessage = globalThis.lexihaloMediaSchema.request(message); }
+      catch (error) {
+        port.postMessage({ requestId, response: { ok: false, error: error?.message || String(error) } });
+        return;
+      }
+      if (
+        message.type === "lexihalo:subtitle-ai:transcribe" ||
+        message.type === "lexihalo:subtitle-ai:video-download" ||
+        message.type === "lexihalo:subtitle-ai:captured-transfer"
+      ) {
+        safeMessage.reportProgress = (value) => {
+          const progress =
+            value && typeof value === "object"
+              ? {
+                  message: String(value.message || "").slice(0, 160),
+                  percent: Math.max(
+                    0,
+                    Math.min(100, Number(value.percent) || 0),
+                  ),
+                  speed: String(value.speed || "").slice(0, 40),
+                  eta: String(value.eta || "").slice(0, 20),
+                }
+              : String(value).slice(0, 160);
+          try {
+            port.postMessage({ requestId, progress });
+          } catch {}
+        };
+      }
+      handleMessage(safeMessage, port.sender)
         .then(
           (data) =>
             port.postMessage({ requestId, response: { ok: true, data } }),

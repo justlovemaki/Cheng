@@ -4870,14 +4870,20 @@ trancy-caption-window {
 }
 .trancy-caption-container .trancy-caption {
   position: absolute;
+  left: 0;
+  right: 0;
   bottom: 6%;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   display: flex;
   justify-content: center;
   align-items: center;
   flex-direction: column;
   pointer-events: auto;
   transition: all 0.2s ease;
-  padding: 0 100px;
+  padding: 0 clamp(12px, 6vw, 100px);
 }
 .trancy-caption-container .trancy-caption.dragging {
   transition: none;
@@ -4986,7 +4992,10 @@ trancy-caption-window {
   direction: rtl !important;
 }
 .trancy-caption-container .trancy-caption .trancy-caption-content {
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   display: flex;
   justify-content: center;
   flex-direction: column;
@@ -5115,7 +5124,28 @@ trancy-caption-window {
   .trancy-caption
   .trancy-caption-content
   .trancy-caption-secondary {
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  hyphens: auto;
   line-height: 1.4em;
+}
+.trancy-caption-container
+  .trancy-caption
+  .trancy-caption-content
+  .trancy-caption-primary
+  .token,
+.trancy-caption-container
+  .trancy-caption
+  .trancy-caption-content
+  .trancy-caption-secondary
+  .token {
+  max-width: 100%;
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .trancy-caption-container
   .trancy-caption
@@ -5388,6 +5418,56 @@ trancy-caption-window {
 }
 .xtc-vimeo .vp-captions {
   display: none !important;
+}
+.lexihalo-audio-host {
+  box-sizing: border-box;
+  overflow: visible;
+}
+.lexihalo-audio-tool-host {
+  position: fixed;
+  top: 88px;
+  right: 16px;
+  width: 50px;
+  height: 50px;
+  z-index: 2147483646;
+  pointer-events: none;
+}
+.lexihalo-audio-tool-host audio[data-lexihalo-tool-anchor] {
+  display: none;
+}
+.lexihalo-audio-tool-host #xt-toggle-button {
+  pointer-events: auto;
+}
+.lexihalo-media-proxy-host {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  min-height: 0;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+  pointer-events: none;
+}
+.lexihalo-media-proxy-host audio[data-lexihalo-proxy] {
+  display: none;
+}
+.lexihalo-media-proxy-host #xt-toggle-button {
+  pointer-events: auto;
+}
+.lexihalo-html5-position-static {
+  position: relative;
+}
+.xtc-html5 .lexihalo-html5-container video::cue {
+  color: rgba(0, 0, 0, 0);
+  background: rgba(0, 0, 0, 0);
+  font-size: 0;
+}
+.xtc-html5 .lexihalo-html5-container .trancy-caption {
+  margin-bottom: 44px;
 }
 .xtc-bilibili trancy-caption-window {
   z-index: 9 !important;
@@ -6032,6 +6112,123 @@ trancy-caption-setting.lt-fa .MuiSwitch-root {
 .trancy-panel-menu.visible {
   display: block;
 }
+.trancy-panel-menu.lexihalo-download-menu {
+  width: min(340px, calc(100vw - 24px));
+}
+.lexihalo-video-download-panel .lexihalo-download-format {
+  min-height: 54px;
+  height: auto;
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+.lexihalo-video-download-panel
+  .lexihalo-download-format
+  .trancy-menuitem-icon {
+  flex: 0 0 auto;
+}
+.lexihalo-video-download-panel .lexihalo-download-format-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  overflow: hidden;
+}
+.lexihalo-video-download-panel .lexihalo-download-format-title,
+.lexihalo-video-download-panel .lexihalo-download-format-meta {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lexihalo-video-download-panel .lexihalo-download-format-title {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.lexihalo-video-download-panel .lexihalo-download-format-meta {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  line-height: 1.1;
+}
+.lexihalo-video-download-panel
+  .lexihalo-download-format
+  .trancy-menuitem-action {
+  flex: 0 0 auto;
+  min-width: 48px;
+  margin-left: 8px;
+}
+.lexihalo-video-download-panel .lexihalo-download-status {
+  height: auto;
+  min-height: 52px;
+  padding-top: 9px;
+  padding-bottom: 9px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.lexihalo-video-download-panel
+  .lexihalo-download-status
+  .trancy-menuitem-label {
+  display: block;
+  width: 100%;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 12px;
+  line-height: 1.45 !important;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.lexihalo-video-download-panel .lexihalo-download-status.done {
+  background: rgba(16, 185, 129, 0.1);
+}
+.lexihalo-video-download-panel
+  .lexihalo-download-status.done
+  .trancy-menuitem-label {
+  color: #6ee7b7;
+}
+.lexihalo-video-download-panel .lexihalo-download-status.error {
+  background: rgba(239, 68, 68, 0.1);
+}
+.lexihalo-video-download-panel
+  .lexihalo-download-status.error
+  .trancy-menuitem-label {
+  color: #fca5a5;
+}
+.lexihalo-download-progress-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lexihalo-download-progress-track {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.lexihalo-download-progress-track > span {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #29dbbc, #488cfb, #655adc);
+  transition: width 0.25s ease;
+}
+.lexihalo-download-progress-value {
+  flex: 0 0 34px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 11px;
+  line-height: 1;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
 .trancy-panel-menu .trancy-menuitem-group {
   border-bottom: 1px solid hsla(0, 0%, 100%, 0.08);
 }
@@ -6628,6 +6825,51 @@ trancy-caption-setting.lt-fa .MuiSwitch-root {
   .btn-back-panel-action:hover
   > span:not(.MuiSwitch-root) {
   color: #fff;
+}
+.trancy-second-panel-menu-container
+  .second-panel-menu-header
+  .btn-back-panel-action.lexihalo-download-cancel {
+  min-width: auto;
+  min-height: 24px;
+  padding: 4px 2px;
+  justify-content: center;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  color: #ffb4ab !important;
+  font: 600 12px/1 system-ui, sans-serif !important;
+  letter-spacing: 0;
+  text-shadow: none;
+  box-shadow: none;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: color 0.15s ease, opacity 0.15s ease;
+  forced-color-adjust: auto;
+}
+.trancy-second-panel-menu-container
+  .second-panel-menu-header
+  .btn-back-panel-action.lexihalo-download-cancel:hover {
+  background: transparent !important;
+  color: #ffd7d3 !important;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.trancy-second-panel-menu-container
+  .second-panel-menu-header
+  .btn-back-panel-action.lexihalo-download-cancel:active {
+  background: transparent !important;
+  color: #ff8f85 !important;
+  opacity: 0.82 !important;
+  transform: none;
+}
+.trancy-second-panel-menu-container
+  .second-panel-menu-header
+  .btn-back-panel-action.lexihalo-download-cancel:focus-visible {
+  outline: 0 !important;
+  color: #ffd7d3 !important;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 .trancy-second-panel-menu-container .trancy-second-panel-menu-content {
   max-height: var(--tc-second-content-max, 414px);
@@ -10383,6 +10625,64 @@ trancy-video-summary
   text-align: center;
   width: 36px;
   z-index: 2;
+}
+/* Native player containers may be absolute/fixed/sticky. Never override their
+ * positioning or stacking context; only originally-static overlay hosts opt in. */
+#xt-toggle-button.trancy-html5-button.trancy-floating {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  bottom: auto;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(6px);
+  z-index: 2147483647 !important;
+  cursor: pointer;
+  pointer-events: auto !important;
+}
+.trancy-html5-button.trancy-floating .trancy-button-logo {
+  width: 26px;
+  height: 26px;
+}
+.trancy-html5-button.trancy-floating .trancy-panel-menu {
+  top: 42px;
+  right: 0;
+  bottom: auto;
+}
+#xt-toggle-button.trancy-html5-button.trancy-pornhub-control {
+  position: relative !important;
+  inset: auto !important;
+  display: flex !important;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 100%;
+  min-height: 36px;
+  margin: 0 !important;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 2147483647 !important;
+}
+.trancy-html5-button.trancy-pornhub-control,
+.trancy-html5-button.trancy-pornhub-control * {
+  pointer-events: auto !important;
+}
+.trancy-html5-button.trancy-pornhub-control .trancy-button-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+}
+.trancy-html5-button.trancy-pornhub-control .trancy-panel-menu {
+  top: auto;
+  right: 0;
+  bottom: 56px;
 }
 .trancy-markdown {
   color: var(--text-80);

@@ -87,6 +87,10 @@
   const empty = $("empty");
   const status = $("status");
   const cancelEdit = $("cancel-edit");
+  const helperStatus = $("helper-status");
+  const helperExtensionId = $("helper-extension-id");
+  const helperCommand = $("helper-command");
+  const refreshHelper = $("refresh-helper");
   const diagnosticsOutput = $("diagnostics-output");
   const diagnosticsStatus = $("diagnostics-status");
   const refreshDiagnostics = $("refresh-diagnostics");
@@ -126,6 +130,25 @@
       });
       port.postMessage({ requestId, type, ...payload });
     });
+
+  const renderHelperStatus = async () => {
+    helperExtensionId.textContent = chrome.runtime.id;
+    helperCommand.textContent = `python native/install.py ${chrome.runtime.id}`;
+    helperStatus.textContent = "正在检查…";
+    try {
+      const result = await requestSubtitleAi("lexihalo:subtitle-ai:helper-status");
+      const missing = Object.entries(result?.tools || {}).filter(([, found]) => !found).map(([name]) => name);
+      helperStatus.textContent = result?.installed
+        ? result.ready
+          ? `已就绪（协议 v${result.version || 1}）`
+          : `已连接，缺少 ${missing.join("、") || "所需工具"}`
+        : "未连接";
+      helperStatus.title = result?.error || "";
+    } catch (error) {
+      helperStatus.textContent = "检查失败";
+      helperStatus.title = error?.message || String(error);
+    }
+  };
 
   const renderDiagnostics = async () => {
     try {
@@ -281,6 +304,7 @@
   provider.addEventListener("change", () => applyPreset(true));
   cancelEdit.addEventListener("click", resetForm);
 
+  refreshHelper.addEventListener("click", renderHelperStatus);
   refreshDiagnostics.addEventListener("click", renderDiagnostics);
   copyDiagnostics.addEventListener("click", async () => {
     try {
@@ -345,6 +369,7 @@
     resetForm();
   });
 
+  renderHelperStatus();
   renderDiagnostics();
   getStored()
     .then((stored) => {

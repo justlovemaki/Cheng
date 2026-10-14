@@ -144,6 +144,23 @@
 
       <section class="card">
         <div class="section-heading">
+          <h2>可选本地音频助手</h2>
+          <span id="helper-status">正在检查…</span>
+        </div>
+        <p class="diagnostics-note">
+          当浏览器无法直接读取完整音频时，助手可用 yt-dlp 和 ffmpeg 下载并切块；API Key
+          始终由扩展直接发给你的 BYOK 服务商，不会交给助手。助手不会绕过 DRM。
+        </p>
+        <p>扩展 ID：<code id="helper-extension-id"></code></p>
+        <p>安装命令：<code id="helper-command"></code></p>
+        <div class="actions">
+          <button type="button" id="refresh-helper">重新检查</button>
+        </div>
+        <p class="field-note">完整安装步骤和当前支持范围见仓库 <code>native/README.md</code>。</p>
+      </section>
+
+      <section class="card">
+        <div class="section-heading">
           <h2>AI 字幕诊断</h2>
           <span id="diagnostics-status"></span>
         </div>

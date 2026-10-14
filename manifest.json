@@ -25,60 +25,14 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://youtube.com/*",
-        "https://m.youtube.com/*",
-        "https://www.youtube.com/*",
-        "https://netflix.com/*",
-        "https://www.netflix.com/*",
-        "https://www.coursera.org/*",
-        "https://coursera.org/*",
-        "https://www.udemy.com/*",
-        "https://udemy.com/*",
-        "https://*.udemy.cn/*",
-        "https://*.udemy.com/*",
-        "https://*.ted.com/*",
-        "https://*.youtube-nocookie.com/*",
-        "https://*.hbomax.com/*",
-        "https://*.max.com/*",
-        "https://*.disneyplus.com/*",
-        "https://*.edx.org/*",
-        "https://*.primevideo.com/*",
-        "https://*.deeplearning.ai/*",
-        "https://*.bilibili.com/*",
-        "https://vimeo.com/*",
-        "https://*.vimeo.com/*"
-      ],
+      "matches": ["http://*/*", "https://*/*", "file://*/*"],
       "js": ["assets/edvideo-onload.js"],
       "css": ["assets/edvideo.css", "assets/subtitle-ai.css"],
       "run_at": "document_start",
       "all_frames": true
     },
     {
-      "matches": [
-        "https://youtube.com/*",
-        "https://m.youtube.com/*",
-        "https://www.youtube.com/*",
-        "https://netflix.com/*",
-        "https://www.netflix.com/*",
-        "https://www.coursera.org/*",
-        "https://coursera.org/*",
-        "https://www.udemy.com/*",
-        "https://udemy.com/*",
-        "https://*.udemy.cn/*",
-        "https://*.udemy.com/*",
-        "https://*.ted.com/*",
-        "https://*.youtube-nocookie.com/*",
-        "https://*.hbomax.com/*",
-        "https://*.max.com/*",
-        "https://*.disneyplus.com/*",
-        "https://*.edx.org/*",
-        "https://*.primevideo.com/*",
-        "https://*.deeplearning.ai/*",
-        "https://*.bilibili.com/*",
-        "https://vimeo.com/*",
-        "https://*.vimeo.com/*"
-      ],
+      "matches": ["http://*/*", "https://*/*", "file://*/*"],
       "js": [
         "assets/romanize-main.js",
         "assets/ld-main.js",
@@ -143,5 +97,5 @@
     }
   ],
   "host_permissions": ["<all_urls>"],
-  "permissions": ["storage", "contextMenus", "unlimitedStorage"]
+  "permissions": ["storage", "contextMenus", "unlimitedStorage", "nativeMessaging", "offscreen", "scripting", "webRequest", "declarativeNetRequestWithHostAccess"]
 }

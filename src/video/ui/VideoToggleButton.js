@@ -194,6 +194,14 @@ export function recoverVideoToggleButton(dependencies) {
       [K, Z] = (0, React.useState)(!1),
       [G, Y] = (0, React.useState)(!1),
       J = (0, React.useRef)(),
+      transcriptionTask = (0, React.useRef)(null),
+      [videoFormats, setVideoFormats] = (0, React.useState)([]),
+      [videoDownloadState, setVideoDownloadState] = (0, React.useState)({
+        status: "idle",
+        message: "",
+        percent: 0,
+      }),
+      videoDownloadTask = (0, React.useRef)(null),
       X = () =>
         ij(null, null, function* () {
           if (
@@ -252,10 +260,17 @@ export function recoverVideoToggleButton(dependencies) {
                 );
             }
         }),
-      ne = () =>
+      ne = (forceNative = false) =>
         ij(null, null, function* () {
-          if (G) return;
+          if (G) {
+            if (transcriptionTask.current?.native) {
+              void globalThis.lexihaloCancelTranscription?.(transcriptionTask.current.id);
+              ee("正在取消…");
+            }
+            return;
+          }
           Y(!0), N(null), Z(!1);
+          const startingVideoId = captionProvider.id;
           const fetchingMessage = String(
             l.language.interface || "",
           ).startsWith("zh")
@@ -273,85 +288,45 @@ export function recoverVideoToggleButton(dependencies) {
             ) {
               yield platformContext.getYoutubeTracks().catch(() => null);
             }
-            let streams = [];
-            try {
-              streams = platformContext.streams || [];
-            } catch {}
-            const adaptiveFormats =
-              platformContext.context?.ytInitialPlayerResponse?.streamingData
-                ?.adaptiveFormats || [];
-            streams.push(
-              ...adaptiveFormats
-                .filter(
-                  (format) =>
-                    format?.url &&
-                    String(format.mimeType || "").toLowerCase().includes("audio"),
-                )
-                .map((format) => ({
-                  size: Number(format.contentLength) || 0,
-                  bitrate: Number(format.bitrate) || 0,
-                  mimeType: format.mimeType,
-                  urls: [format.url],
-                })),
-            );
-            const video = captionProvider.video || document.querySelector("video");
-            const mediaUrl = video?.currentSrc || video?.src || "";
-            if (
-              /^https?:\/\//i.test(mediaUrl) &&
-              !/\.(?:m3u8|mpd)(?:$|\?)/i.test(mediaUrl)
-            ) {
-              const path = (() => {
-                try {
-                  return new URL(mediaUrl).pathname.toLowerCase();
-                } catch {
-                  return "";
-                }
-              })();
-              streams.push({
-                size: 0,
-                bitrate: Number.MAX_SAFE_INTEGER,
-                mimeType: /\.webm$/.test(path) ? "video/webm" : "video/mp4",
-                urls: [mediaUrl],
-              });
+            const mediaPage = globalThis.lexihaloSites?.page(location.href) || globalThis.lexihaloSites?.browserPage(location.href);
+            const mediaCapabilities = globalThis.lexihaloPlatformCapabilities.resolve({
+              platform: captionProvider.platform, page: mediaPage, host: location.hostname,
+            });
+            if (!forceNative && mediaCapabilities.browserCapture && mediaCapabilities.generic) {
+              yield globalThis.lexihaloSiteAdapters?.prepare();
             }
-            const bilibiliAudio = globalThis.__playinfo__?.data?.dash?.audio || [];
-            streams.push(
-              ...bilibiliAudio
-                .map((format) => ({
-                  size: Number(format.size) || 0,
-                  bitrate: Number(format.bandwidth) || 0,
-                  mimeType: format.mimeType || "audio/mp4",
-                  urls: [format.baseUrl || format.base_url],
-                }))
-                .filter((stream) => stream.urls[0]),
-            );
-            const seenAudioUrls = new Set();
-            const candidates = streams
-              .filter((stream) => {
-                const url = stream?.urls?.[0];
-                if (!url || seenAudioUrls.has(url)) return false;
-                seenAudioUrls.add(url);
-                return true;
-              })
-              .sort((left, right) => {
-                const leftSize = Number(left.size) || Number.MAX_SAFE_INTEGER;
-                const rightSize = Number(right.size) || Number.MAX_SAFE_INTEGER;
-                return leftSize - rightSize || (Number(left.bitrate) || 0) - (Number(right.bitrate) || 0);
-              });
-            const maxBytes = 24 * 1024 * 1024;
-            const stream =
-              candidates.find(
-                (candidate) => !Number(candidate.size) || Number(candidate.size) <= maxBytes,
-              ) || candidates[0];
-            if (!stream?.urls?.[0]) {
-              throw new Error(
-                "当前平台未暴露可直接读取的音频流；受 DRM 保护的视频无法由浏览器扩展提取音频",
-              );
+            const resolved = globalThis.lexihaloResolveAudioSource({
+              platform: captionProvider.platform,
+              context: platformContext,
+              video: captionProvider.video || document.querySelector("video"),
+            });
+            if (!forceNative && resolved.wrapper && !resolved.browserSources?.length) {
+              throw new Error("当前播放器尚未提供可读取的媒体资源。请从原详情页打开播放器并播放几秒，再重新打开菜单；若是独立包装页，请返回原详情页");
             }
-            if (Number(stream.size) > maxBytes) {
-              throw new Error(
-                `最小音频流 ${(Number(stream.size) / 1024 / 1024).toFixed(1)} MB，超过 24 MB 上传限制`,
+            const stream = resolved.source;
+            const mediaPageUrl = globalThis.lexihaloMediaPageUrl({
+              platform: captionProvider.platform,
+              context: platformContext,
+            });
+            const preferNativeHelper = Boolean(
+              !forceNative && mediaPageUrl &&
+                globalThis.lexihaloPreferNativeHelper?.({
+                  platform: captionProvider.platform,
+                  context: platformContext,
+                }),
+            );
+            let useNativeHelper =
+              (forceNative || !stream || preferNativeHelper) &&
+              mediaPageUrl &&
+              window.confirm(
+                preferNativeHelper
+                  ? `是否让浏览器读取${globalThis.lexihaloSites?.page(mediaPageUrl)?.name || (/(^|\.)pornhub\.com$/i.test(new URL(mediaPageUrl).hostname) ? "Pornhub" : "当前网站")}当前播放器的音频，并交给本地助手（ffmpeg）切块识别？不会导出浏览器 Cookie。音频会上传到你配置的 BYOK 服务商。`
+                  : "浏览器无法直接取得小于 24 MB 的完整音频。是否使用已安装的本地助手（yt-dlp + ffmpeg）下载并分段识别当前视频？音频会上传到你配置的 BYOK 服务商；仅公开且有权限访问的媒体可用。",
               );
+            if (!stream && !useNativeHelper) {
+              throw new Error(mediaPageUrl
+                ? "没有可直接读取的音频；已取消使用本地助手。DRM 内容不支持提取。"
+                : "当前页面没有可直接读取的音频；本地助手只接受通过安全校验的公网 HTTPS 视频页。DRM 内容不支持提取。");
             }
             const transcribingMessage = String(
               l.language.interface || "",
@@ -367,16 +342,42 @@ export function recoverVideoToggleButton(dependencies) {
             if (typeof transcribe !== "function") {
               throw new Error("音频识别服务尚未就绪，请刷新页面后重试");
             }
-            const result = yield transcribe({
-              audioUrl: stream.urls[0],
-              mimeType: stream.mimeType || "audio/webm",
-              audioBytes: Number(stream.size) || 0,
-              videoId: platformContext.vid || platformContext.id,
-              duration: Number(platformContext.duration) || 0,
-              language:
-                platformContext.audioLanguage || l.language.subtitle || "auto",
-              engineId: u.subtitle?._id || "",
-            });
+            const runTranscription = () => {
+              const requestId = crypto.randomUUID();
+              transcriptionTask.current = { id: requestId, native: useNativeHelper };
+              return transcribe({
+                requestId,
+                useNativeHelper,
+                useBrowserAudio: Boolean(useNativeHelper && !forceNative &&
+                  (preferNativeHelper || resolved.browserSources?.length)),
+                browserSource: !forceNative
+                  ? resolved.browserSources?.find(source => source.transport === "capture" || source.captureId)
+                  : undefined,
+                audioUrl: useNativeHelper ? mediaPageUrl : stream.url,
+                mediaPageUrl: useNativeHelper ? mediaPageUrl : undefined,
+                mimeType: stream?.mimeType || "audio/mpeg",
+                audioBytes: Number(stream?.size) || 0,
+                videoId: platformContext.vid || platformContext.id,
+                duration: Number(platformContext.duration) || 0,
+                language: platformContext.audioLanguage || l.language.subtitle || "auto",
+                engineId: u.subtitle?._id || "",
+              }, (progress) => {
+                ee(progress);
+                captionProvider.event.emit("transcription.status", { state: "loading", message: progress });
+              });
+            };
+            let result;
+            try {
+              result = yield runTranscription();
+            } catch (error) {
+              if (useNativeHelper || !mediaPageUrl || !/获取视频音频失败|音频文件|音频地址|音频流不可读取|请求超时|Failed to fetch|NetworkError/i.test(error?.message || "") ||
+                !window.confirm("直接下载音频失败。是否改用已安装的本地助手下载并分段上传到你的 BYOK 音频识别接口？")) throw error;
+              useNativeHelper = true;
+              result = yield runTranscription();
+            }
+            if (captionProvider.id !== startingVideoId) {
+              throw new Error("视频已切换，取消安装旧视频字幕");
+            }
             captionProvider.installTranscription(
               result.segments,
               result.language,
@@ -412,9 +413,151 @@ export function recoverVideoToggleButton(dependencies) {
               extensionClient.open("byok.html?provider=OpenAI", !1);
             }
           } finally {
+            transcriptionTask.current = null;
             Y(!1);
           }
         }),
+      openVideoDownload = (forceNative = false) =>
+        ij(null, null, function* () {
+          x("video-download");
+          setVideoFormats([]);
+          setVideoDownloadState({
+            status: "loading",
+            message: "正在识别视频清晰度…",
+            percent: 0,
+          });
+          try {
+            const mediaPageUrl = globalThis.lexihaloMediaPageUrl({
+              platform: captionProvider.platform,
+              context: platformContext,
+            });
+            if (!mediaPageUrl)
+              throw new Error("当前网站尚未接入 yt-dlp 视频下载助手");
+            const listFormats = globalThis.lexihaloListVideoFormats;
+            if (typeof listFormats !== "function")
+              throw new Error("视频下载服务尚未就绪，请刷新页面后重试");
+            const prepare = globalThis.lexihaloSiteAdapters?.prepare;
+            const mediaPage = globalThis.lexihaloSites?.page(location.href) || globalThis.lexihaloSites?.browserPage(location.href);
+            const mediaCapabilities = globalThis.lexihaloPlatformCapabilities.resolve({
+              platform: captionProvider.platform, page: mediaPage, host: location.hostname,
+            });
+            const local = !forceNative && mediaCapabilities.browserCapture && typeof prepare === "function"
+              ? yield prepare() : null;
+            if (!forceNative && local?.wrapper && !local.sources.length) {
+              throw new Error("当前播放器尚未取得真实媒体源，请从原详情页打开并播放几秒后重试");
+            }
+            const localFormats = [];
+            const grouped = new Map();
+            for (const source of local?.sources || []) {
+              const key = `${source.kind}:${source.resolution || 0}`;
+              if (!grouped.has(key)) grouped.set(key, source);
+            }
+            for (const source of grouped.values()) {
+              localFormats.push({
+                formatId: `browser${localFormats.length}`,
+                resolution: source.resolution || 0, height: source.resolution || 0,
+                isAudio: source.kind === "audio", hasAudio: true,
+                ext: source.ext === "m3u8" ? (source.kind === "audio" ? "mka" : "mkv") : source.ext,
+                label: source.label || (source.kind === "audio" ? "音频资源" : source.resolution ? `${source.resolution}p` : "当前播放器资源（自动选择清晰度）"),
+                codecLabel: "浏览器读取", filesize: source.size || 0,
+                browserSource: source, title: local.title,
+              });
+            }
+            let formats = [];
+            if ((local?.capabilities?.browserReadable ?? (local?.page?.browser || local?.page?.id === "generic")) && localFormats.length) formats = localFormats;
+            else {
+              try { formats = (yield listFormats(mediaPageUrl)).formats || []; }
+              catch (error) { if (!localFormats.length) throw error; formats = localFormats; }
+            }
+            setVideoFormats(formats);
+            setVideoDownloadState({
+              status: "ready",
+              message: `已识别 ${formats.length} 项可下载资源`,
+              percent: 0,
+            });
+          } catch (error) {
+            setVideoDownloadState({
+              status: "error",
+              message: error?.message || String(error),
+              percent: 0,
+            });
+          }
+        }),
+      downloadVideoFormat = (format) =>
+        ij(null, null, function* () {
+          if (videoDownloadState.status === "downloading") return;
+          const sizeText = format.filesize
+            ? `，约 ${(format.filesize / 1024 / 1024).toFixed(1)} MB`
+            : "";
+          if (
+            !window.confirm(
+              `下载 ${format.label}${sizeText}？文件将保存到系统 Downloads/LexiHalo 目录。`,
+            )
+          )
+            return;
+          const mediaPageUrl = globalThis.lexihaloMediaPageUrl({
+            platform: captionProvider.platform,
+            context: platformContext,
+          });
+          const requestId = crypto.randomUUID();
+          videoDownloadTask.current = requestId;
+          setVideoDownloadState({
+            status: "downloading",
+            message: `正在准备 ${format.label}…`,
+            percent: 0,
+          });
+          try {
+            const downloadVideo = globalThis.lexihaloDownloadVideo;
+            if (typeof downloadVideo !== "function")
+              throw new Error("视频下载服务尚未就绪，请刷新页面后重试");
+            const result = yield downloadVideo(
+              {
+                requestId,
+                mediaPageUrl,
+                formatId: format.formatId,
+                resolution: format.resolution || format.height || 0,
+                browserSource: format.browserSource,
+                title: format.title || platformContext.title || "media",
+              },
+              (progress) =>
+                setVideoDownloadState((previous) => previous.message === "正在取消…" ? previous : ({
+                  status: "downloading",
+                  message:
+                    typeof progress === "object"
+                      ? progress.message
+                      : String(progress || previous.message),
+                  percent:
+                    typeof progress === "object"
+                      ? Math.max(previous.percent || 0, Number(progress.percent) || 0)
+                      : previous.percent || 0,
+                })),
+            );
+            setVideoDownloadState({
+              status: "done",
+              message: `已保存：${result.filename || result.directory}`,
+              percent: 100,
+            });
+          } catch (error) {
+            const message = error?.message || String(error);
+            setVideoDownloadState({
+              status: /已取消|aborted|cancelled/i.test(message) ? "ready" : "error",
+              message: /已取消|aborted|cancelled/i.test(message) ? "已取消下载" : message,
+              percent: 0,
+            });
+          } finally {
+            videoDownloadTask.current = null;
+          }
+        }),
+      cancelVideoDownload = () => {
+        const requestId = videoDownloadTask.current;
+        if (!requestId) return;
+        setVideoDownloadState((previous) => ({
+          ...previous,
+          status: "downloading",
+          message: "正在取消…",
+        }));
+        void globalThis.lexihaloCancelVideoDownload?.(requestId);
+      },
       [re, ie] = (0, React.useState)([]),
       [ae, oe] = (0, React.useState)([]),
       se = [
@@ -455,6 +598,15 @@ export function recoverVideoToggleButton(dependencies) {
     }, []);
     (0, React.useEffect)(() => {
       const e = () => {
+        if (transcriptionTask.current?.native) {
+          void globalThis.lexihaloCancelTranscription?.(transcriptionTask.current.id);
+        }
+        if (videoDownloadTask.current) {
+          void globalThis.lexihaloCancelVideoDownload?.(
+            videoDownloadTask.current,
+          );
+          videoDownloadTask.current = null;
+        }
         "youtube" === captionProvider.platform &&
           s.enabled &&
           (U("none"),
@@ -706,6 +858,7 @@ export function recoverVideoToggleButton(dependencies) {
         (0, jsxRuntime.jsx)("div", {
           className: xb()("trancy-panel-menu", {
             "show-second": w,
+            "lexihalo-download-menu": w === "video-download",
             visible: T,
           }),
           style: rj(nj({}, ve), {
@@ -880,7 +1033,7 @@ export function recoverVideoToggleButton(dependencies) {
                     className: "trancy-menuitem-group",
                     children: (0, jsxRuntime.jsxs)("div", {
                       className: xb()("trancy-menuitem", {
-                        disabled: G,
+                        disabled: G && !transcriptionTask.current?.native,
                       }),
                         role: "button",
                         tabIndex: 0,
@@ -921,6 +1074,57 @@ export function recoverVideoToggleButton(dependencies) {
                       ],
                     }),
                   }),
+                  globalThis.lexihaloSites?.page(location.href) &&
+                    (0, jsxRuntime.jsx)("div", {
+                      className: "trancy-menuitem-group",
+                      children: (0, jsxRuntime.jsxs)("div", {
+                        className: "trancy-menuitem",
+                        role: "button", tabIndex: 0,
+                        onClick: () => { void ne(true); },
+                        children: [
+                          (0, jsxRuntime.jsx)("div", { className: "trancy-menuitem-icon", children: (0, jsxRuntime.jsx)(yt, {}) }),
+                          (0, jsxRuntime.jsx)("div", { className: "trancy-menuitem-label", children: "AI 字幕（本地页面解析）" }),
+                        ],
+                      }),
+                    }),
+                  globalThis.lexihaloMediaPageUrl?.({
+                    platform: captionProvider.platform,
+                    context: platformContext,
+                  }) &&
+                    (0, jsxRuntime.jsx)("div", {
+                      className: "trancy-menuitem-group",
+                      children: (0, jsxRuntime.jsxs)("div", {
+                        className: "trancy-menuitem",
+                        role: "button",
+                        tabIndex: 0,
+                        "data-lexihalo-video-download": "true",
+                        onClick: () => {
+                          void openVideoDownload();
+                        },
+                        onKeyDown: (event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            void openVideoDownload();
+                          }
+                        },
+                        children: [
+                          (0, jsxRuntime.jsx)("div", {
+                            className: "trancy-menuitem-icon",
+                            children: (0, jsxRuntime.jsx)(Le, {}),
+                          }),
+                          (0, jsxRuntime.jsx)("div", {
+                            className: "trancy-menuitem-label",
+                            children: globalThis.lexihaloSites?.siteOf(location.href)?.audio
+                              ? "下载音频/资源"
+                              : "下载视频（多清晰度）",
+                          }),
+                          (0, jsxRuntime.jsx)("div", {
+                            className: "trancy-menuitem-action",
+                            children: (0, jsxRuntime.jsx)(Ct, {}),
+                          }),
+                        ],
+                      }),
+                    }),
                   (0, jsxRuntime.jsxs)("div", {
                     className: "trancy-menuitem-group",
                     children: [
@@ -1501,6 +1705,194 @@ export function recoverVideoToggleButton(dependencies) {
               (0, jsxRuntime.jsxs)("div", {
                 className: "trancy-second-panel-menu",
                 children: [
+                  "video-download" === w &&
+                    (0, jsxRuntime.jsxs)("div", {
+                      className:
+                        "trancy-second-panel-menu-container lexihalo-video-download-panel",
+                      ref: C,
+                      children: [
+                        (0, jsxRuntime.jsxs)("div", {
+                          className: "second-panel-menu-header",
+                          children: [
+                            (0, jsxRuntime.jsxs)("div", {
+                              className: "btn-back-panel-header",
+                              onClick: (event) => {
+                                event.stopPropagation();
+                                event.preventDefault();
+                                x(null);
+                              },
+                              children: [
+                                (0, jsxRuntime.jsx)("div", {
+                                  className: "trancy-panel-close-icon",
+                                  children: (0, jsxRuntime.jsx)(St, {}),
+                                }),
+                                (0, jsxRuntime.jsx)("span", {
+                                  children: "下载视频",
+                                }),
+                              ],
+                            }),
+                            videoDownloadState.status === "downloading" &&
+                              (0, jsxRuntime.jsx)("div", {
+                                className: "btn-back-panel-action lexihalo-download-cancel",
+                                role: "button",
+                                tabIndex: 0,
+                                "aria-label": "取消视频下载",
+                                onClick: (event) => {
+                                  event.stopPropagation();
+                                  cancelVideoDownload();
+                                },
+                                onKeyDown: (event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    cancelVideoDownload();
+                                  }
+                                },
+                                children: "取消",
+                              }),
+                          ],
+                        }),
+                        (0, jsxRuntime.jsxs)("div", {
+                          className: "trancy-second-panel-menu-content",
+                          children: [
+                            videoDownloadState.message &&
+                              (0, jsxRuntime.jsxs)("div", {
+                                className: xb()(
+                                  "trancy-menuitem trancy-menuitem-static lexihalo-download-status",
+                                  {
+                                    disabled:
+                                      videoDownloadState.status === "loading",
+                                    done:
+                                      videoDownloadState.status === "done",
+                                    error:
+                                      videoDownloadState.status === "error",
+                                  },
+                                ),
+                                children: [
+                                  (0, jsxRuntime.jsx)("div", {
+                                    className: "trancy-menuitem-label",
+                                    title: videoDownloadState.message,
+                                    children: videoDownloadState.message,
+                                  }),
+                                  videoDownloadState.status === "downloading" &&
+                                    (0, jsxRuntime.jsxs)("div", {
+                                      className:
+                                        "lexihalo-download-progress-row",
+                                      children: [
+                                        (0, jsxRuntime.jsx)("div", {
+                                          className:
+                                            "lexihalo-download-progress-track",
+                                          role: "progressbar",
+                                          "aria-valuemin": 0,
+                                          "aria-valuemax": 100,
+                                          "aria-valuenow": Math.round(
+                                            videoDownloadState.percent || 0,
+                                          ),
+                                          children: (0, jsxRuntime.jsx)(
+                                            "span",
+                                            {
+                                              style: {
+                                                width: `${Math.max(
+                                                  0,
+                                                  Math.min(
+                                                    100,
+                                                    videoDownloadState.percent ||
+                                                      0,
+                                                  ),
+                                                )}%`,
+                                              },
+                                            },
+                                          ),
+                                        }),
+                                        (0, jsxRuntime.jsx)("span", {
+                                          className:
+                                            "lexihalo-download-progress-value",
+                                          children: `${Math.round(
+                                            videoDownloadState.percent || 0,
+                                          )}%`,
+                                        }),
+                                      ],
+                                    }),
+                                ],
+                              }),
+                            globalThis.lexihaloSites?.page(location.href) &&
+                              videoDownloadState.status !== "downloading" &&
+                              (0, jsxRuntime.jsx)("div", {
+                                className: "trancy-menuitem",
+                                onClick: () => { void openVideoDownload(true); },
+                                children: (0, jsxRuntime.jsx)("div", {
+                                  className: "trancy-menuitem-label",
+                                  children: "改用本地助手解析公开资源",
+                                }),
+                              }),
+                            videoFormats.map((format) =>
+                              (0, jsxRuntime.jsxs)(
+                                "div",
+                                {
+                                  className: xb()(
+                                    "trancy-menuitem lexihalo-download-format",
+                                    {
+                                      disabled:
+                                        videoDownloadState.status ===
+                                        "downloading",
+                                    },
+                                  ),
+                                  role: "button",
+                                  tabIndex: 0,
+                                  onClick: () => {
+                                    void downloadVideoFormat(format);
+                                  },
+                                  children: [
+                                    (0, jsxRuntime.jsx)("div", {
+                                      className: "trancy-menuitem-icon",
+                                      children: (0, jsxRuntime.jsx)(Le, {}),
+                                    }),
+                                    (0, jsxRuntime.jsxs)("div", {
+                                      className:
+                                        "trancy-menuitem-label lexihalo-download-format-copy",
+                                      children: [
+                                        (0, jsxRuntime.jsx)("span", {
+                                          className:
+                                            "lexihalo-download-format-title",
+                                          children: format.label,
+                                        }),
+                                        (0, jsxRuntime.jsx)("span", {
+                                          className:
+                                            "lexihalo-download-format-meta",
+                                          children: [
+                                            format.ext?.toUpperCase(),
+                                            format.codecLabel,
+                                            !format.hasAudio
+                                              ? "自动合并音频"
+                                              : "含音频",
+                                          ]
+                                            .filter(Boolean)
+                                            .join(" · "),
+                                        }),
+                                      ],
+                                    }),
+                                    (0, jsxRuntime.jsx)("div", {
+                                      className: "trancy-menuitem-action",
+                                      children: (0, jsxRuntime.jsx)("div", {
+                                        className: "trancy-action-label",
+                                        children: format.filesize
+                                          ? `${(
+                                              format.filesize /
+                                              1024 /
+                                              1024
+                                            ).toFixed(0)} MB`
+                                          : "—",
+                                      }),
+                                    }),
+                                  ],
+                                },
+                                format.formatId,
+                              ),
+                            ),
+                          ],
+                        }),
+                      ],
+                    }),
                   "more-settings" === w &&
                     (0, jsxRuntime.jsxs)("div", {
                       className: "trancy-second-panel-menu-container",

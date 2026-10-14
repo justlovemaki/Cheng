@@ -940,6 +940,128 @@ function patchVideoNullChildNodes(ast) {
   }
 }
 
+function patchMixedLanguageDetection(ast) {
+  const counts = { class: 0, sync: 0, dom: 0, eval: 0 };
+  traverse(ast, {
+    Class(path) {
+      const methods = path.node.body.body;
+      const named = (name) => methods.find((method) => method.key?.name === name);
+      const detect = named("detectTextsLanguage");
+      const sync = named("syncCorpusSameLang");
+      const dom = named("domLineSameLang");
+      const evaluate = named("evalSameLanguage");
+      if (!detect || !sync || !dom || !evaluate || named("lineSameLanguage")) return;
+      const helper = parser.parse(`class MixedLanguageHelper {
+        lineSameLanguage(text, target = this.to) {
+          if (!target) return false;
+          const clean = String(text || "")
+            .replace(/https?:\\/\\/\\S+|www\\.\\S+/gi, " ")
+            .replace(/<[^>]*>|[\\d\\s\\p{P}\\p{S}]+/gu, "")
+            .trim();
+          if (!clean) return true;
+          const count = (expression) => (clean.match(expression) || []).length;
+          const scripts = {
+            han: count(/\\p{Script=Han}/gu),
+            kana: count(/[\\p{Script=Hiragana}\\p{Script=Katakana}]/gu),
+            hangul: count(/\\p{Script=Hangul}/gu),
+            latin: count(/\\p{Script=Latin}/gu),
+            cyrillic: count(/\\p{Script=Cyrillic}/gu),
+            arabic: count(/\\p{Script=Arabic}/gu),
+            devanagari: count(/\\p{Script=Devanagari}/gu),
+            thai: count(/\\p{Script=Thai}/gu),
+          };
+          const total = Object.values(scripts).reduce((sum, value) => sum + value, 0);
+          if (!total) return true;
+          const family = (value) => {
+            const code = String(value || "").toLowerCase().replace(/_/g, "-").split("-")[0];
+            return ["cmn", "yue", "zho"].includes(code) ? "zh" : code;
+          };
+          const languageKey = (value) => {
+            const code = String(value || "").toLowerCase().replace(/_/g, "-");
+            if (/^(zh|cmn|yue|zho)/.test(code)) {
+              return /(?:hant|tw|hk|mo)/.test(code) ? "zh-hant" : "zh-cn";
+            }
+            return family(code);
+          };
+          const targetFamily = family(target);
+          const targetKey = languageKey(target);
+          const detectedValue = this.detectTextsLanguage([clean]);
+          const detectedFamily = family(detectedValue);
+          const detectedKey = languageKey(detectedValue);
+          let targetCount;
+          if (targetFamily === "zh") targetCount = scripts.han;
+          else if (targetFamily === "ja") targetCount = scripts.han + scripts.kana;
+          else if (targetFamily === "ko") targetCount = scripts.hangul;
+          else if (["ru", "uk", "bg", "mk", "be"].includes(targetFamily)) targetCount = scripts.cyrillic;
+          else if (["ar", "fa", "ur"].includes(targetFamily)) targetCount = scripts.arabic;
+          else if (["hi", "mr", "ne"].includes(targetFamily)) targetCount = scripts.devanagari;
+          else if (targetFamily === "th") targetCount = scripts.thai;
+          else targetCount = scripts.latin;
+          const foreignCount = total - targetCount;
+          const targetRatio = targetCount / total;
+          // A dominant target script wins over a detector biased by a few CJK
+          // characters. Balanced mixed text remains translatable.
+          const sameDetectedLanguage = targetFamily === "zh"
+            ? detectedKey === targetKey
+            : detectedFamily === targetFamily;
+          if (foreignCount > 0 && targetRatio >= 0.72 && (targetFamily !== "zh" || sameDetectedLanguage)) return true;
+          if (!detectedFamily) return targetRatio >= 0.9;
+          return sameDetectedLanguage && (foreignCount <= 2 || targetRatio >= 0.72);
+        }
+      }`, { sourceType: "script" }).program.body[0].body.body[0];
+      const detectIndex = methods.indexOf(detect);
+      methods.splice(detectIndex + 1, 0, helper);
+      sync.body = t.blockStatement(parseStatements(`
+        const target = this.to;
+        const lines = this.lines;
+        if (!target || !lines.length) return false;
+        let changed = false;
+        const next = lines.map((line) => {
+          const checkKey = target + "|" + String(line.text || "");
+          const same = line.sameLangCheckKey === checkKey
+            ? line.sameLangTo === target
+            : this.lineSameLanguage(line.text, target);
+          if (line.sameLangCheckKey === checkKey && (same ? line.sameLangTo === target : line.sameLangTo !== target)) return line;
+          changed = true;
+          return { ...line, sameLangCheckKey: checkKey, sameLangTo: same ? target : undefined };
+        });
+        const allSame = next.every((line) => line.sameLangTo === target);
+        if (changed) {
+          const cache = this.captionCache.get(this.id) || {};
+          const updated = { ...cache };
+          if (this.endableWhisper) updated.whisperLines = next;
+          else updated.builtinLines = next;
+          this.captionCache.set(this.id, updated);
+          this.translatingIdx = [];
+          this.event.emit("changed", { current: this.current, forceUpdate: true });
+        }
+        return allSame;
+      `));
+      dom.body = t.blockStatement(parseStatements(`
+        const target = this.to;
+        if (!target || !e) return false;
+        if (this.domEchoKeys.has(target + "|" + t)) return true;
+        return this.lineSameLanguage(e, target);
+      `));
+      evaluate.body = t.blockStatement(parseStatements(`
+        const target = this.to;
+        const lines = this.lines.filter((line) => String(line.text || "").trim());
+        this.setSameLanguage(Boolean(target && lines.length && lines.every((line) =>
+          line.sameLangTo === target || this.lineSameLanguage(line.text, target)
+        )));
+      `));
+      counts.class += 1;
+      counts.sync += 1;
+      counts.dom += 1;
+      counts.eval += 1;
+      path.skip();
+    },
+  });
+  for (const [name, count] of Object.entries(counts)) {
+    if (count !== 1) throw new Error(`video: mixed-language ${name} patch expected 1, got ${count}`);
+  }
+}
+
 function patchChineseSubtitleVariants(ast) {
   let patched = 0;
   let lookupPatched = 0;
@@ -1057,6 +1179,538 @@ function patchYouTubeCaptionStartup(ast) {
     throw new Error(
       `video: expected one YouTube self-fetch and track-wait patch, got ${selfFetchPatches}/${trackWaitPatches}`,
     );
+}
+
+function patchGenericHtml5Video(ast) {
+  const counts = {
+    detector: 0,
+    context: 0,
+    registry: 0,
+    resolver: 0,
+    initPlayer: 0,
+    container: 0,
+    button: 0,
+    videoChange: 0,
+    textTrack: 0,
+    shortTrack: 0,
+    contextId: 0,
+    contextVid: 0,
+    cleanup: 0,
+    bootstrap: 0,
+  };
+  let helperInstalled = false;
+  const generatorCase = (source) =>
+    parser.parse(`function* __generic() { switch (true) { ${source} } }`)
+      .program.body[0].body.body[0].cases[0];
+
+  traverse(ast, {
+    VariableDeclarator(path) {
+      if (
+        t.isIdentifier(path.node.id, { name: "Zt" }) &&
+        t.isArrowFunctionExpression(path.node.init)
+      ) {
+        path.get("init.body").unshiftContainer("body", parseStatements(
+          'if (globalThis.lexihaloSites?.siteOf(location.href)) return "html5";',
+        ));
+        path.traverse({
+          SwitchCase(casePath) {
+            if (casePath.node.test !== null) return;
+            casePath.traverse({
+              AssignmentExpression(assignmentPath) {
+                if (!t.isStringLiteral(assignmentPath.node.right, { value: "und" })) return;
+                assignmentPath.node.right = t.stringLiteral("html5");
+                counts.detector += 1;
+              },
+            });
+          },
+        });
+        if (!helperInstalled) {
+          path.parentPath.insertAfter(
+            parseStatements(`
+              const lexihaloPickHtml5Video = () => {
+                if (globalThis.lexihaloSites?.siteOf(location.href)) {
+                  return globalThis.lexihaloSiteAdapters?.pickMedia() || null;
+                }
+                const videos = Array.from(document.querySelectorAll("video"))
+                  .filter((video) => video?.isConnected);
+                if (!videos.length) {
+                  if (globalThis.lexihaloSiteAdapters?.hasPlayerFrame()) {
+                    globalThis.lexihaloSiteAdapters.ensureHost(null);
+                    return globalThis.lexihaloSiteAdapters.pickMedia();
+                  }
+                  return null;
+                }
+                const scored = videos.map((video) => {
+                  const rect = video.getBoundingClientRect();
+                  const visible = rect.width >= 160 && rect.height >= 90;
+                  return {
+                    video,
+                    visible,
+                    score: (visible ? rect.width * rect.height : 0) +
+                      (!video.paused && !video.ended ? 1e9 : 0) +
+                      (video.currentSrc || video.src || video.querySelector("source[src]") ? 1e6 : 0),
+                  };
+                }).sort((left, right) => right.score - left.score);
+                return scored.find((item) => item.visible)?.video || scored[0]?.video || null;
+              };
+              const lexihaloFindHtml5PlayerHost = (video) => {
+                if (!video || video.tagName === "AUDIO") {
+                  return globalThis.lexihaloSiteAdapters?.ensureHost(video);
+                }
+                const fullscreen = document.fullscreenElement;
+                if (fullscreen?.contains(video)) return fullscreen;
+                if (globalThis.lexihaloSites?.siteOf(location.href)?.id === "x") {
+                  return video.closest('[data-testid="videoPlayer"]') ||
+                    video.closest('[data-testid="videoComponent"]') || video.parentElement;
+                }
+                const videoRect = video.getBoundingClientRect();
+                let candidate = video.parentElement;
+                let current = video.parentElement;
+                for (let depth = 0; current && depth < 7; depth += 1) {
+                  if (current === document.body || current === document.documentElement) break;
+                  const rect = current.getBoundingClientRect();
+                  const closeWidth = rect.width >= videoRect.width * 0.9 &&
+                    rect.width <= videoRect.width * 1.4;
+                  const closeHeight = rect.height >= videoRect.height * 0.9 &&
+                    rect.height <= videoRect.height * 1.45;
+                  if (!closeWidth || !closeHeight) break;
+                  candidate = current;
+                  const marker = (current.id || "") + " " + (current.className || "");
+                  if (/player|video.?wrapper|mgp_/i.test(marker)) candidate = current;
+                  current = current.parentElement;
+                }
+                return candidate || video.parentElement;
+              };
+            `),
+          );
+          helperInstalled = true;
+        }
+        return;
+      }
+      if (t.isIdentifier(path.node.id, { name: "dj" })) {
+        path.traverse({
+          LogicalExpression(logicalPath) {
+            if (
+              logicalPath.node.operator !== "||" ||
+              !t.isMemberExpression(logicalPath.node.left) ||
+              !t.isIdentifier(logicalPath.node.left.object, { name: "captionProvider" }) ||
+              !t.isIdentifier(logicalPath.node.left.property, { name: "video" }) ||
+              !t.isCallExpression(logicalPath.node.right) ||
+              !t.isMemberExpression(logicalPath.node.right.callee) ||
+              !t.isIdentifier(logicalPath.node.right.callee.object, { name: "document" }) ||
+              !t.isIdentifier(logicalPath.node.right.callee.property, { name: "querySelector" }) ||
+              !t.isStringLiteral(logicalPath.node.right.arguments[0], { value: "video" })
+            )
+              return;
+            logicalPath.node.right = t.conditionalExpression(
+              t.binaryExpression(
+                "===",
+                t.memberExpression(t.identifier("captionProvider"), t.identifier("platform")),
+                t.stringLiteral("html5"),
+              ),
+              t.callExpression(t.identifier("lexihaloPickHtml5Video"), []),
+              t.cloneNode(logicalPath.node.right, true),
+            );
+            counts.textTrack += 1;
+            logicalPath.skip();
+          },
+        });
+        return;
+      }
+      if (!t.isIdentifier(path.node.id, { name: "resolvePlatformPlayer" })) return;
+      path.traverse({
+        SwitchStatement(switchPath) {
+          const index = switchPath.node.cases.findIndex((item) => item.test === null);
+          if (index < 0 || switchPath.node.cases.some((item) => item.test?.value === "html5")) return;
+          switchPath.node.cases.splice(
+            index,
+            0,
+            generatorCase(`
+              case "html5": {
+                let video = lexihaloPickHtml5Video();
+                if (!video && globalThis.lexihaloSites?.page(location.href)) {
+                  globalThis.lexihaloSiteAdapters.ensureHost(null);
+                  video = lexihaloPickHtml5Video();
+                }
+                if (!video) { yield yn("video"); video = lexihaloPickHtml5Video(); }
+                if (!video) return;
+                return new StandardHtml5Player(video, new Audio(video.currentSrc || video.src || ""));
+              }
+            `),
+          );
+          counts.resolver += 1;
+          switchPath.skip();
+        },
+      });
+    },
+    AssignmentExpression(path) {
+      if (
+        t.isMemberExpression(path.node.left) &&
+        t.isThisExpression(path.node.left.object) &&
+        t.isIdentifier(path.node.left.property, { name: "platform" }) &&
+        t.isStringLiteral(path.node.right, { value: "example" })
+      ) {
+        path.node.right = t.stringLiteral("html5");
+        counts.context += 1;
+      }
+    },
+    ObjectExpression(path) {
+      if (
+        !path.parentPath.isVariableDeclarator() ||
+        !t.isIdentifier(path.parentPath.node.id, { name: "_f" })
+      )
+        return;
+      path.node.properties.push(
+        t.objectProperty(
+          t.identifier("html5"),
+          t.objectExpression([
+            t.objectProperty(t.identifier("strategy"), t.stringLiteral("texttrack")),
+            t.objectProperty(t.identifier("autoSubtitle"), t.booleanLiteral(true)),
+          ]),
+        ),
+      );
+      counts.registry += 1;
+    },
+    ClassMethod(path) {
+      if (path.node.kind === "get" && ["id", "vid"].includes(path.node.key?.name) &&
+          path.parentPath.node.body.some(method => method.key?.name === "addYoutubeListener")) {
+        path.get("body").unshiftContainer("body", parseStatements(`
+          const mediaItem = globalThis.lexihaloSites?.page(location.href);
+          if (this.platform === "html5" && mediaItem) return mediaItem.identity;
+        `));
+        counts[path.node.key.name === "id" ? "contextId" : "contextVid"] += 1;
+      }
+      if (t.isIdentifier(path.node.key, { name: "initPlayer" })) {
+        path.traverse({
+          SwitchStatement(switchPath) {
+            if (
+              !t.isMemberExpression(switchPath.node.discriminant) ||
+              !t.isThisExpression(switchPath.node.discriminant.object) ||
+              !t.isIdentifier(switchPath.node.discriminant.property, { name: "platform" })
+            )
+              return;
+            const index = switchPath.node.cases.findIndex((item) => item.test === null);
+            switchPath.node.cases.splice(
+              index,
+              0,
+              generatorCase(`
+                case "html5": {
+                  let video = lexihaloPickHtml5Video();
+                  if (!video && globalThis.lexihaloSites?.page(location.href)) {
+                    globalThis.lexihaloSiteAdapters.ensureHost(null);
+                    video = lexihaloPickHtml5Video();
+                  }
+                  if (!video) { yield yn("video"); video = lexihaloPickHtml5Video(); }
+                  this.video = video;
+                  break;
+                }
+              `),
+            );
+            counts.initPlayer += 1;
+            switchPath.skip();
+          },
+        });
+      }
+      if (t.isIdentifier(path.node.key, { name: "queryContainerElement" })) {
+        path.traverse({
+          SwitchStatement(switchPath) {
+            if (
+              !t.isMemberExpression(switchPath.node.discriminant) ||
+              !t.isThisExpression(switchPath.node.discriminant.object) ||
+              !t.isIdentifier(switchPath.node.discriminant.property, { name: "platform" })
+            )
+              return;
+            const index = switchPath.node.cases.findIndex((item) => item.test === null);
+            switchPath.node.cases.splice(
+              index,
+              0,
+              generatorCase(`
+                case "html5": {
+                  let video = lexihaloPickHtml5Video();
+                  if (!video && globalThis.lexihaloSites?.page(location.href)) {
+                    globalThis.lexihaloSiteAdapters.ensureHost(null);
+                    video = lexihaloPickHtml5Video();
+                  }
+                  if (!video) { yield yn("video"); video = lexihaloPickHtml5Video(); }
+                  if (!video) return {};
+                  const element = video.tagName === "AUDIO"
+                    ? globalThis.lexihaloSiteAdapters.ensureHost(video)
+                    : video.parentElement || document.documentElement;
+                  element.classList.add("lexihalo-html5-container");
+                  return { element, video };
+                }
+              `),
+            );
+            counts.container += 1;
+            switchPath.skip();
+          },
+        });
+      }
+      if (t.isIdentifier(path.node.key, { name: "appendStreamingLines" })) {
+        path.traverse({
+          BinaryExpression(binaryPath) {
+            if (
+              binaryPath.node.operator !== "<" ||
+              !t.isMemberExpression(binaryPath.node.right) ||
+              !t.isThisExpression(binaryPath.node.right.object) ||
+              !t.isIdentifier(binaryPath.node.right.property, { name: "MIN_LANG_CUES" })
+            )
+              return;
+            const original = t.cloneNode(binaryPath.node, true);
+            binaryPath.replaceWith(
+              t.logicalExpression(
+                "&&",
+                t.binaryExpression(
+                  "!==",
+                  t.memberExpression(t.thisExpression(), t.identifier("platform")),
+                  t.stringLiteral("html5"),
+                ),
+                original,
+              ),
+            );
+            counts.shortTrack += 1;
+            binaryPath.skip();
+          },
+        });
+      }
+      if (t.isIdentifier(path.node.key, { name: "checkVideoChange" })) {
+        path.node.body = t.blockStatement(
+          parseStatements(`
+            const video = captionProvider.platform === "html5"
+              ? lexihaloPickHtml5Video()
+              : document.querySelector("video");
+            if (video && video !== this.lastVideoEl) {
+              if (captionProvider.platform === "html5" && this.lastVideoEl) {
+                this.unmountButton();
+                document.querySelector("#xt-toggle-button")?.remove();
+                this.lastVideoEl.parentElement?.classList.remove("lexihalo-html5-container");
+              }
+              if (captionProvider.platform === "html5") captionProvider.video = video;
+              this.lastVideoEl = video;
+              Ht("[video.element.changed] re-render caption");
+              this.renderCaption();
+              this.ensureQuickButtonInjected();
+            }
+          `),
+        );
+        counts.videoChange += 1;
+      }
+      if (
+        t.isIdentifier(path.node.key, { name: "destroy" }) &&
+        path.parentPath.node.body.some(
+          (method) => method.key?.name === "addQuickButton",
+        )
+      ) {
+        path.get("body").unshiftContainer(
+          "body",
+          parseStatements(`
+            if (this.html5ButtonPositionTimer) {
+              window.clearInterval(this.html5ButtonPositionTimer);
+              this.html5ButtonPositionTimer = null;
+            }
+            if (this.html5FullscreenHandler) {
+              document.removeEventListener("fullscreenchange", this.html5FullscreenHandler);
+              this.html5FullscreenHandler = null;
+            }
+          `),
+        );
+        counts.cleanup += 1;
+      }
+      if (t.isIdentifier(path.node.key, { name: "addQuickButton" })) {
+        path.traverse({
+          SwitchStatement(switchPath) {
+            switchPath.node.cases.push(
+              generatorCase(`
+                case "html5" === captionProvider.platform: {
+                  let video = lexihaloPickHtml5Video();
+                  if (!video && globalThis.lexihaloSites?.page(location.href)) {
+                    globalThis.lexihaloSiteAdapters.ensureHost(null);
+                    video = lexihaloPickHtml5Video();
+                  }
+                  const element = video?.parentElement;
+                  if (video) captionProvider.video = video;
+                  if (element) element.classList.add("lexihalo-html5-container");
+                  const isPornhub = /(^|\\.)pornhub\\.com$/i.test(location.hostname);
+                  const pornhubControls = isPornhub
+                    ? document.querySelector(
+                        "#mgp .mgp_controlBar .mgp_front, .mgp_container .mgp_controlBar .mgp_front, #mgp .mgp_controlsBar, #mgp .mgp_controlsContainer",
+                      )
+                    : null;
+                  if (video && pornhubControls) {
+                    const anchor = pornhubControls.querySelector(
+                      ".mgp_fullscreen, .mgp_fullScreen, [class*='fullscreen' i]",
+                    );
+                    this.insertButton({
+                      el: anchor || pornhubControls,
+                      platform: platformContext.platform,
+                      classNames: "trancy-pornhub-control",
+                      insertType: anchor ? "before" : "append",
+                    });
+                    const button = document.querySelector("#xt-toggle-button.trancy-html5-button");
+                    if (button) {
+                      button.classList.remove("trancy-floating");
+                      button.classList.add("trancy-pornhub-control");
+                      if (anchor && button.nextElementSibling !== anchor) {
+                        pornhubControls.insertBefore(button, anchor);
+                      } else if (!anchor && button.parentElement !== pornhubControls) {
+                        pornhubControls.appendChild(button);
+                      }
+                      button.removeAttribute("style");
+                    }
+                    if (this.html5ButtonPositionTimer) {
+                      window.clearInterval(this.html5ButtonPositionTimer);
+                      this.html5ButtonPositionTimer = null;
+                    }
+                    if (this.html5FullscreenHandler) {
+                      document.removeEventListener(
+                        "fullscreenchange",
+                        this.html5FullscreenHandler,
+                      );
+                      this.html5FullscreenHandler = null;
+                    }
+                    this.html5ButtonPosition = null;
+                    break;
+                  }
+                  if (video) {
+                    const playerHost = lexihaloFindHtml5PlayerHost(video);
+                    playerHost?.classList.add("lexihalo-html5-button-host");
+                    if (playerHost && getComputedStyle(playerHost).position === "static") {
+                      playerHost.classList.add("lexihalo-html5-position-static");
+                    }
+                    this.insertButton({
+                      el: playerHost,
+                      platform: platformContext.platform,
+                      classNames: "trancy-floating",
+                      insertType: "append",
+                    });
+                    this.html5ButtonPosition = () => {
+                      const activeVideo = lexihaloPickHtml5Video();
+                      const button = document.querySelector("#xt-toggle-button.trancy-html5-button");
+                      if (!activeVideo || !button) return;
+                      const host = lexihaloFindHtml5PlayerHost(activeVideo);
+                      if (!host) return;
+                      host.classList.add("lexihalo-html5-button-host");
+                      if (getComputedStyle(host).position === "static") {
+                        host.classList.add("lexihalo-html5-position-static");
+                      }
+                      if (button.parentElement !== host) host.appendChild(button);
+                      const rect = activeVideo.tagName === "AUDIO" ? host.getBoundingClientRect() : activeVideo.getBoundingClientRect();
+                      const hostRect = host.getBoundingClientRect();
+                      const size = 34;
+                      const toolAnchor = activeVideo.hasAttribute?.("data-lexihalo-tool-anchor");
+                      const visible = toolAnchor || (rect.width >= 160 &&
+                        (rect.height >= 90 || activeVideo.tagName === "AUDIO") &&
+                        rect.bottom > 0 && rect.right > 0 &&
+                        rect.top < window.innerHeight && rect.left < window.innerWidth);
+                      button.style.display = visible ? "flex" : "none";
+                      button.style.position = "absolute";
+                      button.style.top = Math.max(8, rect.top - hostRect.top + 12) + "px";
+                      button.style.left = Math.max(8, Math.min(hostRect.width - size - 8, rect.right - hostRect.left - size - 12)) + "px";
+                      button.style.right = "auto";
+                      button.style.bottom = "auto";
+                    };
+                    this.html5ButtonPosition();
+                    if (!this.html5ButtonPositionTimer) {
+                      this.html5ButtonPositionTimer = window.setInterval(
+                        () => this.html5ButtonPosition?.(),
+                        250,
+                      );
+                    }
+                    if (!this.html5FullscreenHandler) {
+                      this.html5FullscreenHandler = () =>
+                        window.requestAnimationFrame(() => this.html5ButtonPosition?.());
+                      document.addEventListener("fullscreenchange", this.html5FullscreenHandler);
+                    }
+                  }
+                  break;
+                }
+              `),
+            );
+            counts.button += 1;
+            switchPath.skip();
+          },
+        });
+      }
+    },
+  });
+
+  traverse(ast, {
+    ExpressionStatement(path) {
+      const expression = path.node.expression;
+      if (!t.isLogicalExpression(expression)) return;
+      let runtime = null;
+      path.traverse({
+        NewExpression(newPath) {
+          if (!t.isClassExpression(newPath.node.callee)) return;
+          const methods = newPath.node.callee.body.body.map((item) => item.key?.name);
+          if (methods.includes("bootstrap") && methods.includes("addQuickButton")) {
+            runtime = t.cloneNode(newPath.node, true);
+            newPath.stop();
+          }
+        },
+      });
+      if (!runtime) return;
+      const guard = t.isLogicalExpression(expression.left)
+        ? t.cloneNode(expression.left, true)
+        : t.booleanLiteral(false);
+      const boot = t.identifier("bootLexihaloVideoRuntime");
+      const observer = t.identifier("lexihaloHtml5VideoObserver");
+      path.replaceWith(
+        t.ifStatement(
+          t.unaryExpression("!", t.parenthesizedExpression(guard)),
+          t.blockStatement([
+            t.variableDeclaration("const", [
+              t.variableDeclarator(
+                boot,
+                t.arrowFunctionExpression([], t.blockStatement([t.expressionStatement(runtime)])),
+              ),
+            ]),
+            t.ifStatement(
+              t.logicalExpression(
+                "||",
+                t.binaryExpression("!==", t.callExpression(t.identifier("Zt"), []), t.stringLiteral("html5")),
+                parser.parseExpression('document.querySelector("video") || globalThis.lexihaloSites?.page(location.href) || globalThis.lexihaloSiteAdapters?.hasPlayerFrame()'),
+              ),
+              t.expressionStatement(t.callExpression(boot, [])),
+              t.blockStatement([
+                t.variableDeclaration("const", [
+                  t.variableDeclarator(
+                    observer,
+                    t.newExpression(t.identifier("MutationObserver"), [
+                      t.arrowFunctionExpression([], t.blockStatement([
+                        t.ifStatement(
+                          t.unaryExpression("!", parser.parseExpression('document.querySelector("video") || globalThis.lexihaloSites?.page(location.href) || globalThis.lexihaloSiteAdapters?.hasPlayerFrame()')),
+                          t.returnStatement(),
+                        ),
+                        t.expressionStatement(t.callExpression(t.memberExpression(observer, t.identifier("disconnect")), [])),
+                        t.expressionStatement(t.callExpression(boot, [])),
+                      ])),
+                    ]),
+                  ),
+                ]),
+                t.expressionStatement(
+                  t.callExpression(t.memberExpression(observer, t.identifier("observe")), [
+                    t.memberExpression(t.identifier("document"), t.identifier("documentElement")),
+                    t.objectExpression([
+                      t.objectProperty(t.identifier("childList"), t.booleanLiteral(true)),
+                      t.objectProperty(t.identifier("subtree"), t.booleanLiteral(true)),
+                    ]),
+                  ]),
+                ),
+              ]),
+            ),
+          ]),
+        ),
+      );
+      counts.bootstrap += 1;
+      path.skip();
+    },
+  });
+
+  for (const [name, count] of Object.entries(counts)) {
+    if (count !== 1)
+      throw new Error(`video: generic HTML5 ${name} expected 1 patch, got ${count}`);
+  }
 }
 
 function patchVideoAiRequests(ast) {
@@ -1326,12 +1980,30 @@ function patchVideoAiRequests(ast) {
 
 const marker = (name) =>
   `\n;(() => {\n  globalThis.__lexihaloReadable${name} = true;\n  if (typeof document !== "undefined" && document.documentElement) document.documentElement.setAttribute("data-lexihalo-${name.toLowerCase()}-runtime", "readable");\n})();\n`;
+const getPlatformCatalog = () => JSON.parse(
+  fs.readFileSync(path.join(root, "config/media-platforms.json"), "utf8"),
+);
+const getBrowserSiteCatalog = () => getPlatformCatalog().filter(entry => entry.mode === "browser");
+const getMediaSitePolicySource = () =>
+  fs.readFileSync(path.join(root, "src/shared/media-sites.js"), "utf8").replace(
+    "const CATALOG = [];",
+    `const CATALOG = ${JSON.stringify(getBrowserSiteCatalog())};`,
+  );
+const getPlatformCapabilitySource = () =>
+  fs.readFileSync(path.join(root, "src/shared/platform-capabilities.js"), "utf8").replace(
+    "const PLATFORM_CATALOG = [];",
+    `const PLATFORM_CATALOG = ${JSON.stringify(getPlatformCatalog())};`,
+  );
+
 const getCaptionSchedulerSource = () =>
   "\n" +
-  fs.readFileSync(
-    path.join(root, "src", "video", "caption-scheduler.js"),
-    "utf8",
-  );
+  fs.readFileSync(path.join(root, "src/video/media-task-registry.js"), "utf8") +
+  "\n" +
+  fs.readFileSync(path.join(root, "src/video/audio-source.js"), "utf8") +
+  "\n" +
+  fs.readFileSync(path.join(root, "src/video/browser-audio.js"), "utf8") +
+  "\n" +
+  fs.readFileSync(path.join(root, "src/video/caption-scheduler.js"), "utf8");
 ;
 
 async function formatJs(source) {
@@ -1480,8 +2152,10 @@ async function buildMain(name, config) {
   if (name === "video") {
     patchExtensionClientEmit(ast, "video");
     patchVideoNullChildNodes(ast);
+    patchMixedLanguageDetection(ast);
     patchChineseSubtitleVariants(ast);
     patchYouTubeCaptionStartup(ast);
+    patchGenericHtml5Video(ast);
     sourceComponents = installUiSourceFactories(ast, {
       area: "video",
       sourceRoot: path.join(root, "src", "video", "ui"),
@@ -1503,9 +2177,21 @@ async function buildMain(name, config) {
     count: applied.length,
     ...(sourceComponents.length ? { sourceComponents } : {}),
   };
-  let output = `/* LexiHalo readable single bundle: ${name}. */\n${generate(ast, { comments: true, compact: false }).code}\n`;
+  const siteRuntime = ["background", "video"].includes(name)
+    ? getMediaSitePolicySource() + "\n" +
+      fs.readFileSync(path.join(root, "src/shared/media-contract.js"), "utf8") + "\n" +
+      getPlatformCapabilitySource() + "\n" +
+      fs.readFileSync(path.join(root, "src/shared/media-message-schema.js"), "utf8") + "\n" +
+      fs.readFileSync(path.join(root, "src/shared/media-reader.js"), "utf8") + "\n" + (name === "video"
+      ? fs.readFileSync(path.join(root, "src/video/media-site-hooks.js"), "utf8") + "\n" +
+        fs.readFileSync(path.join(root, "src/video/site-adapters.js"), "utf8") + "\n"
+      : "")
+    : "";
+  let output = `/* LexiHalo readable single bundle: ${name}. */\n${siteRuntime}${generate(ast, { comments: true, compact: false }).code}\n`;
   if (name === "background")
-    output +=
+    output += fs.readFileSync(path.join(root, "src/background/media-task-manager.js"), "utf8") + "\n" +
+      fs.readFileSync(path.join(root, "src/background/media-capture.js"), "utf8") + "\n" +
+      fs.readFileSync(path.join(root, "src/background/site-resolver.js"), "utf8") + "\n" +
       fs.readFileSync(
         path.join(root, "src/background/subtitle-ai.js"),
         "utf8",
@@ -1545,6 +2231,7 @@ const directSources = {
   "src/content/subtitle-ai-sidebar.js": "assets/subtitle-ai-sidebar.js",
   "src/options/byok.js": "assets/byok.js",
   "src/options/site-rules.js": "assets/site-rules.js",
+  "src/background/asr-offscreen.js": "assets/asr-offscreen.js",
 };
 for (const [input, output] of Object.entries(directSources)) {
   let source = fs
@@ -1561,6 +2248,7 @@ for (const filename of [
   "popup.html",
   "byok.html",
   "site-rules.html",
+  "offscreen.html",
 ]) {
   fs.copyFileSync(
     path.join(root, "src", "pages", filename),
@@ -1593,9 +2281,10 @@ fs.mkdirSync(distDir, { recursive: true });
 
 // 1. Copy manifest.json
 fs.copyFileSync(path.join(root, "manifest.json"), path.join(distDir, "manifest.json"));
+fs.copyFileSync(path.join(root, "native/THIRD_PARTY_NOTICES.txt"), path.join(distDir, "THIRD_PARTY_NOTICES.txt"));
 
 // 2. Copy HTML pages
-for (const filename of ["index.html", "popup.html", "byok.html", "site-rules.html"]) {
+for (const filename of ["index.html", "popup.html", "byok.html", "site-rules.html", "offscreen.html"]) {
   fs.copyFileSync(path.join(root, filename), path.join(distDir, filename));
 }
 

@@ -33,3 +33,5 @@ Thumbs.db
 *.log
 *.tmp
 *.swp
+__pycache__/
+*.pyc
