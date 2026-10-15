@@ -6,42 +6,144 @@
   const mediaContract = globalThis.lexihaloMediaContract;
   const siteHooks = globalThis.lexihaloMediaSiteHooks;
   const preparedSnapshots = new Map();
+  const mediaFingerprint = (value) => {
+    let hash = 2166136261;
+    for (let index = 0; index < value.length; index++)
+      hash = Math.imul(hash ^ value.charCodeAt(index), 16777619);
+    return (hash >>> 0).toString(36);
+  };
+  const currentItem = () => {
+    const page = siteHooks.currentItem(policy.browserPage(location.href));
+    if (!page?.contextual) return page;
+    const media = pickMedia();
+    const raw =
+      media?.currentSrc ||
+      media?.src ||
+      media?.querySelector?.("source[src]")?.src ||
+      "";
+    if (!/^https:\/\//i.test(raw)) return page;
+    return {
+      ...page,
+      identity: `${page.id}:media:${mediaFingerprint(raw)}`,
+      itemId: mediaFingerprint(raw),
+      mediaUrl: raw,
+      trackTitle: title(),
+    };
+  };
+  const ownsRuntime = () => {
+    const page = policy.page(location.href);
+    if (
+      !siteHooks.flag(page, "preferSameItemAncestor") ||
+      typeof window === "undefined"
+    )
+      return true;
+    // Consult live document URLs, not iframe.src: NetEase leaves that attribute
+    // at about:blank after navigating the content window to /song?id=....
+    // Do not read another origin or suppress unrelated embedded songs.
+    try {
+      let ancestor = window.parent;
+      for (
+        let depth = 0;
+        ancestor && ancestor !== window && depth < 8;
+        depth += 1
+      ) {
+        if (ancestor.location.origin !== location.origin) break;
+        if (policy.page(ancestor.location.href)?.identity === page.identity)
+          return false;
+        if (ancestor.parent === ancestor) break;
+        ancestor = ancestor.parent;
+      }
+    } catch {}
+    return true;
+  };
   const view = (element) => {
     const rect = element.getBoundingClientRect();
     const css = getComputedStyle(element);
     if (css.display === "none" || css.visibility === "hidden") return -1;
-    return Math.max(0, Math.min(rect.right, innerWidth) - Math.max(rect.left, 0)) *
-      Math.max(0, Math.min(rect.bottom, innerHeight) - Math.max(rect.top, 0));
+    return (
+      Math.max(0, Math.min(rect.right, innerWidth) - Math.max(rect.left, 0)) *
+      Math.max(0, Math.min(rect.bottom, innerHeight) - Math.max(rect.top, 0))
+    );
   };
   const pickMedia = () => {
+    if (!ownsRuntime()) return null;
     const site = policy.siteOf(location.href);
-    const candidates = Array.from(document.querySelectorAll(site || hasPlayerFrame() ? "video, audio" : "video"))
-      .filter((media) => media.isConnected && !media.closest("[data-lexihalo-media-probe], [class*='liveCard']") && !media.srcObject);
-    const customMedia = siteHooks.pickMedia(policy.page(location.href), { candidates });
-    if (customMedia) return customMedia;
-    if (siteHooks.get(site)?.pickMedia) return null;
-    const ranked = candidates.filter(media => !media.hasAttribute?.("data-lexihalo-proxy"))
-      .map((media) => ({ media, area: view(media),
-        score: view(media) + (!media.paused && !media.ended ? 1e9 : 0) }))
-      .filter((item) => item.area > 0 || (site?.audio && item.media.tagName === "AUDIO"))
+    const itemPage = policy.page(location.href);
+    const candidates = Array.from(
+      document.querySelectorAll(
+        site || hasPlayerFrame() ? "video, audio" : "video",
+      ),
+    ).filter(
+      (media) =>
+        media.isConnected &&
+        !media.closest("[data-lexihalo-media-probe], [class*='liveCard']") &&
+        !media.srcObject,
+    );
+    const customMedia = siteHooks.pickMedia(itemPage, { candidates });
+    if (customMedia) {
+      if (!customMedia.hasAttribute?.("data-lexihalo-placeholder"))
+        document
+          .querySelector(
+            ".lexihalo-audio-tool-host:not([data-lexihalo-real-media-host])",
+          )
+          ?.remove?.();
+      return customMedia;
+    }
+    if (itemPage && siteHooks.get(site)?.pickMedia) return null;
+    const ranked = candidates
+      .filter((media) => !media.hasAttribute?.("data-lexihalo-proxy"))
+      .map((media) => {
+        const area = view(media);
+        const source = media.currentSrc || media.src;
+        return {
+          media,
+          area,
+          score:
+            area +
+            (!media.paused && !media.ended ? 1e9 : 0) +
+            (source ? 1e6 : 0) +
+            (Number.isFinite(media.duration) && media.duration > 0 ? 1e3 : 0),
+        };
+      })
+      .filter(
+        (item) =>
+          item.area > 0 || (site?.audio && item.media.tagName === "AUDIO"),
+      )
       .sort((left, right) => right.score - left.score);
     if (ranked[0]?.media) {
       document.querySelector(".lexihalo-media-proxy-host")?.remove();
       if (!ranked[0].media.hasAttribute?.("data-lexihalo-placeholder")) {
-        document.querySelector(".lexihalo-audio-tool-host")?.remove();
+        document
+          .querySelector(
+            ".lexihalo-audio-tool-host:not([data-lexihalo-real-media-host])",
+          )
+          ?.remove();
       }
       return ranked[0].media;
     }
-    return candidates.find(media => media.hasAttribute?.("data-lexihalo-proxy")) || null;
+    return (
+      candidates.find((media) => media.hasAttribute?.("data-lexihalo-proxy")) ||
+      null
+    );
   };
-  const title = () => (document.querySelector("h1, #detail-title")?.textContent || document.title || "media").trim().slice(0, 240);
-  const add = (list, page, raw, metadata = {}) => mediaContract.addDirect(list, page, raw, metadata);
+  const title = () =>
+    (
+      document.querySelector("h1, #detail-title")?.textContent ||
+      document.title ||
+      "media"
+    )
+      .trim()
+      .slice(0, 240);
+  const add = (list, page, raw, metadata = {}) =>
+    mediaContract.addDirect(list, page, raw, metadata);
   const declaredParentSources = (media, page, sources) => {
     if (!media || typeof parent === "undefined") return false;
-    let declared = false, scanned = 0;
+    let declared = false,
+      scanned = 0;
     // Recognize a literal media-src assignment only; never eval page scripts,
     // guess a parent element ID, or enumerate the parent's unrelated resources.
-    const assignment = /\bdocument\s*\.\s*getElementById\(\s*(['"])([\w:-]{1,100})\1\s*\)\s*\.\s*src\s*=\s*(?:window\s*\.\s*)?parent\s*\.\s*document\s*\.\s*getElementById\(\s*(['"])([\w:-]{1,100})\3\s*\)\s*\.\s*src\b/g;
+    const assignment =
+      /\bdocument\s*\.\s*getElementById\(\s*(['"])([\w:-]{1,100})\1\s*\)\s*\.\s*src\s*=\s*(?:window\s*\.\s*)?parent\s*\.\s*document\s*\.\s*getElementById\(\s*(['"])([\w:-]{1,100})\3\s*\)\s*\.\s*src\b/g;
     for (const script of Array.from(document.scripts || []).slice(0, 64)) {
       if (script.src) continue;
       const text = script.textContent || "";
@@ -50,42 +152,69 @@
       assignment.lastIndex = 0;
       for (const match of text.matchAll(assignment)) {
         const target = document.getElementById(match[2]);
-        if (!target || !["VIDEO", "AUDIO", "SOURCE"].includes(target.tagName) ||
-            (target !== media && !media.contains?.(target))) continue;
+        if (
+          !target ||
+          !["VIDEO", "AUDIO", "SOURCE"].includes(target.tagName) ||
+          (target !== media && !media.contains?.(target))
+        )
+          continue;
         declared = true;
         try {
-          if (parent === window || parent.location.origin !== location.origin) continue;
+          if (parent === window || parent.location.origin !== location.origin)
+            continue;
           const source = parent.document.getElementById(match[4]);
-          add(sources, page, source?.src, { isAudio: media.tagName === "AUDIO",
-            mimeType: target.getAttribute("type") || "", resolution: media.videoHeight || 0 });
+          add(sources, page, source?.src, {
+            isAudio: media.tagName === "AUDIO",
+            mimeType: target.getAttribute("type") || "",
+            resolution: media.videoHeight || 0,
+          });
         } catch {}
       }
     }
     return declared;
   };
   const snapshot = () => {
-    const page = policy.browserPage(location.href);
+    const page = currentItem() || policy.browserPage(location.href);
     if (!page) return null;
-    const media = pickMedia(), sources = [];
+    const media = pickMedia(),
+      sources = [];
     let parentSourceDeclared = false;
     if (media?.mediaKeys) throw new Error("不支持 DRM 视频");
     if (media) {
-      add(sources, page, media.currentSrc || media.src, { isAudio: media.tagName === "AUDIO",
-        resolution: media.videoHeight || 0, mimeType: media.getAttribute("type") || "" });
-      for (const source of media.querySelectorAll("source[src]")) add(sources, page, source.src, {
-        isAudio: media.tagName === "AUDIO", mimeType: source.type || "" });
+      add(sources, page, media.currentSrc || media.src, {
+        isAudio: media.tagName === "AUDIO",
+        resolution: media.videoHeight || 0,
+        mimeType: media.getAttribute("type") || "",
+      });
+      for (const source of media.querySelectorAll("source[src]"))
+        add(sources, page, source.src, {
+          isAudio: media.tagName === "AUDIO",
+          mimeType: source.type || "",
+        });
     }
-    const playerFrame = page.id === "generic" && (!media || media.hasAttribute?.("data-lexihalo-placeholder")) ? findPlayerFrame() : null;
+    const playerFrame =
+      page.id === "generic" &&
+      (!media || media.hasAttribute?.("data-lexihalo-placeholder"))
+        ? findPlayerFrame()
+        : null;
     if (playerFrame) {
       // Read only actual media in the selected, visible same-origin frame.
       // Cross-origin frames are handled by background network capture instead.
       try {
-        for (const element of playerFrame.contentDocument?.querySelectorAll("video, audio") || []) {
+        for (const element of playerFrame.contentDocument?.querySelectorAll(
+          "video, audio",
+        ) || []) {
           if (element.srcObject || element.mediaKeys) continue;
-          const metadata = { isAudio: element.tagName === "AUDIO", resolution: element.videoHeight || 0 };
+          const metadata = {
+            isAudio: element.tagName === "AUDIO",
+            resolution: element.videoHeight || 0,
+          };
           add(sources, page, element.currentSrc || element.src, metadata);
           for (const source of element.querySelectorAll("source[src]")) {
-            add(sources, page, source.src, { ...metadata, mimeType: source.type || "" });
+            add(sources, page, source.src, {
+              ...metadata,
+              mimeType: source.type || "",
+            });
           }
         }
       } catch {}
@@ -99,8 +228,14 @@
         const player = globalThis.videojs?.getPlayer?.(playerId);
         if (player?.el?.()?.contains(media)) {
           const current = player.currentSource?.();
-          for (const source of [current, ...(player.currentSources?.() || [])].filter(Boolean)) {
-            add(sources, page, source.src, { mimeType: source.type || "", resolution: media.videoHeight || 0 });
+          for (const source of [
+            current,
+            ...(player.currentSources?.() || []),
+          ].filter(Boolean)) {
+            add(sources, page, source.src, {
+              mimeType: source.type || "",
+              resolution: media.videoHeight || 0,
+            });
           }
         }
       } catch {}
@@ -108,8 +243,12 @@
     }
     siteHooks.snapshot(page, { media, sources, add });
     if (page.id !== "generic" && siteHooks.flag(page, "openGraph", true)) {
-      for (const node of document.querySelectorAll('meta[property="og:video"], meta[property="og:video:url"], meta[property="og:audio"], meta[property="og:audio:url"]')) {
-        add(sources, page, node.content, { isAudio: /audio/.test(node.getAttribute("property")) });
+      for (const node of document.querySelectorAll(
+        'meta[property="og:video"], meta[property="og:video:url"], meta[property="og:audio"], meta[property="og:audio:url"]',
+      )) {
+        add(sources, page, node.content, {
+          isAudio: /audio/.test(node.getAttribute("property")),
+        });
       }
     }
     const cached = preparedSnapshots.get(page.identity);
@@ -119,74 +258,132 @@
         // prepare() may add opaque background captures beside an already-known
         // DOM/Video.js URL. A following snapshot must retain those captures so
         // AI transcription takes the broker path just like resource download.
-        for (const captured of cached.sources.filter(source => source.captureId)) {
-          if (!sources.some(source => source.captureId === captured.captureId)) sources.push(captured);
+        for (const captured of cached.sources.filter(
+          (source) => source.captureId,
+        )) {
+          if (
+            !sources.some((source) => source.captureId === captured.captureId)
+          )
+            sources.push(captured);
         }
       }
     }
-    sources.sort((a, b) => Number(b.kind === "audio") - Number(a.kind === "audio") || (a.size || Infinity) - (b.size || Infinity) || (a.resolution || Infinity) - (b.resolution || Infinity));
-    const wrapper = page.id === "generic" && Boolean(parentSourceDeclared || playerFrame);
-    return { page, capabilities: mediaContract.capabilities(page), media, wrapper,
-      title: title(), duration: Number.isFinite(media?.duration) ? media.duration : 0,
-      sources: sources.slice(0, 24) };
+    sources.sort(
+      (a, b) =>
+        Number(b.kind === "audio") - Number(a.kind === "audio") ||
+        (a.size || Infinity) - (b.size || Infinity) ||
+        (a.resolution || Infinity) - (b.resolution || Infinity),
+    );
+    const wrapper =
+      page.id === "generic" && Boolean(parentSourceDeclared || playerFrame);
+    return {
+      page,
+      capabilities: mediaContract.capabilities(page),
+      media,
+      wrapper,
+      title: page.trackTitle || title(),
+      duration: Number.isFinite(media?.duration) ? media.duration : 0,
+      sources: sources.slice(0, 24),
+    };
   };
   const jsonFetch = async (path, options = {}, signal) => {
-    const response = await fetch(path, { ...options, signal: AbortSignal.any([signal, AbortSignal.timeout(25000)].filter(Boolean)) });
-    if ([401, 403].includes(response.status)) throw new Error("请先在原网站登录并确认你有播放权限");
-    if (!response.ok) throw new Error(`站点媒体接口失败（HTTP ${response.status}）`);
-    const reader = response.body.getReader(), decoder = new TextDecoder();
-    let text = "", size = 0;
+    const response = await fetch(path, {
+      ...options,
+      signal: AbortSignal.any(
+        [signal, AbortSignal.timeout(25000)].filter(Boolean),
+      ),
+    });
+    if ([401, 403].includes(response.status))
+      throw new Error("请先在原网站登录并确认你有播放权限");
+    if (!response.ok)
+      throw new Error(`站点媒体接口失败（HTTP ${response.status}）`);
+    const reader = response.body.getReader(),
+      decoder = new TextDecoder();
+    let text = "",
+      size = 0;
     try {
       for (;;) {
-        const { done, value } = await reader.read(); if (done) break;
-        size += value.length; if (size > 2_000_000) throw new Error("站点媒体数据过大");
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.length;
+        if (size > 2_000_000) throw new Error("站点媒体数据过大");
         text += decoder.decode(value, { stream: true });
       }
       return JSON.parse(text + decoder.decode());
-    } finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
+    } finally {
+      await reader.cancel().catch(() => {});
+      reader.releaseLock();
+    }
   };
-  const measuredDuration = (url, signal) => new Promise((resolve) => {
-    const probe = document.createElement("video");
-    probe.preload = "metadata";
-    probe.setAttribute("data-lexihalo-media-probe", "true");
-    const finish = (value) => {
-      clearTimeout(timer);
-      signal?.removeEventListener("abort", abort);
-      probe.onloadedmetadata = null; probe.onerror = null;
-      probe.removeAttribute("src"); probe.load();
-      resolve(value);
-    };
-    const abort = () => finish(NaN);
-    const timer = setTimeout(abort, 6000);
-    probe.onloadedmetadata = () => finish(probe.duration);
-    probe.onerror = abort;
-    signal?.addEventListener("abort", abort, { once: true });
-    if (signal?.aborted) abort(); else probe.src = url;
-  });
+  const measuredDuration = (url, signal) =>
+    new Promise((resolve) => {
+      const probe = document.createElement("video");
+      probe.preload = "metadata";
+      probe.setAttribute("data-lexihalo-media-probe", "true");
+      const finish = (value) => {
+        clearTimeout(timer);
+        signal?.removeEventListener("abort", abort);
+        probe.onloadedmetadata = null;
+        probe.onerror = null;
+        probe.removeAttribute("src");
+        probe.load();
+        resolve(value);
+      };
+      const abort = () => finish(NaN);
+      const timer = setTimeout(abort, 6000);
+      probe.onloadedmetadata = () => finish(probe.duration);
+      probe.onerror = abort;
+      signal?.addEventListener("abort", abort, { once: true });
+      if (signal?.aborted) abort();
+      else probe.src = url;
+    });
   const observedCurrentMedia = async (result, signal) => {
-    if (!siteHooks.flag(result.page, "observedFallback") || result.sources.length || !result.media ||
-        !Number.isFinite(result.media.duration) || result.media.duration <= 0 ||
-        typeof globalThis.performance?.getEntriesByType !== "function") return;
+    if (
+      !siteHooks.flag(result.page, "observedFallback") ||
+      result.sources.length ||
+      !result.media ||
+      !Number.isFinite(result.media.duration) ||
+      result.media.duration <= 0 ||
+      typeof globalThis.performance?.getEntriesByType !== "function"
+    )
+      return;
     const navigation = performance.getEntriesByType("navigation")[0];
-    if (policy.page(navigation?.name)?.identity !== result.page.identity) return;
-    const observed = [...new Set(performance.getEntriesByType("resource").map((entry) => entry.name))]
-      .filter((url) => policy.isMediaUrl(result.page.url, url));
-    const groups = new Map(), adapter = siteHooks.get(result.page);
+    if (policy.page(navigation?.name)?.identity !== result.page.identity)
+      return;
+    const observed = [
+      ...new Set(
+        performance.getEntriesByType("resource").map((entry) => entry.name),
+      ),
+    ].filter((url) => policy.isMediaUrl(result.page.url, url));
+    const groups = new Map(),
+      adapter = siteHooks.get(result.page);
     for (const raw of observed) {
       const candidate = adapter?.observedCandidate?.(raw);
       if (!candidate?.key) continue;
-      groups.set(candidate.key, [...(groups.get(candidate.key) || []), { raw, bitrate: candidate.bitrate }]);
+      groups.set(candidate.key, [
+        ...(groups.get(candidate.key) || []),
+        { raw, bitrate: candidate.bitrate },
+      ]);
     }
     // A preload may be a different clip. Require a single request group on the
     // exact initial detail page, then verify against the current player's time.
     if (groups.size !== 1) return;
-    const candidates = [...groups.values()][0].sort((a, b) => a.bitrate - b.bitrate);
+    const candidates = [...groups.values()][0].sort(
+      (a, b) => a.bitrate - b.bitrate,
+    );
     for (const { raw: url } of candidates.slice(0, 4)) {
       if (signal?.aborted) throw new Error("已取消媒体读取");
       const duration = await measuredDuration(url, signal);
-      if (policy.page(location.href)?.identity !== result.page.identity) throw new Error("视频已切换");
-      if (Number.isFinite(duration) && Math.abs(duration - result.media.duration) <= Math.max(.5, result.media.duration * .005)) {
-        add(result.sources, result.page, url, { resolution: result.media.videoHeight || 0 });
+      if (policy.page(location.href)?.identity !== result.page.identity)
+        throw new Error("视频已切换");
+      if (
+        Number.isFinite(duration) &&
+        Math.abs(duration - result.media.duration) <=
+          Math.max(0.5, result.media.duration * 0.005)
+      ) {
+        add(result.sources, result.page, url, {
+          resolution: result.media.videoHeight || 0,
+        });
         return;
       }
     }
@@ -195,35 +392,74 @@
     const result = snapshot();
     if (!result) return null;
     const identity = result.page.identity;
-    if (result.page.id === "generic" && typeof globalThis.lexihaloGetCapturedSources === "function") {
-      const captured = await globalThis.lexihaloGetCapturedSources();
+    if (
+      (result.page.id === "generic" || result.page.contextual) &&
+      typeof globalThis.lexihaloGetCapturedSources === "function"
+    ) {
+      const sourceHints = result.page.contextual
+        ? result.sources
+            .filter((source) => source.url)
+            .map((source) => source.url)
+            .slice(0, 12)
+        : undefined;
+      const captured = await globalThis.lexihaloGetCapturedSources(sourceHints);
       if (Array.isArray(captured?.sources) && captured.sources.length) {
         result.sources = mediaContract.merge(captured.sources, result.sources);
       }
     }
     await observedCurrentMedia(result, signal);
-    result.add = (raw, metadata = {}) => add(result.sources, result.page, raw, metadata);
-    try { await siteHooks.prepare(result.page, { result, jsonFetch, signal, onProgress }); }
-    finally { delete result.add; }
-    if (policy.browserPage(location.href)?.identity !== identity) throw new Error("视频已切换，请重新打开菜单");
+    result.add = (raw, metadata = {}) =>
+      add(result.sources, result.page, raw, metadata);
+    try {
+      await siteHooks.prepare(result.page, {
+        result,
+        jsonFetch,
+        signal,
+        onProgress,
+      });
+    } finally {
+      delete result.add;
+    }
+    if (
+      (currentItem() || policy.browserPage(location.href))?.identity !==
+      identity
+    )
+      throw new Error("视频已切换，请重新打开菜单");
     if (preparedSnapshots.size > 16) preparedSnapshots.clear();
-    preparedSnapshots.set(identity, { at: Date.now(), sources: result.sources });
-    const preview = document.querySelector("audio[data-lexihalo-placeholder]:not([data-lexihalo-proxy])");
-    const audioSource = result.sources.find((source) => source.kind === "audio" && source.ext !== "m3u8");
+    preparedSnapshots.set(identity, {
+      at: Date.now(),
+      sources: result.sources,
+    });
+    const preview = document.querySelector(
+      "audio[data-lexihalo-placeholder]:not([data-lexihalo-proxy]):not([data-lexihalo-native-clock])",
+    );
+    const audioSource = result.sources.find(
+      (source) => source.kind === "audio" && source.ext !== "m3u8",
+    );
     if (preview && audioSource) preview.src = audioSource.url;
     return result;
   };
-  const findPlayerFrame = () => Array.from(document.querySelectorAll("iframe"))
-    .filter(frame => {
-      if (frame.tagName !== "IFRAME" || frame.closest?.("[data-lexihalo-media-probe], .lexihalo-audio-host")) return false;
-      const rect = frame.getBoundingClientRect();
-      if (rect.width < 160 || rect.height < 90 || view(frame) <= 0) return false;
-      try { if (frame.contentDocument?.querySelector("video, audio")) return true; } catch {}
-      // A hint enables the resource-tool host, not media extraction. URLs are
-      // accepted only from real DOM sources or document-bound network responses.
-      return /player|video|embed|play/i.test([frame.src, frame.title, frame.name].join(" "));
-    })
-    .sort((left, right) => view(right) - view(left))[0] || null;
+  const findPlayerFrame = () =>
+    Array.from(document.querySelectorAll("iframe"))
+      .filter((frame) => {
+        if (
+          frame.tagName !== "IFRAME" ||
+          frame.closest?.("[data-lexihalo-media-probe], .lexihalo-audio-host")
+        )
+          return false;
+        const rect = frame.getBoundingClientRect();
+        if (rect.width < 160 || rect.height < 90 || view(frame) <= 0)
+          return false;
+        try {
+          if (frame.contentDocument?.querySelector("video, audio")) return true;
+        } catch {}
+        // A hint enables the resource-tool host, not media extraction. URLs are
+        // accepted only from real DOM sources or document-bound network responses.
+        return /player|video|embed|play/i.test(
+          [frame.src, frame.title, frame.name].join(" "),
+        );
+      })
+      .sort((left, right) => view(right) - view(left))[0] || null;
   const frameOwnsRuntime = (frame) => {
     try {
       if (frame.hasAttribute?.("srcdoc")) return false;
@@ -232,7 +468,9 @@
       if (!String(raw || "").trim()) return false;
       const url = new URL(raw, location.href);
       return ["http:", "https:", "file:"].includes(url.protocol);
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   };
   const findProxyFrame = () => {
     const frame = findPlayerFrame();
@@ -240,12 +478,33 @@
   };
   const hasPlayerFrame = () => Boolean(findProxyFrame());
   const ensureHost = (media) => {
+    if (!ownsRuntime()) return null;
     if (media?.tagName === "VIDEO") return media.parentElement;
-    if (media?.hasAttribute?.("data-lexihalo-proxy")) return media.closest(".lexihalo-media-proxy-host");
-    if (media?.hasAttribute?.("data-lexihalo-tool-anchor")) return media.closest(".lexihalo-audio-tool-host");
+    if (media?.hasAttribute?.("data-lexihalo-proxy"))
+      return media.closest(".lexihalo-media-proxy-host");
+    if (media?.hasAttribute?.("data-lexihalo-tool-anchor"))
+      return media.closest(".lexihalo-audio-tool-host");
     if (media?.tagName === "AUDIO") {
-      document.querySelector(".lexihalo-audio-tool-host")?.remove();
-      return media.parentElement;
+      const rect = media.getBoundingClientRect();
+      if (rect.width >= 160 && rect.height >= 32) {
+        document.querySelector(".lexihalo-audio-tool-host")?.remove();
+        return media.parentElement;
+      }
+      // Hidden native audio is the real clock, but its body/zero-size parent is
+      // not a usable toolbar host. Keep one compact host without another audio.
+      let host = document.querySelector(".lexihalo-audio-tool-host");
+      if (host && !host.hasAttribute("data-lexihalo-real-media-host")) {
+        host.remove();
+        host = null;
+      }
+      if (!host) {
+        host = document.createElement("section");
+        host.className =
+          "lexihalo-audio-host lexihalo-audio-tool-host lexihalo-html5-container";
+        host.setAttribute("data-lexihalo-real-media-host", "true");
+        document.body.appendChild(host);
+      }
+      return host;
     }
     const site = policy.siteOf(location.href);
     const frame = !media ? findProxyFrame() : null;
@@ -253,7 +512,9 @@
     const audioTool = !media && site?.audio;
     if (frameProxy && !frame) return null;
     if (!frameProxy && !audioTool) return null;
-    const selector = frameProxy ? ".lexihalo-media-proxy-host" : ".lexihalo-audio-tool-host";
+    const selector = frameProxy
+      ? ".lexihalo-media-proxy-host"
+      : ".lexihalo-audio-tool-host";
     let host = document.querySelector(selector);
     if (!host) {
       host = document.createElement("section");
@@ -263,16 +524,53 @@
       const audio = document.createElement("audio");
       audio.controls = false;
       audio.setAttribute("data-lexihalo-placeholder", "true");
-      audio.setAttribute(frameProxy ? "data-lexihalo-proxy" : "data-lexihalo-tool-anchor", "true");
-      audio.setAttribute("aria-label", frameProxy ? "LexiHalo 播放器工具锚点" : "LexiHalo 音频工具入口");
+      audio.setAttribute(
+        frameProxy ? "data-lexihalo-proxy" : "data-lexihalo-tool-anchor",
+        "true",
+      );
+      audio.setAttribute(
+        "aria-label",
+        frameProxy ? "LexiHalo 播放器工具锚点" : "LexiHalo 音频工具入口",
+      );
+      siteHooks.bindMedia(policy.page(location.href), { media: audio });
       host.appendChild(audio);
       const anchor = frameProxy ? frame?.parentElement : document.body;
-      if (frameProxy && anchor && getComputedStyle(anchor).position === "static") {
+      if (
+        frameProxy &&
+        anchor &&
+        getComputedStyle(anchor).position === "static"
+      ) {
         anchor.classList.add("lexihalo-html5-position-static");
       }
       anchor?.appendChild(host);
     }
     return host;
   };
-  globalThis.lexihaloSiteAdapters = { pickMedia, snapshot, prepare, ensureHost, hasPlayerFrame };
+  const ensureCaptionHost = (media) => {
+    if (!ownsRuntime()) return null;
+    if (
+      media?.tagName !== "AUDIO" ||
+      media.hasAttribute?.("data-lexihalo-proxy")
+    )
+      return ensureHost(media);
+    let host = document.querySelector(".lexihalo-audio-caption-host");
+    if (!host) {
+      host = document.createElement("section");
+      host.className = "lexihalo-audio-caption-host lexihalo-html5-container";
+      host.setAttribute("role", "region");
+      host.setAttribute("aria-label", "LexiHalo 音频字幕");
+      document.body.appendChild(host);
+    }
+    return host;
+  };
+  globalThis.lexihaloSiteAdapters = {
+    ownsRuntime,
+    currentItem,
+    pickMedia,
+    snapshot,
+    prepare,
+    ensureHost,
+    ensureCaptionHost,
+    hasPlayerFrame,
+  };
 })();

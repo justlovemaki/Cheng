@@ -166,6 +166,26 @@ const importedDownload = await request({ requestId: 'resource-download',
   browserUploadId: resourceUpload.uploadId }, douyinPage);
 assert.equal(importedDownload.filename, 'browser-resource.mkv');
 assert(!storage[`lexihalo_media_upload:${resourceUpload.uploadId}`]);
+const douyinFeed = 'https://www.douyin.com/';
+const feedUpload = await request({ requestId: 'feed-resource-begin',
+  type: 'lexihalo:subtitle-ai:browser-audio', operation: 'begin', purpose: 'download',
+  userInitiated: true, mediaPageUrl: douyinFeed, title: 'Current feed video', ext: 'mp4',
+  mediaResourceId: 'current-feed-capture' }, douyinFeed);
+assert.equal(messages.at(-1).siteId, 'douyin');
+assert(!messages.at(-1).url, 'Contextual feed download imports bytes and never sends the feed page to yt-dlp');
+await request({ requestId: 'feed-resource-seal', type: 'lexihalo:subtitle-ai:browser-audio',
+  operation: 'seal', uploadId: feedUpload.uploadId, sequence: 1, total: 16 }, douyinFeed);
+const feedDownload = await request({ requestId: 'feed-resource-download',
+  type: 'lexihalo:subtitle-ai:video-download', userInitiated: true,
+  mediaPageUrl: douyinFeed, formatId: 'browser0', resolution: 720,
+  browserUploadId: feedUpload.uploadId }, douyinFeed);
+assert.equal(feedDownload.filename, 'browser-resource.mkv');
+const callsBeforeFeedNative = messages.length;
+await assert.rejects(request({ requestId: 'feed-native-formats', type: 'lexihalo:subtitle-ai:video-formats',
+  userInitiated: true, mediaPageUrl: douyinFeed }, douyinFeed), /无法确认当前视频页面/);
+await assert.rejects(request({ requestId: 'feed-native-download', type: 'lexihalo:subtitle-ai:video-download',
+  userInitiated: true, mediaPageUrl: douyinFeed, formatId: 'native' }, douyinFeed), /无法确认当前视频页面/);
+assert.equal(messages.length, callsBeforeFeedNative, 'Never send a feed/home URL to yt-dlp as one video');
 storage.trancy_byok_engines = priorEngines;
 const callsBeforeCacheMiss = messages.length;
 const miss = await request({ ...base, requestId: 'preflight-cache-miss', videoId: 'not-cached', checkCacheOnly: true });
@@ -219,4 +239,12 @@ const groupedVimeo = await request({ requestId: 'vimeo-group-alias', type: 'lexi
   userInitiated: true, mediaPageUrl: 'https://vimeo.com/87654321' },
   'https://vimeo.com/groups/12345678/videos/87654321');
 assert.equal(groupedVimeo.formats[0].height, 1080);
+const albumUrl = 'https://artist.bandcamp.com/album/a-record';
+const callsBeforeAlbum = messages.length;
+for (const payload of [
+  { type: 'lexihalo:subtitle-ai:video-formats', requestId: 'album-formats', userInitiated: true, mediaPageUrl: albumUrl },
+  { type: 'lexihalo:subtitle-ai:video-download', requestId: 'album-download', userInitiated: true, mediaPageUrl: albumUrl, formatId: 'mp3' },
+  { ...base, requestId: 'album-asr', videoId: 'album', audioUrl: albumUrl, mediaPageUrl: albumUrl },
+]) await assert.rejects(request(payload, albumUrl), /专辑页不会整张解析/);
+assert.equal(messages.length, callsBeforeAlbum, 'Never send an album URL to yt-dlp as if it were the selected song');
 console.log('Native bridge tests passed');

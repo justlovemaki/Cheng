@@ -98,7 +98,9 @@ export function recoverVideoToggleButton(dependencies) {
         : "none",
       b = (0, React.useRef)(),
       [w, x] = (0, React.useState)(null),
-      k = SA(captionProvider.platform);
+      k =
+        SA(captionProvider.platform) &&
+        !captionProvider.video?.hasAttribute?.("data-lexihalo-readonly-clock");
     (0, React.useEffect)(() => {
       const e = (e) => a(e);
       return (
@@ -202,6 +204,50 @@ export function recoverVideoToggleButton(dependencies) {
         percent: 0,
       }),
       videoDownloadTask = (0, React.useRef)(null),
+      [mediaFallback, setMediaFallback] = (0, React.useState)(null),
+      offerMediaFallback = (
+        action,
+        error,
+        forceNative = false,
+        format = null,
+      ) => {
+        const unavailable = error?.helperUnavailable === true;
+        const pageUrl = globalThis.lexihaloMediaPageUrl?.({
+          platform: captionProvider.platform,
+          context: platformContext,
+        });
+        if (
+          !unavailable &&
+          (forceNative ||
+            !pageUrl ||
+            !globalThis.lexihaloMediaWorkflow.canOfferFallback(error))
+        )
+          return;
+        const item = globalThis.lexihaloSiteAdapters?.currentItem?.();
+        if (
+          !unavailable &&
+          !globalThis.lexihaloCanNativePageParse?.() &&
+          !item?.trackUrl
+        )
+          return;
+        const trackUrl =
+          !unavailable && item?.requiresTrackPage ? item.trackUrl : null;
+        if (!unavailable && item?.requiresTrackPage && !trackUrl) return;
+        setMediaFallback({
+          action,
+          reason:
+            (error?.message || String(error)) +
+            (trackUrl
+              ? " 请先打开当前曲目页再使用本地解析，不会整张解析专辑。"
+              : ""),
+          trackUrl,
+          helperUnavailable: unavailable,
+          videoId: captionProvider.id,
+          forceNative: unavailable ? forceNative : true,
+          format: unavailable ? format : null,
+        });
+        x("media-fallback");
+      },
       X = () =>
         ij(null, null, function* () {
           if (
@@ -264,16 +310,20 @@ export function recoverVideoToggleButton(dependencies) {
         ij(null, null, function* () {
           if (G) {
             if (transcriptionTask.current?.native) {
-              void globalThis.lexihaloCancelTranscription?.(transcriptionTask.current.id);
+              void globalThis.lexihaloCancelTranscription?.(
+                transcriptionTask.current.id,
+              );
               ee("正在取消…");
             }
             return;
           }
           Y(!0), N(null), Z(!1);
+          setMediaFallback(null);
+          x(null);
           const startingVideoId = captionProvider.id;
-          const fetchingMessage = String(
-            l.language.interface || "",
-          ).startsWith("zh")
+          const fetchingMessage = String(l.language.interface || "").startsWith(
+            "zh",
+          )
             ? "正在获取视频音频…"
             : "Fetching video audio…";
           ee(fetchingMessage);
@@ -288,11 +338,16 @@ export function recoverVideoToggleButton(dependencies) {
             ) {
               yield platformContext.getYoutubeTracks().catch(() => null);
             }
-            const mediaPage = globalThis.lexihaloSites?.page(location.href) || globalThis.lexihaloSites?.browserPage(location.href);
-            const mediaCapabilities = globalThis.lexihaloPlatformCapabilities.resolve({
-              platform: captionProvider.platform, page: mediaPage, host: location.hostname,
-            });
-            if (!forceNative && mediaCapabilities.browserCapture && mediaCapabilities.generic) {
+            const mediaPage =
+              globalThis.lexihaloSites?.page(location.href) ||
+              globalThis.lexihaloSites?.browserPage(location.href);
+            const mediaCapabilities =
+              globalThis.lexihaloPlatformCapabilities.resolve({
+                platform: captionProvider.platform,
+                page: mediaPage,
+                host: location.hostname,
+              });
+            if (!forceNative && mediaCapabilities.browserCapture) {
               yield globalThis.lexihaloSiteAdapters?.prepare();
             }
             const resolved = globalThis.lexihaloResolveAudioSource({
@@ -300,33 +355,75 @@ export function recoverVideoToggleButton(dependencies) {
               context: platformContext,
               video: captionProvider.video || document.querySelector("video"),
             });
-            if (!forceNative && resolved.wrapper && !resolved.browserSources?.length) {
-              throw new Error("当前播放器尚未提供可读取的媒体资源。请从原详情页打开播放器并播放几秒，再重新打开菜单；若是独立包装页，请返回原详情页");
+            if (
+              !forceNative &&
+              resolved.wrapper &&
+              !resolved.browserSources?.length
+            ) {
+              throw new Error(
+                "当前播放器尚未提供可读取的媒体资源。请从原详情页打开播放器并播放几秒，再重新打开菜单；若是独立包装页，请返回原详情页",
+              );
             }
             const stream = resolved.source;
             const mediaPageUrl = globalThis.lexihaloMediaPageUrl({
               platform: captionProvider.platform,
               context: platformContext,
             });
-            const preferNativeHelper = Boolean(
-              !forceNative && mediaPageUrl &&
-                globalThis.lexihaloPreferNativeHelper?.({
-                  platform: captionProvider.platform,
-                  context: platformContext,
-                }),
-            );
-            let useNativeHelper =
-              (forceNative || !stream || preferNativeHelper) &&
-              mediaPageUrl &&
-              window.confirm(
-                preferNativeHelper
-                  ? `是否让浏览器读取${globalThis.lexihaloSites?.page(mediaPageUrl)?.name || (/(^|\.)pornhub\.com$/i.test(new URL(mediaPageUrl).hostname) ? "Pornhub" : "当前网站")}当前播放器的音频，并交给本地助手（ffmpeg）切块识别？不会导出浏览器 Cookie。音频会上传到你配置的 BYOK 服务商。`
-                  : "浏览器无法直接取得小于 24 MB 的完整音频。是否使用已安装的本地助手（yt-dlp + ffmpeg）下载并分段识别当前视频？音频会上传到你配置的 BYOK 服务商；仅公开且有权限访问的媒体可用。",
+            let useNativeHelper = false;
+            let useBrowserAudio = false;
+            const cancelTranscription = () => {
+              ee("已取消");
+              captionProvider.event.emit("transcription.status", {
+                state: "idle",
+                message: "已取消",
+              });
+            };
+            if (forceNative) {
+              if (!mediaPageUrl || !globalThis.lexihaloCanNativePageParse?.())
+                throw new Error(
+                  "当前页面不支持本地页面解析；请直接下载当前播放器资源",
+                );
+              const confirmed =
+                yield globalThis.lexihaloMediaWorkflow.confirmPageParsing(
+                  "transcribe",
+                  mediaFallback?.reason,
+                );
+              if (!confirmed) {
+                cancelTranscription();
+                return;
+              }
+              useNativeHelper = true;
+            } else {
+              if (!stream && !resolved.browserSources?.length) {
+                throw new Error(
+                  resolved.oversized
+                    ? "当前音频文件超过浏览器直接识别的 24 MB 限制。"
+                    : "当前播放器未提供可读取的媒体资源，请先播放几秒后重试。",
+                );
+              }
+              useBrowserAudio = Boolean(
+                resolved.browserSources?.length &&
+                  (!stream ||
+                    globalThis.lexihaloPreferNativeHelper?.({
+                      platform: captionProvider.platform,
+                      context: platformContext,
+                    })),
               );
-            if (!stream && !useNativeHelper) {
-              throw new Error(mediaPageUrl
-                ? "没有可直接读取的音频；已取消使用本地助手。DRM 内容不支持提取。"
-                : "当前页面没有可直接读取的音频；本地助手只接受通过安全校验的公网 HTTPS 视频页。DRM 内容不支持提取。");
+              if (useBrowserAudio) {
+                yield globalThis.lexihaloMediaWorkflow.requireHelper({
+                  browser: true,
+                  purpose: "transcribe",
+                });
+                if (
+                  !window.confirm(
+                    "是否读取当前播放器的音频，交给本地助手（ffmpeg）切块，再上传到你配置的 BYOK 服务商生成字幕？不会重新解析网页或导出浏览器 Cookie。",
+                  )
+                ) {
+                  cancelTranscription();
+                  return;
+                }
+                useNativeHelper = true;
+              }
             }
             const transcribingMessage = String(
               l.language.interface || "",
@@ -344,37 +441,45 @@ export function recoverVideoToggleButton(dependencies) {
             }
             const runTranscription = () => {
               const requestId = crypto.randomUUID();
-              transcriptionTask.current = { id: requestId, native: useNativeHelper };
-              return transcribe({
-                requestId,
-                useNativeHelper,
-                useBrowserAudio: Boolean(useNativeHelper && !forceNative &&
-                  (preferNativeHelper || resolved.browserSources?.length)),
-                browserSource: !forceNative
-                  ? resolved.browserSources?.find(source => source.transport === "capture" || source.captureId)
-                  : undefined,
-                audioUrl: useNativeHelper ? mediaPageUrl : stream.url,
-                mediaPageUrl: useNativeHelper ? mediaPageUrl : undefined,
-                mimeType: stream?.mimeType || "audio/mpeg",
-                audioBytes: Number(stream?.size) || 0,
-                videoId: platformContext.vid || platformContext.id,
-                duration: Number(platformContext.duration) || 0,
-                language: platformContext.audioLanguage || l.language.subtitle || "auto",
-                engineId: u.subtitle?._id || "",
-              }, (progress) => {
-                ee(progress);
-                captionProvider.event.emit("transcription.status", { state: "loading", message: progress });
-              });
+              transcriptionTask.current = {
+                id: requestId,
+                native: useNativeHelper,
+              };
+              if (captionProvider.id !== startingVideoId)
+                throw new Error("视频已切换，取消旧视频识别");
+              return transcribe(
+                {
+                  requestId,
+                  useNativeHelper,
+                  useBrowserAudio,
+                  browserSource: useBrowserAudio
+                    ? resolved.browserSources?.find(
+                        (source) =>
+                          source.transport === "capture" || source.captureId,
+                      ) || resolved.browserSources?.[0]
+                    : undefined,
+                  audioUrl: useNativeHelper ? mediaPageUrl : stream.url,
+                  mediaPageUrl: useNativeHelper ? mediaPageUrl : undefined,
+                  mimeType: stream?.mimeType || "audio/mpeg",
+                  audioBytes: Number(stream?.size) || 0,
+                  videoId: platformContext.vid || platformContext.id,
+                  duration: Number(platformContext.duration) || 0,
+                  language:
+                    platformContext.audioLanguage ||
+                    l.language.subtitle ||
+                    "auto",
+                  engineId: u.subtitle?._id || "",
+                },
+                (progress) => {
+                  ee(progress);
+                  captionProvider.event.emit("transcription.status", {
+                    state: "loading",
+                    message: progress,
+                  });
+                },
+              );
             };
-            let result;
-            try {
-              result = yield runTranscription();
-            } catch (error) {
-              if (useNativeHelper || !mediaPageUrl || !/获取视频音频失败|音频文件|音频地址|音频流不可读取|请求超时|Failed to fetch|NetworkError/i.test(error?.message || "") ||
-                !window.confirm("直接下载音频失败。是否改用已安装的本地助手下载并分段上传到你的 BYOK 音频识别接口？")) throw error;
-              useNativeHelper = true;
-              result = yield runTranscription();
-            }
+            const result = yield runTranscription();
             if (captionProvider.id !== startingVideoId) {
               throw new Error("视频已切换，取消安装旧视频字幕");
             }
@@ -382,6 +487,11 @@ export function recoverVideoToggleButton(dependencies) {
               result.segments,
               result.language,
             );
+            // Generating captions is an explicit request to show them, even if
+            // the user had not enabled the temporary caption overlay before.
+            captionProvider.enabled = true;
+            I(true);
+            captionProvider.event.emit("caption.enable");
             const completedMessage = String(
               l.language.interface || "",
             ).startsWith("zh")
@@ -405,6 +515,7 @@ export function recoverVideoToggleButton(dependencies) {
                 : "Transcription failed",
             );
             N(message), Z(!1);
+            offerMediaFallback("transcribe", error, forceNative);
             captionProvider.event.emit("transcription.status", {
               state: "error",
               message,
@@ -419,6 +530,9 @@ export function recoverVideoToggleButton(dependencies) {
         }),
       openVideoDownload = (forceNative = false) =>
         ij(null, null, function* () {
+          if (videoDownloadTask.current) return;
+          const startingVideoId = captionProvider.id;
+          setMediaFallback(null);
           x("video-download");
           setVideoFormats([]);
           setVideoDownloadState({
@@ -431,20 +545,28 @@ export function recoverVideoToggleButton(dependencies) {
               platform: captionProvider.platform,
               context: platformContext,
             });
-            if (!mediaPageUrl)
-              throw new Error("当前网站尚未接入 yt-dlp 视频下载助手");
+            if (!mediaPageUrl) throw new Error("当前页面不支持媒体下载");
             const listFormats = globalThis.lexihaloListVideoFormats;
-            if (typeof listFormats !== "function")
-              throw new Error("视频下载服务尚未就绪，请刷新页面后重试");
             const prepare = globalThis.lexihaloSiteAdapters?.prepare;
-            const mediaPage = globalThis.lexihaloSites?.page(location.href) || globalThis.lexihaloSites?.browserPage(location.href);
-            const mediaCapabilities = globalThis.lexihaloPlatformCapabilities.resolve({
-              platform: captionProvider.platform, page: mediaPage, host: location.hostname,
-            });
-            const local = !forceNative && mediaCapabilities.browserCapture && typeof prepare === "function"
-              ? yield prepare() : null;
+            const mediaPage =
+              globalThis.lexihaloSites?.page(location.href) ||
+              globalThis.lexihaloSites?.browserPage(location.href);
+            const mediaCapabilities =
+              globalThis.lexihaloPlatformCapabilities.resolve({
+                platform: captionProvider.platform,
+                page: mediaPage,
+                host: location.hostname,
+              });
+            const local =
+              !forceNative &&
+              mediaCapabilities.browserCapture &&
+              typeof prepare === "function"
+                ? yield prepare()
+                : null;
             if (!forceNative && local?.wrapper && !local.sources.length) {
-              throw new Error("当前播放器尚未取得真实媒体源，请从原详情页打开并播放几秒后重试");
+              throw new Error(
+                "当前播放器尚未取得真实媒体源，请从原详情页打开并播放几秒后重试",
+              );
             }
             const localFormats = [];
             const grouped = new Map();
@@ -455,21 +577,70 @@ export function recoverVideoToggleButton(dependencies) {
             for (const source of grouped.values()) {
               localFormats.push({
                 formatId: `browser${localFormats.length}`,
-                resolution: source.resolution || 0, height: source.resolution || 0,
-                isAudio: source.kind === "audio", hasAudio: true,
-                ext: source.ext === "m3u8" ? (source.kind === "audio" ? "mka" : "mkv") : source.ext,
-                label: source.label || (source.kind === "audio" ? "音频资源" : source.resolution ? `${source.resolution}p` : "当前播放器资源（自动选择清晰度）"),
-                codecLabel: "浏览器读取", filesize: source.size || 0,
-                browserSource: source, title: local.title,
+                resolution: source.resolution || 0,
+                height: source.resolution || 0,
+                isAudio: source.kind === "audio",
+                hasAudio: true,
+                ext:
+                  source.ext === "m3u8"
+                    ? source.kind === "audio"
+                      ? "mka"
+                      : "mkv"
+                    : source.ext,
+                label:
+                  source.label ||
+                  (source.kind === "audio"
+                    ? "音频资源"
+                    : source.resolution
+                      ? `${source.resolution}p`
+                      : "当前播放器资源（自动选择清晰度）"),
+                codecLabel: "浏览器读取",
+                filesize: source.size || 0,
+                browserSource: source,
+                title: local.title,
               });
             }
-            let formats = [];
-            if ((local?.capabilities?.browserReadable ?? (local?.page?.browser || local?.page?.id === "generic")) && localFormats.length) formats = localFormats;
-            else {
-              try { formats = (yield listFormats(mediaPageUrl)).formats || []; }
-              catch (error) { if (!localFormats.length) throw error; formats = localFormats; }
+            let formats = localFormats;
+            if (forceNative) {
+              if (!globalThis.lexihaloCanNativePageParse?.())
+                throw new Error(
+                  "当前页面不支持本地页面解析；请直接下载当前播放器资源",
+                );
+              const confirmed =
+                yield globalThis.lexihaloMediaWorkflow.confirmPageParsing(
+                  "download",
+                  mediaFallback?.reason,
+                );
+              if (!confirmed) {
+                setVideoDownloadState({
+                  status: "idle",
+                  message: "已取消本地页面解析",
+                  percent: 0,
+                });
+                return;
+              }
+              if (captionProvider.id !== startingVideoId)
+                throw new Error("视频已切换，请重新打开下载菜单");
+              if (typeof listFormats !== "function")
+                throw new Error("媒体下载服务尚未就绪，请刷新页面后重试");
+              formats = (yield listFormats(mediaPageUrl)).formats || [];
+            } else if (!formats.length) {
+              throw new Error(
+                "当前播放器未提供可读取的媒体资源，请先播放几秒后重试。",
+              );
             }
-            setVideoFormats(formats);
+            if (captionProvider.id !== startingVideoId)
+              throw new Error("视频已切换，请重新打开下载菜单");
+            if (!formats.length)
+              throw new Error(
+                "本地助手未找到可下载资源，当前页面可能不受支持。",
+              );
+            setVideoFormats(
+              formats.map((format) => ({
+                ...format,
+                videoId: startingVideoId,
+              })),
+            );
             setVideoDownloadState({
               status: "ready",
               message: `已识别 ${formats.length} 项可下载资源`,
@@ -481,32 +652,56 @@ export function recoverVideoToggleButton(dependencies) {
               message: error?.message || String(error),
               percent: 0,
             });
+            offerMediaFallback("download", error, forceNative);
           }
         }),
       downloadVideoFormat = (format) =>
         ij(null, null, function* () {
-          if (videoDownloadState.status === "downloading") return;
+          if (["downloading", "loading"].includes(videoDownloadState.status))
+            return;
+          x("video-download");
+          setVideoDownloadState({
+            status: "loading",
+            message: "正在检查本地助手…",
+            percent: 0,
+          });
           const sizeText = format.filesize
             ? `，约 ${(format.filesize / 1024 / 1024).toFixed(1)} MB`
             : "";
-          if (
-            !window.confirm(
-              `下载 ${format.label}${sizeText}？文件将保存到系统 Downloads/LexiHalo 目录。`,
-            )
-          )
-            return;
+          const startingVideoId = captionProvider.id;
           const mediaPageUrl = globalThis.lexihaloMediaPageUrl({
             platform: captionProvider.platform,
             context: platformContext,
           });
           const requestId = crypto.randomUUID();
-          videoDownloadTask.current = requestId;
-          setVideoDownloadState({
-            status: "downloading",
-            message: `正在准备 ${format.label}…`,
-            percent: 0,
-          });
           try {
+            if (format.videoId && format.videoId !== startingVideoId)
+              throw new Error("视频已切换，请重新打开下载菜单");
+            yield globalThis.lexihaloMediaWorkflow.requireHelper({
+              browser: Boolean(format.browserSource),
+              purpose: "download",
+            });
+            if (captionProvider.id !== startingVideoId)
+              throw new Error("视频已切换，请重新打开下载菜单");
+            if (
+              !window.confirm(
+                `下载 ${format.label}${sizeText}？文件将保存到系统 Downloads/LexiHalo 目录。`,
+              )
+            ) {
+              setVideoDownloadState({
+                status: "ready",
+                message: "已取消下载",
+                percent: 0,
+              });
+              return;
+            }
+            setMediaFallback(null);
+            videoDownloadTask.current = requestId;
+            setVideoDownloadState({
+              status: "downloading",
+              message: `正在准备 ${format.label}…`,
+              percent: 0,
+            });
             const downloadVideo = globalThis.lexihaloDownloadVideo;
             if (typeof downloadVideo !== "function")
               throw new Error("视频下载服务尚未就绪，请刷新页面后重试");
@@ -520,17 +715,24 @@ export function recoverVideoToggleButton(dependencies) {
                 title: format.title || platformContext.title || "media",
               },
               (progress) =>
-                setVideoDownloadState((previous) => previous.message === "正在取消…" ? previous : ({
-                  status: "downloading",
-                  message:
-                    typeof progress === "object"
-                      ? progress.message
-                      : String(progress || previous.message),
-                  percent:
-                    typeof progress === "object"
-                      ? Math.max(previous.percent || 0, Number(progress.percent) || 0)
-                      : previous.percent || 0,
-                })),
+                setVideoDownloadState((previous) =>
+                  previous.message === "正在取消…"
+                    ? previous
+                    : {
+                        status: "downloading",
+                        message:
+                          typeof progress === "object"
+                            ? progress.message
+                            : String(progress || previous.message),
+                        percent:
+                          typeof progress === "object"
+                            ? Math.max(
+                                previous.percent || 0,
+                                Number(progress.percent) || 0,
+                              )
+                            : previous.percent || 0,
+                      },
+                ),
             );
             setVideoDownloadState({
               status: "done",
@@ -540,10 +742,20 @@ export function recoverVideoToggleButton(dependencies) {
           } catch (error) {
             const message = error?.message || String(error);
             setVideoDownloadState({
-              status: /已取消|aborted|cancelled/i.test(message) ? "ready" : "error",
-              message: /已取消|aborted|cancelled/i.test(message) ? "已取消下载" : message,
+              status: /已取消|aborted|cancelled/i.test(message)
+                ? "ready"
+                : "error",
+              message: /已取消|aborted|cancelled/i.test(message)
+                ? "已取消下载"
+                : message,
               percent: 0,
             });
+            offerMediaFallback(
+              "download",
+              error,
+              !format.browserSource,
+              format,
+            );
           } finally {
             videoDownloadTask.current = null;
           }
@@ -599,7 +811,9 @@ export function recoverVideoToggleButton(dependencies) {
     (0, React.useEffect)(() => {
       const e = () => {
         if (transcriptionTask.current?.native) {
-          void globalThis.lexihaloCancelTranscription?.(transcriptionTask.current.id);
+          void globalThis.lexihaloCancelTranscription?.(
+            transcriptionTask.current.id,
+          );
         }
         if (videoDownloadTask.current) {
           void globalThis.lexihaloCancelVideoDownload?.(
@@ -803,6 +1017,18 @@ export function recoverVideoToggleButton(dependencies) {
         }
       );
     }, [K, $, s.enabled]);
+    const menuMaxHeight = () => {
+      if (
+        captionProvider.video?.tagName === "AUDIO" ||
+        globalThis.lexihaloSites?.siteOf(location.href)?.audio
+      ) {
+        return Math.max(120, window.innerHeight - 180);
+      }
+      const height = document
+        .querySelector("trancy-caption-window")
+        ?.getBoundingClientRect().height;
+      return height ? 0.75 * height : undefined;
+    };
     const ve = nj(
         {},
         A
@@ -811,25 +1037,105 @@ export function recoverVideoToggleButton(dependencies) {
             }
           : {},
       ),
-      ye =
-        null == (n = document.querySelector("trancy-caption-window"))
-          ? void 0
-          : n.getBoundingClientRect().height,
-      [be, xe] = (0, React.useState)(ye ? 0.75 * ye : void 0);
+      [be, xe] = (0, React.useState)(menuMaxHeight);
     (0, React.useEffect)(() => {
       const e = () => {
-        var e;
-        const t =
-          null == (e = document.querySelector("trancy-caption-window"))
-            ? void 0
-            : e.getBoundingClientRect().height;
-        xe(t ? 0.75 * t : void 0);
+        xe(menuMaxHeight());
       };
       return (
         window.addEventListener("resize", e),
         () => window.removeEventListener("resize", e)
       );
     }, []);
+    const mediaAction = (label, action, attributes = {}, Icon = yt) =>
+      (0, jsxRuntime.jsxs)("div", {
+        className: "trancy-menuitem lexihalo-media-action",
+        role: "button",
+        tabIndex: 0,
+        ...attributes,
+        onClick: (event) => {
+          event.stopPropagation();
+          action();
+        },
+        onKeyDown: (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            event.stopPropagation();
+            action();
+          }
+        },
+        children: [
+          (0, jsxRuntime.jsx)("div", {
+            className: "trancy-menuitem-icon",
+            "aria-hidden": true,
+            children: (0, jsxRuntime.jsx)(Icon, {}),
+          }),
+          (0, jsxRuntime.jsx)("div", {
+            className: "trancy-menuitem-label",
+            children: label,
+          }),
+          (0, jsxRuntime.jsx)("div", {
+            className: "trancy-menuitem-action",
+            "aria-hidden": true,
+            children: (0, jsxRuntime.jsx)(Ct, {}),
+          }),
+        ],
+      });
+    const mediaPanel = (title, children, back = null) =>
+      (0, jsxRuntime.jsxs)("div", {
+        className:
+          "trancy-second-panel-menu-container lexihalo-media-workflow-panel",
+        ref: C,
+        children: [
+          (0, jsxRuntime.jsx)("div", {
+            className: "second-panel-menu-header",
+            children: (0, jsxRuntime.jsxs)("div", {
+              className: "btn-back-panel-header",
+              role: "button",
+              tabIndex: 0,
+              onClick: (event) => {
+                event.stopPropagation();
+                event.preventDefault();
+                x(back);
+              },
+              onKeyDown: (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  x(back);
+                }
+              },
+              children: [
+                (0, jsxRuntime.jsx)("div", {
+                  className: "trancy-panel-close-icon",
+                  children: (0, jsxRuntime.jsx)(St, {}),
+                }),
+                (0, jsxRuntime.jsx)("span", { children: title }),
+              ],
+            }),
+          }),
+          (0, jsxRuntime.jsx)("div", {
+            className: "trancy-second-panel-menu-content",
+            children,
+          }),
+        ],
+      });
+    const currentMediaItem = globalThis.lexihaloSiteAdapters?.currentItem?.();
+    const openCurrentTrackPage = () => {
+      const url = globalThis.lexihaloSiteAdapters?.currentItem?.()?.trackUrl;
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+    };
+    const hasMediaPage = Boolean(
+      globalThis.lexihaloMediaPageUrl?.({
+        platform: captionProvider.platform,
+        context: platformContext,
+      }),
+    );
+    const hasNativeMediaPage =
+      hasMediaPage && globalThis.lexihaloCanNativePageParse?.() === true;
+    const hasMediaAdvanced =
+      hasMediaPage &&
+      (hasNativeMediaPage || Boolean(currentMediaItem?.trackUrl));
     const Te = be ? Math.max(0, Math.min(414, Math.floor(be) - 41)) : 414;
     return (0, jsxRuntime.jsxs)("div", {
       className: xb()("trancy-button-container", `lt-${l.language.interface}`),
@@ -1035,58 +1341,41 @@ export function recoverVideoToggleButton(dependencies) {
                       className: xb()("trancy-menuitem", {
                         disabled: G && !transcriptionTask.current?.native,
                       }),
-                        role: "button",
-                        tabIndex: 0,
-                        "data-lexihalo-audio-transcribe": "true",
-                        onClick: () => {
+                      role: "button",
+                      tabIndex: 0,
+                      "data-lexihalo-audio-transcribe": "true",
+                      onClick: () => {
+                        void ne();
+                      },
+                      onKeyDown: (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
                           void ne();
-                        },
-                        onKeyDown: (event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            void ne();
-                          }
-                        },
-                        children: [
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "trancy-menuitem-icon",
-                            children: (0, jsxRuntime.jsx)(yt, {}),
-                          }),
+                        }
+                      },
+                      children: [
+                        (0, jsxRuntime.jsx)("div", {
+                          className: "trancy-menuitem-icon",
+                          children: (0, jsxRuntime.jsx)(yt, {}),
+                        }),
                         (0, jsxRuntime.jsx)("div", {
                           className: "trancy-menuitem-label",
-                          children: String(l.language.interface || "").startsWith(
-                            "zh",
-                          )
-                            ? "AI 字幕（音频转写）"
-                            : "AI Captions (Audio transcription)",
+                          children: String(
+                            l.language.interface || "",
+                          ).startsWith("zh")
+                            ? "AI 字幕"
+                            : "AI Captions",
                         }),
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "trancy-menuitem-action",
-                            children: (0, jsxRuntime.jsx)("div", {
-                              className: "trancy-action-label",
-                            children: G
-                              ? Q
-                              : K
-                                ? f("caption_ai_status_3")
-                                : "OpenAI",
+                        (0, jsxRuntime.jsx)("div", {
+                          className: "trancy-menuitem-action",
+                          children: (0, jsxRuntime.jsx)("div", {
+                            className: "trancy-action-label",
+                            children: G ? Q : K ? f("caption_ai_status_3") : "",
                           }),
                         }),
                       ],
                     }),
                   }),
-                  globalThis.lexihaloSites?.page(location.href) &&
-                    (0, jsxRuntime.jsx)("div", {
-                      className: "trancy-menuitem-group",
-                      children: (0, jsxRuntime.jsxs)("div", {
-                        className: "trancy-menuitem",
-                        role: "button", tabIndex: 0,
-                        onClick: () => { void ne(true); },
-                        children: [
-                          (0, jsxRuntime.jsx)("div", { className: "trancy-menuitem-icon", children: (0, jsxRuntime.jsx)(yt, {}) }),
-                          (0, jsxRuntime.jsx)("div", { className: "trancy-menuitem-label", children: "AI 字幕（本地页面解析）" }),
-                        ],
-                      }),
-                    }),
                   globalThis.lexihaloMediaPageUrl?.({
                     platform: captionProvider.platform,
                     context: platformContext,
@@ -1114,9 +1403,11 @@ export function recoverVideoToggleButton(dependencies) {
                           }),
                           (0, jsxRuntime.jsx)("div", {
                             className: "trancy-menuitem-label",
-                            children: globalThis.lexihaloSites?.siteOf(location.href)?.audio
-                              ? "下载音频/资源"
-                              : "下载视频（多清晰度）",
+                            children: String(
+                              l.language.interface || "",
+                            ).startsWith("zh")
+                              ? "下载媒体"
+                              : "Download media",
                           }),
                           (0, jsxRuntime.jsx)("div", {
                             className: "trancy-menuitem-action",
@@ -1345,340 +1636,344 @@ export function recoverVideoToggleButton(dependencies) {
                           className: "trancy-menuitem",
                           onClick: () => {
                             const lines = captionProvider.lines || [];
-                          if (!lines.length) {
-                            return void $w.info("当前视频暂无可用字幕");
-                          }
+                            if (!lines.length) {
+                              return void $w.info("当前视频暂无可用字幕");
+                            }
 
-                          const isAiEngineActive = Boolean(
-                            captionProvider.engine?.model &&
-                              (String(
-                                captionProvider.engine._id || "",
-                              ).startsWith("byok-") ||
-                                [
-                                  "OpenAI",
-                                  "OpenRouter",
-                                  "DeepSeek",
-                                  "Google",
-                                  "Anthropic",
-                                  "Custom",
-                                  "AI",
-                                ].includes(
-                                  captionProvider.engine.providerId ||
-                                    captionProvider.engine.provider,
-                                )),
-                          );
-
-                          const isLineAiDone = (l) =>
-                            Boolean(
-                              l &&
-                                l.AITranslation &&
-                                typeof l.AITranslation === "string" &&
-                                l.AITranslation.trim().length > 0 &&
-                                !l.AITranslation.includes("AI 翻译失败") &&
-                                !l.AITranslation.includes("superseded"),
+                            const isAiEngineActive = Boolean(
+                              captionProvider.engine?.model &&
+                                (String(
+                                  captionProvider.engine._id || "",
+                                ).startsWith("byok-") ||
+                                  [
+                                    "OpenAI",
+                                    "OpenRouter",
+                                    "DeepSeek",
+                                    "Google",
+                                    "Anthropic",
+                                    "Custom",
+                                    "AI",
+                                  ].includes(
+                                    captionProvider.engine.providerId ||
+                                      captionProvider.engine.provider,
+                                  )),
                             );
 
-                          const isLineDone = isAiEngineActive
-                            ? isLineAiDone
-                            : (l) =>
-                                Boolean(
-                                  l &&
-                                    (l.translation || l.AITranslation) &&
-                                    !String(
-                                      l.translation || l.AITranslation,
-                                    ).includes("AI 翻译失败"),
-                                );
+                            const isLineAiDone = (l) =>
+                              Boolean(
+                                l &&
+                                  l.AITranslation &&
+                                  typeof l.AITranslation === "string" &&
+                                  l.AITranslation.trim().length > 0 &&
+                                  !l.AITranslation.includes("AI 翻译失败") &&
+                                  !l.AITranslation.includes("superseded"),
+                              );
 
-                          const triggerDownloadSrt = (content, filename) => {
-                            const blob = new Blob(["\ufeff" + content], {
-                              type: "application/octet-stream",
-                            });
-                            const url = window.URL.createObjectURL(blob);
-                            const a = document.createElement("a");
-                            a.style.display = "none";
-                            a.href = url;
-                            a.setAttribute("download", filename);
-                            a.download = filename;
-                            document.body.appendChild(a);
-                            a.click();
-                            setTimeout(() => {
-                              try {
-                                document.body.removeChild(a);
-                                window.URL.revokeObjectURL(url);
-                              } catch {}
-                            }, 60000);
-                          };
+                            const isLineDone = isAiEngineActive
+                              ? isLineAiDone
+                              : (l) =>
+                                  Boolean(
+                                    l &&
+                                      (l.translation || l.AITranslation) &&
+                                      !String(
+                                        l.translation || l.AITranslation,
+                                      ).includes("AI 翻译失败"),
+                                  );
 
-                          const getCleanSrtFilename = (title, suffix) => {
-                            const safe = String(title || "subtitle")
-                              .replace(/[\/\\:*?"<>|]/g, "_")
-                              .replace(/[\r\n\t]/g, "")
-                              .replace(/\s+/g, " ")
-                              .trim()
-                              .slice(0, 100);
-                            return `${safe || "video"}_${suffix}.srt`;
-                          };
-
-                          const downloadBilingualFile = (srcLines) => {
-                            const list =
-                              srcLines || captionProvider.lines || [];
-                            const content = list
-                              .map((item, idx) => {
-                                const trans = (
-                                  item.AITranslation ||
-                                  item.translation ||
-                                  ""
-                                ).trim();
-                                const repairedSource = (
-                                  item.repairedText ||
-                                  item.text ||
-                                  item.originalText ||
-                                  ""
-                                ).trim();
-                                const body =
-                                  trans && trans !== repairedSource
-                                    ? `${trans}\r\n${repairedSource}`
-                                    : repairedSource || trans;
-                                return [
-                                  idx + 1,
-                                  `${W(item.start)} --\x3e ${W(item.end)}`,
-                                  body || "",
-                                ].join("\r\n");
-                              })
-                              .join("\r\n\r\n");
-
-                            triggerDownloadSrt(
-                              content,
-                              getCleanSrtFilename(
-                                platformContext.title,
-                                "双语字幕",
-                              ),
-                            );
-                          };
-
-                          const untranslated = lines.filter(
-                            (l) => !isLineDone(l),
-                          );
-                          if (untranslated.length === 0) {
-                            downloadBilingualFile(lines);
-                            $w.success("完整双语字幕已成功下载！");
-                            return;
-                          }
-
-                          if (captionProvider._isExportTranslating) {
-                            return void $w.info(
-                              `字幕正在全速处理中（当前进度：${lines.length - untranslated.length}/${lines.length}），全部处理完毕后将自动下载！`,
-                              4e3,
-                            );
-                          }
-
-                          $w.info(
-                            `检测到尚有 ${untranslated.length} 条字幕未经AI处理，正在全速为您处理，处理完将自动下载！`,
-                            5e3,
-                          );
-
-                          captionProvider._isExportTranslating = true;
-                          const to =
-                            captionProvider.to ||
-                            s.native ||
-                            l.language.translation ||
-                            "zh-CN";
-                          const from =
-                            captionProvider.from ||
-                            s.target ||
-                            l.language.subtitle ||
-                            "auto";
-                          const engine = captionProvider.engine;
-
-                          ij(null, null, function* () {
-                            try {
-                              const batchSize = 6;
-                              while (
-                                !captionProvider.isDestroyed &&
-                                captionProvider._isExportTranslating
-                              ) {
-                                const curLines = captionProvider.lines || [];
-                                const remain = curLines.filter(
-                                  (item) => !isLineDone(item),
-                                );
-                                if (!remain.length) break;
-
-                                const doneCount =
-                                  curLines.length - remain.length;
-                                const pct = Math.round(
-                                  (doneCount / curLines.length) * 100,
-                                );
-                                setBatchProgress({
-                                  total: curLines.length,
-                                  done: doneCount,
-                                  pct,
-                                  running: true,
-                                  isAllDone: false,
-                                });
-
-                                const currentBatch = remain.slice(0, batchSize);
-                                const texts = currentBatch.map(
-                                  (item) =>
-                                    item.originalText || item.text,
-                                );
-
+                            const triggerDownloadSrt = (content, filename) => {
+                              const blob = new Blob(["\ufeff" + content], {
+                                type: "application/octet-stream",
+                              });
+                              const url = window.URL.createObjectURL(blob);
+                              const a = document.createElement("a");
+                              a.style.display = "none";
+                              a.href = url;
+                              a.setAttribute("download", filename);
+                              a.download = filename;
+                              document.body.appendChild(a);
+                              a.click();
+                              setTimeout(() => {
                                 try {
-                                  const results =
-                                    yield extensionClient.translateWithEngine({
-                                      texts,
-                                      from,
-                                      to,
-                                      engine,
-                                      cacheScope: "subtitle",
-                                      useCache: true,
-                                      requestGroup: captionProvider.id,
-                                      requestGeneration:
-                                        captionProvider.translationGeneration ||
-                                        0,
-                                    });
+                                  document.body.removeChild(a);
+                                  window.URL.revokeObjectURL(url);
+                                } catch {}
+                              }, 60000);
+                            };
 
-                                  if (
-                                    Array.isArray(results) &&
-                                    results.length
-                                  ) {
-                                    const cache =
-                                      captionProvider.captionCache.get(
-                                        captionProvider.id,
-                                      );
-                                    if (cache) {
-                                      const updateList = (arr) =>
-                                        Array.isArray(arr)
-                                          ? arr.map((line) => {
-                                              const bIdx =
-                                                currentBatch.findIndex(
-                                                  (b) => b.idx === line.idx,
-                                                );
-                                              if (
-                                                bIdx >= 0 &&
-                                                results[bIdx]?.message ===
-                                                  "ok"
-                                              ) {
-                                                const res = results[bIdx];
-                                                return {
-                                                  ...line,
-                                                  text:
-                                                    res.repairedText ||
-                                                    line.text,
-                                                  AITranslation:
-                                                    res.translation,
-                                                  translation:
-                                                    res.translation,
-                                                  originalText:
-                                                    line.originalText ||
-                                                    line.text,
-                                                  message: undefined,
-                                                };
-                                              }
-                                              return line;
-                                            })
-                                          : arr;
+                            const getCleanSrtFilename = (title, suffix) => {
+                              const safe = String(title || "subtitle")
+                                .replace(/[\/\\:*?"<>|]/g, "_")
+                                .replace(/[\r\n\t]/g, "")
+                                .replace(/\s+/g, " ")
+                                .trim()
+                                .slice(0, 100);
+                              return `${safe || "video"}_${suffix}.srt`;
+                            };
 
-                                      captionProvider.captionCache.set(
-                                        captionProvider.id,
+                            const downloadBilingualFile = (srcLines) => {
+                              const list =
+                                srcLines || captionProvider.lines || [];
+                              const content = list
+                                .map((item, idx) => {
+                                  const trans = (
+                                    item.AITranslation ||
+                                    item.translation ||
+                                    ""
+                                  ).trim();
+                                  const repairedSource = (
+                                    item.repairedText ||
+                                    item.text ||
+                                    item.originalText ||
+                                    ""
+                                  ).trim();
+                                  const body =
+                                    trans && trans !== repairedSource
+                                      ? `${trans}\r\n${repairedSource}`
+                                      : repairedSource || trans;
+                                  return [
+                                    idx + 1,
+                                    `${W(item.start)} --\x3e ${W(item.end)}`,
+                                    body || "",
+                                  ].join("\r\n");
+                                })
+                                .join("\r\n\r\n");
+
+                              triggerDownloadSrt(
+                                content,
+                                getCleanSrtFilename(
+                                  platformContext.title,
+                                  "双语字幕",
+                                ),
+                              );
+                            };
+
+                            const untranslated = lines.filter(
+                              (l) => !isLineDone(l),
+                            );
+                            if (untranslated.length === 0) {
+                              downloadBilingualFile(lines);
+                              $w.success("完整双语字幕已成功下载！");
+                              return;
+                            }
+
+                            if (captionProvider._isExportTranslating) {
+                              return void $w.info(
+                                `字幕正在全速处理中（当前进度：${lines.length - untranslated.length}/${lines.length}），全部处理完毕后将自动下载！`,
+                                4e3,
+                              );
+                            }
+
+                            $w.info(
+                              `检测到尚有 ${untranslated.length} 条字幕未经AI处理，正在全速为您处理，处理完将自动下载！`,
+                              5e3,
+                            );
+
+                            captionProvider._isExportTranslating = true;
+                            const to =
+                              captionProvider.to ||
+                              s.native ||
+                              l.language.translation ||
+                              "zh-CN";
+                            const from =
+                              captionProvider.from ||
+                              s.target ||
+                              l.language.subtitle ||
+                              "auto";
+                            const engine = captionProvider.engine;
+
+                            ij(null, null, function* () {
+                              try {
+                                const batchSize = 6;
+                                while (
+                                  !captionProvider.isDestroyed &&
+                                  captionProvider._isExportTranslating
+                                ) {
+                                  const curLines = captionProvider.lines || [];
+                                  const remain = curLines.filter(
+                                    (item) => !isLineDone(item),
+                                  );
+                                  if (!remain.length) break;
+
+                                  const doneCount =
+                                    curLines.length - remain.length;
+                                  const pct = Math.round(
+                                    (doneCount / curLines.length) * 100,
+                                  );
+                                  setBatchProgress({
+                                    total: curLines.length,
+                                    done: doneCount,
+                                    pct,
+                                    running: true,
+                                    isAllDone: false,
+                                  });
+
+                                  const currentBatch = remain.slice(
+                                    0,
+                                    batchSize,
+                                  );
+                                  const texts = currentBatch.map(
+                                    (item) => item.originalText || item.text,
+                                  );
+
+                                  try {
+                                    const results =
+                                      yield extensionClient.translateWithEngine(
                                         {
-                                          ...cache,
-                                          lines: updateList(cache.lines),
-                                          builtinLines: updateList(
-                                            cache.builtinLines,
-                                          ),
-                                          whisperLines: updateList(
-                                            cache.whisperLines,
-                                          ),
+                                          texts,
+                                          from,
+                                          to,
+                                          engine,
+                                          cacheScope: "subtitle",
+                                          useCache: true,
+                                          requestGroup: captionProvider.id,
+                                          requestGeneration:
+                                            captionProvider.translationGeneration ||
+                                            0,
                                         },
                                       );
-                                      captionProvider.event.emit("changed", {
-                                        current: captionProvider.current,
-                                        forceUpdate: true,
-                                      });
+
+                                    if (
+                                      Array.isArray(results) &&
+                                      results.length
+                                    ) {
+                                      const cache =
+                                        captionProvider.captionCache.get(
+                                          captionProvider.id,
+                                        );
+                                      if (cache) {
+                                        const updateList = (arr) =>
+                                          Array.isArray(arr)
+                                            ? arr.map((line) => {
+                                                const bIdx =
+                                                  currentBatch.findIndex(
+                                                    (b) => b.idx === line.idx,
+                                                  );
+                                                if (
+                                                  bIdx >= 0 &&
+                                                  results[bIdx]?.message ===
+                                                    "ok"
+                                                ) {
+                                                  const res = results[bIdx];
+                                                  return {
+                                                    ...line,
+                                                    text:
+                                                      res.repairedText ||
+                                                      line.text,
+                                                    AITranslation:
+                                                      res.translation,
+                                                    translation:
+                                                      res.translation,
+                                                    originalText:
+                                                      line.originalText ||
+                                                      line.text,
+                                                    message: undefined,
+                                                  };
+                                                }
+                                                return line;
+                                              })
+                                            : arr;
+
+                                        captionProvider.captionCache.set(
+                                          captionProvider.id,
+                                          {
+                                            ...cache,
+                                            lines: updateList(cache.lines),
+                                            builtinLines: updateList(
+                                              cache.builtinLines,
+                                            ),
+                                            whisperLines: updateList(
+                                              cache.whisperLines,
+                                            ),
+                                          },
+                                        );
+                                        captionProvider.event.emit("changed", {
+                                          current: captionProvider.current,
+                                          forceUpdate: true,
+                                        });
+                                      }
                                     }
+                                  } catch (err) {
+                                    console.warn(
+                                      "[LexiHalo] Batch export translate error:",
+                                      err,
+                                    );
                                   }
-                                } catch (err) {
-                                  console.warn(
-                                    "[LexiHalo] Batch export translate error:",
-                                    err,
-                                  );
+
+                                  yield new Promise((r) => setTimeout(r, 350));
                                 }
 
-                                yield new Promise((r) => setTimeout(r, 350));
-                              }
-
-                              const finalLines = captionProvider.lines || [];
-                              const finalRemain = finalLines.filter(
-                                (item) => !isLineDone(item),
-                              );
-                              const allDone = finalRemain.length === 0;
-
-                              setBatchProgress({
-                                total: finalLines.length,
-                                done:
-                                  finalLines.length - finalRemain.length,
-                                pct: allDone
-                                  ? 100
-                                  : Math.round(
-                                      ((finalLines.length -
-                                        finalRemain.length) /
-                                        finalLines.length) *
-                                        100,
-                                    ),
-                                running: false,
-                                isAllDone: allDone,
-                              });
-
-                              if (allDone) {
-                                downloadBilingualFile(finalLines);
-                                $w.success(
-                                  "全视频字幕已全部AI处理完成，完整双语字幕已成功下载！",
-                                  4e3,
+                                const finalLines = captionProvider.lines || [];
+                                const finalRemain = finalLines.filter(
+                                  (item) => !isLineDone(item),
                                 );
-                              } else {
-                                downloadBilingualFile(finalLines);
-                                $w.error(
-                                  "部分字幕翻译遇到网络或配额限制，已将完成部分下载",
-                                  4e3,
-                                );
+                                const allDone = finalRemain.length === 0;
+
+                                setBatchProgress({
+                                  total: finalLines.length,
+                                  done: finalLines.length - finalRemain.length,
+                                  pct: allDone
+                                    ? 100
+                                    : Math.round(
+                                        ((finalLines.length -
+                                          finalRemain.length) /
+                                          finalLines.length) *
+                                          100,
+                                      ),
+                                  running: false,
+                                  isAllDone: allDone,
+                                });
+
+                                if (allDone) {
+                                  downloadBilingualFile(finalLines);
+                                  $w.success(
+                                    "全视频字幕已全部AI处理完成，完整双语字幕已成功下载！",
+                                    4e3,
+                                  );
+                                } else {
+                                  downloadBilingualFile(finalLines);
+                                  $w.error(
+                                    "部分字幕翻译遇到网络或配额限制，已将完成部分下载",
+                                    4e3,
+                                  );
+                                }
+                              } finally {
+                                captionProvider._isExportTranslating = false;
                               }
-                            } finally {
-                              captionProvider._isExportTranslating = false;
-                            }
-                          });
-                        },
-                        children: [
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "trancy-menuitem-icon",
-                            children: (0, jsxRuntime.jsx)(Le, {}),
-                          }),
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "trancy-menuitem-label",
-                            children: "下载完整双语字幕 (.srt)",
-                          }),
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "trancy-menuitem-action",
-                            children: (0, jsxRuntime.jsx)("span", {
-                              style: {
-                                fontSize: "12px",
-                                fontWeight: 500,
-                                color: batchProgress.isAllDone
-                                  ? "#10b981"
-                                  : batchProgress.running
-                                    ? "#f59e0b"
-                                    : "#9ca3af",
-                              },
-                              children: batchProgress.isAllDone
-                                ? "已就绪 (点击下载)"
-                                : batchProgress.running
-                                  ? `处理中 ${batchProgress.pct}%`
-                                  : `${batchProgress.done}/${batchProgress.total} (点击处理)`,
+                            });
+                          },
+                          children: [
+                            (0, jsxRuntime.jsx)("div", {
+                              className: "trancy-menuitem-icon",
+                              children: (0, jsxRuntime.jsx)(Le, {}),
                             }),
-                          }),
-                        ],
-                      }),
+                            (0, jsxRuntime.jsx)("div", {
+                              className: "trancy-menuitem-label",
+                              children: "下载完整双语字幕 (.srt)",
+                            }),
+                            (0, jsxRuntime.jsx)("div", {
+                              className: "trancy-menuitem-action",
+                              children: (0, jsxRuntime.jsx)("span", {
+                                style: {
+                                  fontSize: "12px",
+                                  fontWeight: 500,
+                                  color: batchProgress.isAllDone
+                                    ? "#10b981"
+                                    : batchProgress.running
+                                      ? "#f59e0b"
+                                      : "#9ca3af",
+                                },
+                                children: batchProgress.isAllDone
+                                  ? "已就绪 (点击下载)"
+                                  : batchProgress.running
+                                    ? `处理中 ${batchProgress.pct}%`
+                                    : `${batchProgress.done}/${batchProgress.total} (点击处理)`,
+                              }),
+                            }),
+                          ],
+                        }),
                       (0, jsxRuntime.jsxs)("div", {
                         className: "trancy-menuitem",
+                        "data-lexihalo-more-settings": "true",
                         onClick: () => {
                           x("more-settings");
                         },
@@ -1705,6 +2000,99 @@ export function recoverVideoToggleButton(dependencies) {
               (0, jsxRuntime.jsxs)("div", {
                 className: "trancy-second-panel-menu",
                 children: [
+                  "media-fallback" === w &&
+                    mediaFallback &&
+                    mediaPanel(
+                      mediaFallback.action === "transcribe"
+                        ? "AI 字幕处理提示"
+                        : "媒体下载提示",
+                      [
+                        (0, jsxRuntime.jsx)("div", {
+                          className: "lexihalo-media-note",
+                          role: "status",
+                          "data-lexihalo-media-fallback-reason": "true",
+                          children: mediaFallback.reason,
+                        }),
+                        mediaAction(
+                          mediaFallback.trackUrl
+                            ? "打开当前曲目页"
+                            : mediaFallback.helperUnavailable
+                              ? "安装后重新检查并重试"
+                              : "改用本地助手解析",
+                          () => {
+                            if (mediaFallback.videoId !== captionProvider.id) {
+                              setMediaFallback(null);
+                              x(null);
+                              N("媒体已切换，请重新选择操作");
+                              return;
+                            }
+                            if (mediaFallback.trackUrl) {
+                              openCurrentTrackPage();
+                              return;
+                            }
+                            if (mediaFallback.format) {
+                              void downloadVideoFormat(mediaFallback.format);
+                              return;
+                            }
+                            if (mediaFallback.action === "transcribe")
+                              void ne(mediaFallback.forceNative);
+                            else
+                              void openVideoDownload(mediaFallback.forceNative);
+                          },
+                          { "data-lexihalo-media-fallback-action": "true" },
+                          mediaFallback.action === "download" ? Le : yt,
+                        ),
+                        mediaFallback.helperUnavailable &&
+                          mediaAction(
+                            "打开本地助手设置",
+                            () =>
+                              extensionClient.open(
+                                "byok.html#local-helper",
+                                !1,
+                              ),
+                            { "data-lexihalo-helper-settings": "true" },
+                            gt,
+                          ),
+                      ],
+                    ),
+                  "media-advanced" === w &&
+                    mediaPanel(
+                      "媒体处理高级选项",
+                      [
+                        (0, jsxRuntime.jsx)("div", {
+                          className: "lexihalo-media-note",
+                          children: currentMediaItem?.requiresTrackPage
+                            ? "专辑页只读取当前选中曲目的音频，不会整张解析专辑。如需本地页面解析，请先打开当前曲目的独立页面。"
+                            : "默认优先读取当前播放器。仅在需要时手动改用本地页面解析；使用前会检查助手并请求确认，不保证所有网站可用，不绕过登录或 DRM。",
+                        }),
+                        currentMediaItem?.requiresTrackPage &&
+                          currentMediaItem.trackUrl &&
+                          mediaAction(
+                            "打开当前曲目页",
+                            openCurrentTrackPage,
+                            { "data-lexihalo-open-track-page": "true" },
+                            gt,
+                          ),
+                        hasNativeMediaPage &&
+                          mediaAction(
+                            "AI 字幕（本地页面解析）",
+                            () => {
+                              void ne(true);
+                            },
+                            { "data-lexihalo-native-transcribe": "true" },
+                          ),
+                        hasNativeMediaPage &&
+                          mediaAction(
+                            "下载媒体（本地页面解析）",
+                            () => {
+                              void openVideoDownload(true);
+                            },
+                            { "data-lexihalo-native-download": "true" },
+                            Le,
+                          ),
+                      ],
+                      "more-settings",
+                    ),
                   "video-download" === w &&
                     (0, jsxRuntime.jsxs)("div", {
                       className:
@@ -1727,13 +2115,14 @@ export function recoverVideoToggleButton(dependencies) {
                                   children: (0, jsxRuntime.jsx)(St, {}),
                                 }),
                                 (0, jsxRuntime.jsx)("span", {
-                                  children: "下载视频",
+                                  children: "下载媒体",
                                 }),
                               ],
                             }),
                             videoDownloadState.status === "downloading" &&
                               (0, jsxRuntime.jsx)("div", {
-                                className: "btn-back-panel-action lexihalo-download-cancel",
+                                className:
+                                  "btn-back-panel-action lexihalo-download-cancel",
                                 role: "button",
                                 tabIndex: 0,
                                 "aria-label": "取消视频下载",
@@ -1742,7 +2131,10 @@ export function recoverVideoToggleButton(dependencies) {
                                   cancelVideoDownload();
                                 },
                                 onKeyDown: (event) => {
-                                  if (event.key === "Enter" || event.key === " ") {
+                                  if (
+                                    event.key === "Enter" ||
+                                    event.key === " "
+                                  ) {
                                     event.preventDefault();
                                     event.stopPropagation();
                                     cancelVideoDownload();
@@ -1762,8 +2154,7 @@ export function recoverVideoToggleButton(dependencies) {
                                   {
                                     disabled:
                                       videoDownloadState.status === "loading",
-                                    done:
-                                      videoDownloadState.status === "done",
+                                    done: videoDownloadState.status === "done",
                                     error:
                                       videoDownloadState.status === "error",
                                   },
@@ -1815,16 +2206,6 @@ export function recoverVideoToggleButton(dependencies) {
                                     }),
                                 ],
                               }),
-                            globalThis.lexihaloSites?.page(location.href) &&
-                              videoDownloadState.status !== "downloading" &&
-                              (0, jsxRuntime.jsx)("div", {
-                                className: "trancy-menuitem",
-                                onClick: () => { void openVideoDownload(true); },
-                                children: (0, jsxRuntime.jsx)("div", {
-                                  className: "trancy-menuitem-label",
-                                  children: "改用本地助手解析公开资源",
-                                }),
-                              }),
                             videoFormats.map((format) =>
                               (0, jsxRuntime.jsxs)(
                                 "div",
@@ -1839,8 +2220,19 @@ export function recoverVideoToggleButton(dependencies) {
                                   ),
                                   role: "button",
                                   tabIndex: 0,
-                                  onClick: () => {
+                                  onClick: (event) => {
+                                    event.stopPropagation();
                                     void downloadVideoFormat(format);
+                                  },
+                                  onKeyDown: (event) => {
+                                    if (
+                                      event.key === "Enter" ||
+                                      event.key === " "
+                                    ) {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      void downloadVideoFormat(format);
+                                    }
                                   },
                                   children: [
                                     (0, jsxRuntime.jsx)("div", {
@@ -1919,6 +2311,16 @@ export function recoverVideoToggleButton(dependencies) {
                         (0, jsxRuntime.jsxs)("div", {
                           className: "trancy-second-panel-menu-content",
                           children: [
+                            hasMediaAdvanced &&
+                              mediaAction(
+                                "媒体处理高级选项",
+                                () => {
+                                  setMediaFallback(null);
+                                  x("media-advanced");
+                                },
+                                { "data-lexihalo-media-advanced": "true" },
+                                gt,
+                              ),
                             (0, jsxRuntime.jsxs)("div", {
                               className: "trancy-menuitem",
                               onClick: () => {
@@ -2023,17 +2425,19 @@ export function recoverVideoToggleButton(dependencies) {
                                         type: "application/octet-stream",
                                       }),
                                       r = window.URL.createObjectURL(n),
-                                      safe = String(platformContext.title || "video")
+                                      safe = String(
+                                        platformContext.title || "video",
+                                      )
                                         .replace(/[\/\\:*?"<>|]/g, "_")
                                         .replace(/[\r\n\t]/g, "")
                                         .replace(/\s+/g, " ")
                                         .trim()
                                         .slice(0, 100);
-                                    en(
-                                      r,
-                                      `${safe || "video"}_原始字幕.srt`,
+                                    en(r, `${safe || "video"}_原始字幕.srt`);
+                                    setTimeout(
+                                      () => window.URL.revokeObjectURL(r),
+                                      60000,
                                     );
-                                    setTimeout(() => window.URL.revokeObjectURL(r), 60000);
                                   }),
                                   extensionClient.track({
                                     name: "caption_export_subtitle_open",

@@ -982,10 +982,31 @@
     return pageUrl;
   };
 
+  const requireBrowserMediaPage = (message, sender) => {
+    try {
+      const requested = new URL(String(message.mediaPageUrl || ""));
+      const live = new URL(String(sender?.url || ""));
+      const page = globalThis.lexihaloSites?.browserPage(requested.href);
+      if (!page || requested.protocol !== "https:" || requested.origin !== live.origin ||
+          requested.username || requested.password) throw new Error();
+      return requested.href;
+    } catch {
+      throw new Error("当前播放器资源与页面不匹配，请重新打开菜单");
+    }
+  };
+
+  const requireSingleNativeItem = (pageUrl) => {
+    const page = globalThis.lexihaloSites?.page(pageUrl);
+    if (page?.id === "bandcamp" && /^\/album\//.test(new URL(pageUrl).pathname)) {
+      throw new Error("专辑页不会整张解析，请打开当前曲目的独立页面后重试");
+    }
+  };
+
   const listNativeVideoFormats = async (message, sender) => {
     if (message.userInitiated !== true)
       throw new Error("请从播放器菜单打开视频下载");
     const pageUrl = requireNativeVideoPage(message, sender);
+    requireSingleNativeItem(pageUrl);
     const result = await nativeMessage({ action: "formats", url: pageUrl });
     const formats = Array.isArray(result.formats)
       ? result.formats.slice(0, 160).map((format) => ({
@@ -1020,7 +1041,8 @@
   ) => {
     if (message.userInitiated !== true)
       throw new Error("视频下载必须由用户点击触发");
-    const pageUrl = requireNativeVideoPage(message, sender);
+    const imported = message.browserUploadId ? await loadBrowserUpload(message.browserUploadId, sender) : null;
+    const pageUrl = imported ? requireBrowserMediaPage(message, sender) : requireNativeVideoPage(message, sender);
     const formatId = String(message.formatId || "");
     const resolution = Number(message.resolution) || 0;
     if (!/^[0-9A-Za-z._-]{1,80}$/.test(formatId))
@@ -1031,8 +1053,8 @@
       throw new Error("无法确认视频下载任务来源");
     if (mediaTasks.hasTab("download", sender.tab.id))
       throw new Error("当前标签页已有视频下载任务");
-    const imported = message.browserUploadId ? await loadBrowserUpload(message.browserUploadId, sender) : null;
     if (imported && (imported.state !== "sealed" || imported.purpose !== "download")) throw new Error("浏览器资源尚未完整上传或任务用途不符");
+    if (!imported) requireSingleNativeItem(pageUrl);
     if (!imported && nativeMediaIdentity(pageUrl)?.startsWith("pornhub:")) {
       const helper = await nativeMessage({ action: "ping" });
       if (Number(helper.version) < 9) throw new Error("请更新到版本 9 的本地助手以使用 Pornhub yt-dlp HLS 下载修复");
@@ -1094,7 +1116,7 @@
     const operation = message.operation;
     if (operation === "begin") {
       if (message.userInitiated !== true) throw new Error("浏览器音频读取必须由用户点击触发");
-      const pageUrl = requireNativeVideoPage(message, sender);
+      const pageUrl = requireBrowserMediaPage(message, sender);
       if (!(nativeMediaIdentity(pageUrl)?.startsWith("pornhub:") || globalThis.lexihaloSites?.browserPage(pageUrl)) || !Number.isInteger(sender?.tab?.id)) {
         throw new Error("当前页面未启用浏览器媒体准备");
       }
@@ -1126,7 +1148,8 @@
       const helper = await nativeMessage({ action: "ping" });
       if (helper.version < 10 || !helper.browserAudio) throw new Error("请先更新到版本 10 的本地助手以处理网络捕获、HLS 时间轴和音频格式封装");
       const siteId = globalThis.lexihaloSites?.page(pageUrl)?.id ||
-        (nativeMediaIdentity(pageUrl)?.startsWith("pornhub:") ? "pornhub" : "generic");
+        (nativeMediaIdentity(pageUrl)?.startsWith("pornhub:") ? "pornhub" :
+          globalThis.lexihaloSites?.browserPage(pageUrl)?.id || "generic");
       if (siteId === "generic" && helper.version < 6) throw new Error("请先更新到版本 6 的本地助手以导入通用播放器资源");
       const started = await nativeMessage({ action: "beginUpload", siteId, purpose,
         title: String(message.title || "media").slice(0, 240),
@@ -1231,7 +1254,11 @@
       ? String(message.mediaPageUrl || message.audioUrl || "")
       : "";
     if (message.useNativeHelper === true) {
-      requireNativeVideoPage({ mediaPageUrl: nativePageUrl }, sender);
+      if (browserUpload || message.useBrowserAudio === true)
+        requireBrowserMediaPage({ mediaPageUrl: nativePageUrl }, sender);
+      else requireNativeVideoPage({ mediaPageUrl: nativePageUrl }, sender);
+      if (!browserUpload && message.useBrowserAudio !== true && message.checkCacheOnly !== true)
+        requireSingleNativeItem(nativePageUrl);
     }
 
     const { engines } = await getConfig();
@@ -2082,7 +2109,7 @@
       case "lexihalo:subtitle-ai:process":
         return processSubtitles(message);
       case "lexihalo:subtitle-ai:media-sources":
-        return globalThis.lexihaloMediaCapture?.list(sender) || { sources: [] };
+        return globalThis.lexihaloMediaCapture?.list(sender, message.urls) || { sources: [] };
       case "lexihalo:subtitle-ai:captured-transfer":
         return transferCaptured(message, sender);
       case "lexihalo:subtitle-ai:channels":

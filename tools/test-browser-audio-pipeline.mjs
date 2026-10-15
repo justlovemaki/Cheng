@@ -8,7 +8,9 @@ let returnCached = false;
 let holdCapturedTransfer = false;
 let heldCapturedRequest = null;
 const listeners = new Map();
+const providerEvents = new Map();
 const provider = {
+  event: { on: (name, callback) => providerEvents.set(name, callback) },
   id: 'ph:test', platform: 'html5', lines: [],
   load: async () => {}, dispatchTranslate() {}, backfillBaseline() {}, drivePretranslate() {},
 };
@@ -96,4 +98,14 @@ assert(requests.some(request => request.type.endsWith(':browser-audio') &&
   'Cancel must abort the browser upload while captured transfer is still running');
 assert(requests.some(request => request.type.endsWith(':cancel-video-download')),
   'Cancel must also cover the post-transfer native download stage');
+requests.length = 0;
+const switchedAsr = context.lexihaloTranscribeAudio({ ...payload, requestId: 'album-track-switch',
+  browserSource: { captureId: 'selected-album-track', ext: 'mp3' } });
+for (let attempt = 0; attempt < 20 && !heldCapturedRequest; attempt++) await new Promise(resolve => setTimeout(resolve, 0));
+assert(heldCapturedRequest);
+providerEvents.get('video.change')();
+await assert.rejects(switchedAsr, /已取消/);
+assert(!requests.some(request => request.type.endsWith(':transcribe') && !request.payload.checkCacheOnly),
+  'Changing the selected album track must cancel transfer before ASR upload');
+assert(requests.some(request => request.type.endsWith(':cancel-transcription')));
 console.log('Browser audio pipeline tests passed');

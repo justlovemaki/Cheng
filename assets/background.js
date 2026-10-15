@@ -6,6 +6,7 @@
     {
       id: "douyin",
       name: "抖音",
+      homepage: "https://www.douyin.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["douyin.com"],
@@ -16,6 +17,7 @@
     {
       id: "xiaohongshu",
       name: "小红书",
+      homepage: "https://www.xiaohongshu.com/explore",
       mode: "browser",
       mediaKind: "video",
       hosts: ["xiaohongshu.com"],
@@ -26,6 +28,7 @@
     {
       id: "channels",
       name: "微信视频号",
+      homepage: "https://channels.weixin.qq.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["weixin.qq.com"],
@@ -36,6 +39,7 @@
     {
       id: "xiaoe",
       name: "小鹅通",
+      homepage: "https://www.xiaoe-tech.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: [
@@ -59,6 +63,7 @@
     {
       id: "weibo",
       name: "微博视频",
+      homepage: "https://weibo.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["weibo.com", "weibo.cn"],
@@ -69,6 +74,7 @@
     {
       id: "tiktok",
       name: "TikTok",
+      homepage: "https://www.tiktok.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["tiktok.com"],
@@ -79,6 +85,7 @@
     {
       id: "x",
       name: "X / Twitter",
+      homepage: "https://x.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["x.com", "twitter.com"],
@@ -89,6 +96,7 @@
     {
       id: "instagram",
       name: "Instagram",
+      homepage: "https://www.instagram.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["instagram.com"],
@@ -99,6 +107,7 @@
     {
       id: "facebook",
       name: "Facebook",
+      homepage: "https://www.facebook.com/watch/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["facebook.com", "fb.watch"],
@@ -109,6 +118,7 @@
     {
       id: "reddit",
       name: "Reddit",
+      homepage: "https://www.reddit.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["reddit.com", "v.redd.it"],
@@ -119,6 +129,7 @@
     {
       id: "twitch",
       name: "Twitch",
+      homepage: "https://www.twitch.tv/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["twitch.tv"],
@@ -129,6 +140,7 @@
     {
       id: "dailymotion",
       name: "Dailymotion",
+      homepage: "https://www.dailymotion.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["dailymotion.com", "dai.ly"],
@@ -139,6 +151,7 @@
     {
       id: "niconico",
       name: "niconico",
+      homepage: "https://www.nicovideo.jp/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["nicovideo.jp", "nico.ms"],
@@ -149,6 +162,7 @@
     {
       id: "xiaoyuzhou",
       name: "小宇宙",
+      homepage: "https://www.xiaoyuzhoufm.com/",
       mode: "browser",
       mediaKind: "audio",
       hosts: ["xiaoyuzhoufm.com"],
@@ -160,6 +174,7 @@
     {
       id: "soundcloud",
       name: "SoundCloud",
+      homepage: "https://soundcloud.com/",
       mode: "browser",
       mediaKind: "audio",
       hosts: ["soundcloud.com"],
@@ -171,17 +186,19 @@
     {
       id: "bandcamp",
       name: "Bandcamp",
+      homepage: "https://bandcamp.com/",
       mode: "browser",
       mediaKind: "audio",
       hosts: ["bandcamp.com"],
-      routes: ["^/track/[^/?]+"],
+      routes: ["^/(track|album)/[^/?#]+/?(?:[?#]|$)"],
       mediaHosts: ["bcbits.com"],
-      browser: false,
+      browser: true,
       audio: true,
     },
     {
       id: "ximalaya",
       name: "喜马拉雅",
+      homepage: "https://www.ximalaya.com/",
       mode: "browser",
       mediaKind: "audio",
       hosts: ["ximalaya.com"],
@@ -193,6 +210,7 @@
     {
       id: "netease",
       name: "网易云音乐",
+      homepage: "https://music.163.com/",
       mode: "browser",
       mediaKind: "audio",
       hosts: ["music.163.com"],
@@ -204,6 +222,7 @@
     {
       id: "applepodcasts",
       name: "Apple Podcasts",
+      homepage: "https://podcasts.apple.com/",
       mode: "browser",
       mediaKind: "audio",
       hosts: ["podcasts.apple.com"],
@@ -329,7 +348,11 @@
         url.searchParams.get("token")
       ) {
         url.hash = "";
-        return { ...site, url: url.href, identity: `channels:feed:${url.searchParams.get("eid")}` };
+        return {
+          ...site,
+          url: url.href,
+          identity: `channels:feed:${url.searchParams.get("eid")}`,
+        };
       }
       return null;
     }
@@ -372,7 +395,11 @@
           ? path.match(/^\/([A-Za-z0-9_-]+)\/?$/)?.[1] || url.searchParams.get("clip")
           : null);
       if (clip)
-        return { ...site, url: `https://clips.twitch.tv/${clip}`, identity: `twitch:clip:${clip}` };
+        return {
+          ...site,
+          url: `https://clips.twitch.tv/${clip}`,
+          identity: `twitch:clip:${clip}`,
+        };
       return null;
     }
     if (site.id === "dailymotion") {
@@ -381,7 +408,11 @@
         (url.hostname === "dai.ly" ? path.match(/^\/([A-Za-z0-9]+)\/?$/)?.[1] : null) ||
         (url.hostname === "geo.dailymotion.com" ? url.searchParams.get("video") : null);
       return /^[A-Za-z0-9]+$/.test(id || "")
-        ? { ...site, url: `https://www.dailymotion.com/video/${id}`, identity: `dailymotion:${id}` }
+        ? {
+            ...site,
+            url: `https://www.dailymotion.com/video/${id}`,
+            identity: `dailymotion:${id}`,
+          }
         : null;
     }
     if (site.id === "facebook" && path === "/plugins/video.php") {
@@ -435,7 +466,11 @@
       const token = url.searchParams.get("secret_token");
       url.search = "";
       if (token && token.length <= 512) url.searchParams.set("secret_token", token);
-      return { ...site, url: url.href, identity: `soundcloud:${url.origin}${url.pathname}` };
+      return {
+        ...site,
+        url: url.href,
+        identity: `soundcloud:${url.origin}${url.pathname}`,
+      };
     }
     if (!["applepodcasts", "facebook"].includes(site.id)) url.search = "";
     if (site.id === "facebook" && /^\/watch/.test(path) && !url.searchParams.get("v")) return null;
@@ -475,10 +510,23 @@
   };
   const browserPage = (address) => {
     const registered = siteOf(address);
-    if (registered) return page(address);
+    const matched = registered && page(address);
+    if (matched) return matched;
     const url = safePage(address, true);
     if (!url || !publicHost(url.hostname) || url.port === "0") return null;
     url.hash = "";
+    if (registered) {
+      // Feed/home/search pages are not valid yt-dlp items, but the current DOM
+      // player and its frame-bound captured response can still be imported.
+      url.search = "";
+      return {
+        ...registered,
+        url: url.href,
+        identity: `${registered.id}:context:${url.origin}${url.pathname}`,
+        contextual: true,
+        browser: true,
+      };
+    }
     return {
       id: "generic",
       name: "当前网站",
@@ -499,7 +547,10 @@
         : url.searchParams.get("v") ||
           url.pathname.match(/^\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{11})(?:\/|$)/)?.[1];
       return /^[A-Za-z0-9_-]{11}$/.test(id || "")
-        ? { url: `https://www.youtube.com/watch?v=${id}`, identity: `youtube:${id}` }
+        ? {
+            url: `https://www.youtube.com/watch?v=${id}`,
+            identity: `youtube:${id}`,
+          }
         : null;
     }
     if (hostIn(host, ["bilibili.com"])) {
@@ -531,7 +582,10 @@
       const id =
         url.searchParams.get("viewkey") || url.pathname.match(/^\/embed\/([A-Za-z0-9]+)\/?$/)?.[1];
       return /^[A-Za-z0-9]+$/.test(id || "")
-        ? { url: `${url.origin}/view_video.php?viewkey=${id}`, identity: `pornhub:${id}` }
+        ? {
+            url: `${url.origin}/view_video.php?viewkey=${id}`,
+            identity: `pornhub:${id}`,
+          }
         : null;
     }
     return browserPage(address);
@@ -544,6 +598,7 @@
     if (!hostIn(media.hostname.toLowerCase(), owner.mediaHosts)) return false;
     if (
       owner.id === "douyin" &&
+      !owner.contextual &&
       media.searchParams.has("__vid") &&
       media.searchParams.get("__vid") !== owner.itemId
     )
@@ -699,6 +754,7 @@
     {
       id: "youtube",
       name: "YouTube",
+      homepage: "https://www.youtube.com/",
       mode: "specialized",
       platform: "youtube",
       mediaKind: "video",
@@ -708,6 +764,7 @@
     {
       id: "netflix",
       name: "Netflix",
+      homepage: "https://www.netflix.com/",
       mode: "specialized",
       platform: "netflix",
       mediaKind: "video",
@@ -717,6 +774,7 @@
     {
       id: "coursera",
       name: "Coursera",
+      homepage: "https://www.coursera.org/",
       mode: "specialized",
       platform: "coursera",
       mediaKind: "video",
@@ -726,6 +784,7 @@
     {
       id: "udemy",
       name: "Udemy",
+      homepage: "https://www.udemy.com/",
       mode: "specialized",
       platform: "udemy",
       mediaKind: "video",
@@ -735,6 +794,7 @@
     {
       id: "ted",
       name: "TED",
+      homepage: "https://www.ted.com/",
       mode: "specialized",
       platform: "ted",
       mediaKind: "video",
@@ -744,6 +804,7 @@
     {
       id: "hbo",
       name: "Max / HBO",
+      homepage: "https://www.max.com/",
       mode: "specialized",
       platform: "hbo",
       mediaKind: "video",
@@ -753,6 +814,7 @@
     {
       id: "disney",
       name: "Disney+",
+      homepage: "https://www.disneyplus.com/",
       mode: "specialized",
       platform: "disney",
       mediaKind: "video",
@@ -762,6 +824,7 @@
     {
       id: "edx",
       name: "edX",
+      homepage: "https://www.edx.org/",
       mode: "specialized",
       platform: "edx",
       mediaKind: "video",
@@ -771,6 +834,7 @@
     {
       id: "primevideo",
       name: "Prime Video",
+      homepage: "https://www.primevideo.com/",
       mode: "specialized",
       platform: "primevideo",
       mediaKind: "video",
@@ -780,6 +844,7 @@
     {
       id: "deeplearning",
       name: "DeepLearning.AI",
+      homepage: "https://www.deeplearning.ai/",
       mode: "specialized",
       platform: "deeplearning",
       mediaKind: "video",
@@ -789,6 +854,7 @@
     {
       id: "bilibili",
       name: "Bilibili",
+      homepage: "https://www.bilibili.com/",
       mode: "specialized",
       platform: "bilibili",
       mediaKind: "video",
@@ -798,6 +864,7 @@
     {
       id: "vimeo",
       name: "Vimeo",
+      homepage: "https://vimeo.com/",
       mode: "specialized",
       platform: "vimeo",
       mediaKind: "video",
@@ -807,6 +874,7 @@
     {
       id: "pornhub",
       name: "Pornhub",
+      homepage: "https://www.pornhub.com/",
       mode: "specialized",
       platform: "html5",
       mediaKind: "video",
@@ -816,6 +884,7 @@
     {
       id: "douyin",
       name: "抖音",
+      homepage: "https://www.douyin.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["douyin.com"],
@@ -826,6 +895,7 @@
     {
       id: "xiaohongshu",
       name: "小红书",
+      homepage: "https://www.xiaohongshu.com/explore",
       mode: "browser",
       mediaKind: "video",
       hosts: ["xiaohongshu.com"],
@@ -836,6 +906,7 @@
     {
       id: "channels",
       name: "微信视频号",
+      homepage: "https://channels.weixin.qq.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["weixin.qq.com"],
@@ -846,6 +917,7 @@
     {
       id: "xiaoe",
       name: "小鹅通",
+      homepage: "https://www.xiaoe-tech.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: [
@@ -869,6 +941,7 @@
     {
       id: "weibo",
       name: "微博视频",
+      homepage: "https://weibo.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["weibo.com", "weibo.cn"],
@@ -879,6 +952,7 @@
     {
       id: "tiktok",
       name: "TikTok",
+      homepage: "https://www.tiktok.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["tiktok.com"],
@@ -889,6 +963,7 @@
     {
       id: "x",
       name: "X / Twitter",
+      homepage: "https://x.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["x.com", "twitter.com"],
@@ -899,6 +974,7 @@
     {
       id: "instagram",
       name: "Instagram",
+      homepage: "https://www.instagram.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["instagram.com"],
@@ -909,6 +985,7 @@
     {
       id: "facebook",
       name: "Facebook",
+      homepage: "https://www.facebook.com/watch/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["facebook.com", "fb.watch"],
@@ -919,6 +996,7 @@
     {
       id: "reddit",
       name: "Reddit",
+      homepage: "https://www.reddit.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["reddit.com", "v.redd.it"],
@@ -929,6 +1007,7 @@
     {
       id: "twitch",
       name: "Twitch",
+      homepage: "https://www.twitch.tv/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["twitch.tv"],
@@ -939,6 +1018,7 @@
     {
       id: "dailymotion",
       name: "Dailymotion",
+      homepage: "https://www.dailymotion.com/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["dailymotion.com", "dai.ly"],
@@ -949,6 +1029,7 @@
     {
       id: "niconico",
       name: "niconico",
+      homepage: "https://www.nicovideo.jp/",
       mode: "browser",
       mediaKind: "video",
       hosts: ["nicovideo.jp", "nico.ms"],
@@ -959,6 +1040,7 @@
     {
       id: "xiaoyuzhou",
       name: "小宇宙",
+      homepage: "https://www.xiaoyuzhoufm.com/",
       mode: "browser",
       mediaKind: "audio",
       hosts: ["xiaoyuzhoufm.com"],
@@ -970,6 +1052,7 @@
     {
       id: "soundcloud",
       name: "SoundCloud",
+      homepage: "https://soundcloud.com/",
       mode: "browser",
       mediaKind: "audio",
       hosts: ["soundcloud.com"],
@@ -981,17 +1064,19 @@
     {
       id: "bandcamp",
       name: "Bandcamp",
+      homepage: "https://bandcamp.com/",
       mode: "browser",
       mediaKind: "audio",
       hosts: ["bandcamp.com"],
-      routes: ["^/track/[^/?]+"],
+      routes: ["^/(track|album)/[^/?#]+/?(?:[?#]|$)"],
       mediaHosts: ["bcbits.com"],
-      browser: false,
+      browser: true,
       audio: true,
     },
     {
       id: "ximalaya",
       name: "喜马拉雅",
+      homepage: "https://www.ximalaya.com/",
       mode: "browser",
       mediaKind: "audio",
       hosts: ["ximalaya.com"],
@@ -1003,6 +1088,7 @@
     {
       id: "netease",
       name: "网易云音乐",
+      homepage: "https://music.163.com/",
       mode: "browser",
       mediaKind: "audio",
       hosts: ["music.163.com"],
@@ -1014,6 +1100,7 @@
     {
       id: "applepodcasts",
       name: "Apple Podcasts",
+      homepage: "https://podcasts.apple.com/",
       mode: "browser",
       mediaKind: "audio",
       hosts: ["podcasts.apple.com"],
@@ -13231,6 +13318,14 @@
           : /^(audio|video)\//.test(mimeType) ||
               /\.(mp4|m4a|webm|mp3|aac|ogg|wav|flac)$/i.test(url.pathname)
             ? url.pathname.match(/\.(mp4|m4a|webm|mp3|aac|ogg|wav|flac)$/i)?.[1]?.toLowerCase() ||
+              {
+                "audio/mpeg": "mp3",
+                "audio/mp3": "mp3",
+                "audio/aac": "aac",
+                "audio/ogg": "ogg",
+                "audio/flac": "flac",
+                "audio/wav": "wav",
+              }[mimeType] ||
               (mimeType.startsWith("audio/") ? "m4a" : "mp4")
             : "";
     if (!ext) return null;
@@ -13349,11 +13444,22 @@
     }
     return false;
   };
-  const list = (sender) => {
+  const list = (sender, urls) => {
     prune();
+    const wanted = Array.isArray(urls)
+      ? new Set(
+          urls.slice(0, 24).flatMap((raw) => {
+            try {
+              return [publicUrl(raw)];
+            } catch {
+              return [];
+            }
+          }),
+        )
+      : null;
     return {
       sources: [...candidates.values()]
-        .filter((item) => belongs(item, sender))
+        .filter((item) => belongs(item, sender) && (!wanted || wanted.has(item.url)))
         .sort((a, b) => b.at - a.at)
         .slice(0, 16)
         .map((item) =>
@@ -14604,9 +14710,36 @@
     return pageUrl;
   };
 
+  const requireBrowserMediaPage = (message, sender) => {
+    try {
+      const requested = new URL(String(message.mediaPageUrl || ""));
+      const live = new URL(String(sender?.url || ""));
+      const page = globalThis.lexihaloSites?.browserPage(requested.href);
+      if (
+        !page ||
+        requested.protocol !== "https:" ||
+        requested.origin !== live.origin ||
+        requested.username ||
+        requested.password
+      )
+        throw new Error();
+      return requested.href;
+    } catch {
+      throw new Error("当前播放器资源与页面不匹配，请重新打开菜单");
+    }
+  };
+
+  const requireSingleNativeItem = (pageUrl) => {
+    const page = globalThis.lexihaloSites?.page(pageUrl);
+    if (page?.id === "bandcamp" && /^\/album\//.test(new URL(pageUrl).pathname)) {
+      throw new Error("专辑页不会整张解析，请打开当前曲目的独立页面后重试");
+    }
+  };
+
   const listNativeVideoFormats = async (message, sender) => {
     if (message.userInitiated !== true) throw new Error("请从播放器菜单打开视频下载");
     const pageUrl = requireNativeVideoPage(message, sender);
+    requireSingleNativeItem(pageUrl);
     const result = await nativeMessage({ action: "formats", url: pageUrl });
     const formats = Array.isArray(result.formats)
       ? result.formats.slice(0, 160).map((format) => ({
@@ -14635,7 +14768,12 @@
 
   const downloadNativeVideo = async (message, sender, progress = () => {}, requestId) => {
     if (message.userInitiated !== true) throw new Error("视频下载必须由用户点击触发");
-    const pageUrl = requireNativeVideoPage(message, sender);
+    const imported = message.browserUploadId
+      ? await loadBrowserUpload(message.browserUploadId, sender)
+      : null;
+    const pageUrl = imported
+      ? requireBrowserMediaPage(message, sender)
+      : requireNativeVideoPage(message, sender);
     const formatId = String(message.formatId || "");
     const resolution = Number(message.resolution) || 0;
     if (!/^[0-9A-Za-z._-]{1,80}$/.test(formatId)) throw new Error("视频清晰度标识无效");
@@ -14644,11 +14782,9 @@
     if (!requestId || !Number.isInteger(sender?.tab?.id))
       throw new Error("无法确认视频下载任务来源");
     if (mediaTasks.hasTab("download", sender.tab.id)) throw new Error("当前标签页已有视频下载任务");
-    const imported = message.browserUploadId
-      ? await loadBrowserUpload(message.browserUploadId, sender)
-      : null;
     if (imported && (imported.state !== "sealed" || imported.purpose !== "download"))
       throw new Error("浏览器资源尚未完整上传或任务用途不符");
+    if (!imported) requireSingleNativeItem(pageUrl);
     if (!imported && nativeMediaIdentity(pageUrl)?.startsWith("pornhub:")) {
       const helper = await nativeMessage({ action: "ping" });
       if (Number(helper.version) < 9)
@@ -14716,7 +14852,7 @@
     const operation = message.operation;
     if (operation === "begin") {
       if (message.userInitiated !== true) throw new Error("浏览器音频读取必须由用户点击触发");
-      const pageUrl = requireNativeVideoPage(message, sender);
+      const pageUrl = requireBrowserMediaPage(message, sender);
       if (
         !(
           nativeMediaIdentity(pageUrl)?.startsWith("pornhub:") ||
@@ -14765,7 +14901,9 @@
         throw new Error("请先更新到版本 10 的本地助手以处理网络捕获、HLS 时间轴和音频格式封装");
       const siteId =
         globalThis.lexihaloSites?.page(pageUrl)?.id ||
-        (nativeMediaIdentity(pageUrl)?.startsWith("pornhub:") ? "pornhub" : "generic");
+        (nativeMediaIdentity(pageUrl)?.startsWith("pornhub:")
+          ? "pornhub"
+          : globalThis.lexihaloSites?.browserPage(pageUrl)?.id || "generic");
       if (siteId === "generic" && helper.version < 6)
         throw new Error("请先更新到版本 6 的本地助手以导入通用播放器资源");
       const started = await nativeMessage({
@@ -14919,7 +15057,11 @@
         ? String(message.mediaPageUrl || message.audioUrl || "")
         : "";
     if (message.useNativeHelper === true) {
-      requireNativeVideoPage({ mediaPageUrl: nativePageUrl }, sender);
+      if (browserUpload || message.useBrowserAudio === true)
+        requireBrowserMediaPage({ mediaPageUrl: nativePageUrl }, sender);
+      else requireNativeVideoPage({ mediaPageUrl: nativePageUrl }, sender);
+      if (!browserUpload && message.useBrowserAudio !== true && message.checkCacheOnly !== true)
+        requireSingleNativeItem(nativePageUrl);
     }
 
     const { engines } = await getConfig();
@@ -15749,7 +15891,7 @@
       case "lexihalo:subtitle-ai:process":
         return processSubtitles(message);
       case "lexihalo:subtitle-ai:media-sources":
-        return globalThis.lexihaloMediaCapture?.list(sender) || { sources: [] };
+        return globalThis.lexihaloMediaCapture?.list(sender, message.urls) || { sources: [] };
       case "lexihalo:subtitle-ai:captured-transfer":
         return transferCaptured(message, sender);
       case "lexihalo:subtitle-ai:channels":

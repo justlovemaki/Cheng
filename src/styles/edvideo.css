@@ -5423,6 +5423,47 @@ trancy-caption-window {
   box-sizing: border-box;
   overflow: visible;
 }
+.lexihalo-audio-caption-host {
+  position: fixed;
+  left: 50%;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  width: min(760px, calc(100vw - 32px));
+  height: min(200px, calc(100vh - 160px));
+  min-height: 100px;
+  transform: translateX(-50%);
+  z-index: 2147483645;
+  pointer-events: none;
+  background: transparent;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+}
+.lexihalo-audio-caption-host trancy-caption-window {
+  width: 100%;
+  height: 100%;
+}
+.lexihalo-audio-caption-host .trancy-caption-container .trancy-caption {
+  bottom: 0;
+  margin-bottom: 0;
+  padding: 0 4px;
+}
+.lexihalo-audio-caption-host .trancy-caption-container .trancy-caption-loading {
+  box-sizing: border-box;
+  width: max-content;
+  min-width: min(280px, calc(100% - 24px));
+  max-width: min(520px, calc(100% - 24px));
+}
+.lexihalo-audio-caption-host .trancy-caption-container .trancy-caption-loading-icon {
+  flex-shrink: 0;
+}
+.lexihalo-audio-caption-host .trancy-caption-container .trancy-caption-loading-text,
+.lexihalo-audio-caption-host .trancy-caption-container .trancy-caption-error-text {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
 .lexihalo-audio-tool-host {
   position: fixed;
   top: 88px;
@@ -6874,6 +6915,25 @@ trancy-caption-setting.lt-fa .MuiSwitch-root {
 .trancy-second-panel-menu-container .trancy-second-panel-menu-content {
   max-height: var(--tc-second-content-max, 414px);
   overflow-y: auto;
+}
+.trancy-panel-menu .lexihalo-media-workflow-panel .lexihalo-media-note {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 10px 12px;
+  border-bottom: 1px solid hsla(0, 0%, 100%, 0.08);
+  color: hsla(0, 0%, 100%, 0.6);
+  font-size: 12px;
+  line-height: 1.5 !important;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.trancy-panel-menu .lexihalo-media-action .trancy-menuitem-icon {
+  flex-shrink: 0;
+}
+.trancy-panel-menu .lexihalo-media-action:focus-visible {
+  outline: 1px solid hsla(0, 0%, 100%, 0.35);
+  outline-offset: -2px;
+  background: hsla(0, 0%, 100%, 0.05);
 }
 .trancy-second-panel-menu-container
   .trancy-second-panel-menu-content

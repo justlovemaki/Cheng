@@ -54,9 +54,30 @@ assert.equal(sites.page('https://twitch.tv/a_live_channel'), null);
 assert.equal(sites.page('https://facebook.com/someone'), null);
 assert.equal(sites.page('https://www.instagram.com/someone'), null);
 assert.equal(sites.page('https://soundcloud.com/discover/people'), null);
+for (const [id, address] of Object.entries({
+  douyin: 'https://www.douyin.com/',
+  weibo: 'https://weibo.com/',
+  tiktok: 'https://www.tiktok.com/foryou',
+  x: 'https://x.com/home',
+  instagram: 'https://www.instagram.com/',
+  facebook: 'https://www.facebook.com/watch/',
+  reddit: 'https://www.reddit.com/',
+})) {
+  assert.equal(sites.page(address), null, `${id}: feed must not become a native single-item page`);
+  const contextual = sites.browserPage(address);
+  assert.equal(contextual?.id, id);
+  assert.equal(contextual?.contextual, true);
+  assert.equal(contextual?.browser, true);
+  assert.equal(sites.nativePage(address), null, `${id}: feed must never be passed to yt-dlp as one video`);
+}
+assert.equal(sites.isMediaUrl('https://www.douyin.com/', 'https://video.douyinvod.com/current.mp4?__vid=feed-video'), true);
 assert.equal(sites.isMediaUrl(samples.douyin, 'https://video.douyinvod.com/play.mp4?__vid=other'), false);
+const bandcampAlbum = 'https://artist.bandcamp.com/album/a-record#t=20';
+assert.equal(sites.page(bandcampAlbum)?.id, 'bandcamp');
+assert.equal(sites.page('https://artist.bandcamp.com/album/a-record/unrelated'), null);
+matrix.push({ id: 'bandcamp', address: bandcampAlbum });
 const python = `import sys,json; sys.path.insert(0,'native'); import media_sites; data=json.load(sys.stdin); print(json.dumps([{'id':media_sites.site_of(item['address'])['id'], 'valid':media_sites.is_item(item['address'])} for item in data]))`;
 const native = JSON.parse(execFileSync('python', ['-c', python], { input: JSON.stringify(matrix), encoding: 'utf8' }));
-assert.deepEqual(native.map(s => s.id), Object.keys(samples));
+assert.deepEqual(native.map(s => s.id), matrix.map(item => item.id));
 assert(native.every(s => s.valid), JSON.stringify(native.filter(s => !s.valid)));
 console.log('19-site routing and native policy parity tests passed');

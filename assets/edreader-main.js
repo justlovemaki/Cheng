@@ -1,6 +1,452 @@
 /* LexiHalo readable single bundle: reader. */
+/* Platform capability registry generated from config/media-platforms.json. */
+(() => {
+  "use strict";
+  const PLATFORM_CATALOG = [
+    {
+      id: "youtube",
+      name: "YouTube",
+      homepage: "https://www.youtube.com/",
+      mode: "specialized",
+      platform: "youtube",
+      mediaKind: "video",
+      hosts: ["youtube.com", "youtu.be", "youtube-nocookie.com"],
+      capabilities: { captions: true, aiTranscription: true, download: true, directAudio: true },
+    },
+    {
+      id: "netflix",
+      name: "Netflix",
+      homepage: "https://www.netflix.com/",
+      mode: "specialized",
+      platform: "netflix",
+      mediaKind: "video",
+      hosts: ["netflix.com"],
+      capabilities: { captions: true, aiTranscription: true, download: false, drm: true },
+    },
+    {
+      id: "coursera",
+      name: "Coursera",
+      homepage: "https://www.coursera.org/",
+      mode: "specialized",
+      platform: "coursera",
+      mediaKind: "video",
+      hosts: ["coursera.org"],
+      capabilities: { captions: true, aiTranscription: true, download: false },
+    },
+    {
+      id: "udemy",
+      name: "Udemy",
+      homepage: "https://www.udemy.com/",
+      mode: "specialized",
+      platform: "udemy",
+      mediaKind: "video",
+      hosts: ["udemy.com"],
+      capabilities: { captions: true, aiTranscription: true, download: false },
+    },
+    {
+      id: "ted",
+      name: "TED",
+      homepage: "https://www.ted.com/",
+      mode: "specialized",
+      platform: "ted",
+      mediaKind: "video",
+      hosts: ["ted.com"],
+      capabilities: { captions: true, aiTranscription: true, download: true, directAudio: true },
+    },
+    {
+      id: "hbo",
+      name: "Max / HBO",
+      homepage: "https://www.max.com/",
+      mode: "specialized",
+      platform: "hbo",
+      mediaKind: "video",
+      hosts: ["max.com", "hbomax.com"],
+      capabilities: { captions: true, aiTranscription: true, download: false, drm: true },
+    },
+    {
+      id: "disney",
+      name: "Disney+",
+      homepage: "https://www.disneyplus.com/",
+      mode: "specialized",
+      platform: "disney",
+      mediaKind: "video",
+      hosts: ["disneyplus.com"],
+      capabilities: { captions: true, aiTranscription: true, download: false, drm: true },
+    },
+    {
+      id: "edx",
+      name: "edX",
+      homepage: "https://www.edx.org/",
+      mode: "specialized",
+      platform: "edx",
+      mediaKind: "video",
+      hosts: ["edx.org"],
+      capabilities: { captions: true, aiTranscription: true, download: false },
+    },
+    {
+      id: "primevideo",
+      name: "Prime Video",
+      homepage: "https://www.primevideo.com/",
+      mode: "specialized",
+      platform: "primevideo",
+      mediaKind: "video",
+      hosts: ["primevideo.com", "amazon.com"],
+      capabilities: { captions: true, aiTranscription: true, download: false, drm: true },
+    },
+    {
+      id: "deeplearning",
+      name: "DeepLearning.AI",
+      homepage: "https://www.deeplearning.ai/",
+      mode: "specialized",
+      platform: "deeplearning",
+      mediaKind: "video",
+      hosts: ["deeplearning.ai"],
+      capabilities: { captions: true, aiTranscription: true, download: false },
+    },
+    {
+      id: "bilibili",
+      name: "Bilibili",
+      homepage: "https://www.bilibili.com/",
+      mode: "specialized",
+      platform: "bilibili",
+      mediaKind: "video",
+      hosts: ["bilibili.com"],
+      capabilities: { captions: true, aiTranscription: true, download: true, directAudio: true },
+    },
+    {
+      id: "vimeo",
+      name: "Vimeo",
+      homepage: "https://vimeo.com/",
+      mode: "specialized",
+      platform: "vimeo",
+      mediaKind: "video",
+      hosts: ["vimeo.com"],
+      capabilities: { captions: true, aiTranscription: true, download: true, directAudio: true },
+    },
+    {
+      id: "pornhub",
+      name: "Pornhub",
+      homepage: "https://www.pornhub.com/",
+      mode: "specialized",
+      platform: "html5",
+      mediaKind: "video",
+      hosts: ["pornhub.com"],
+      capabilities: { captions: true, aiTranscription: true, download: true, browserCapture: true },
+    },
+    {
+      id: "douyin",
+      name: "抖音",
+      homepage: "https://www.douyin.com/",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["douyin.com"],
+      routes: ["^/(video|note)/[0-9]+", "[?&](modal_id|vid)=[0-9]+"],
+      mediaHosts: ["douyinvod.com"],
+      browser: true,
+    },
+    {
+      id: "xiaohongshu",
+      name: "小红书",
+      homepage: "https://www.xiaohongshu.com/explore",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["xiaohongshu.com"],
+      routes: ["^/(explore|discovery/item)/[a-fA-F0-9]{24}(/|[?]|$)"],
+      mediaHosts: ["xhscdn.com"],
+      browser: true,
+    },
+    {
+      id: "channels",
+      name: "微信视频号",
+      homepage: "https://channels.weixin.qq.com/",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["weixin.qq.com"],
+      routes: ["^/sph/[A-Za-z0-9]{3,64}", "^/finder-preview/pages/(sph|feed)[?]"],
+      mediaHosts: ["finder.video.qq.com"],
+      browser: true,
+    },
+    {
+      id: "xiaoe",
+      name: "小鹅通",
+      homepage: "https://www.xiaoe-tech.com/",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: [
+        "xiaoeknow.com",
+        "xiaoe-tech.com",
+        "xet.citv.cn",
+        "xet.pomoho.com",
+        "xet.tech",
+        "xetslk.com",
+        "xetlk.com",
+      ],
+      routes: [
+        "^/(v[0-9]+|p)/course/alive/l_[A-Za-z0-9_]+",
+        "^/content_page/",
+        "[?&]params=",
+        "^/sl/",
+      ],
+      mediaHosts: ["xiaoeknow.com", "xiaoe-tech.com", "xet.tech", "xiaoecloud.com"],
+      browser: true,
+    },
+    {
+      id: "weibo",
+      name: "微博视频",
+      homepage: "https://weibo.com/",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["weibo.com", "weibo.cn"],
+      routes: ["^/tv/show/", "^/[0-9]+/[A-Za-z0-9]+", "^/status/[A-Za-z0-9]+"],
+      mediaHosts: ["weibocdn.com", "sina.com.cn", "sinaimg.cn"],
+      browser: false,
+    },
+    {
+      id: "tiktok",
+      name: "TikTok",
+      homepage: "https://www.tiktok.com/",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["tiktok.com"],
+      routes: ["^/@[^/]+/(video|photo)/[0-9]+"],
+      mediaHosts: ["tiktok.com", "tiktokcdn.com", "tiktokcdn-us.com"],
+      browser: false,
+    },
+    {
+      id: "x",
+      name: "X / Twitter",
+      homepage: "https://x.com/",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["x.com", "twitter.com"],
+      routes: ["^/([A-Za-z0-9_]{1,15}|i)/status/[0-9]{5,25}"],
+      mediaHosts: ["video.twimg.com"],
+      browser: false,
+    },
+    {
+      id: "instagram",
+      name: "Instagram",
+      homepage: "https://www.instagram.com/",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["instagram.com"],
+      routes: ["^/(p|reel|reels)/[^/]+"],
+      mediaHosts: ["cdninstagram.com", "fbcdn.net"],
+      browser: false,
+    },
+    {
+      id: "facebook",
+      name: "Facebook",
+      homepage: "https://www.facebook.com/watch/",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["facebook.com", "fb.watch"],
+      routes: ["/videos/", "/reel/", "^/watch/?[?].*v=", "^/[^/?]+/?$"],
+      mediaHosts: ["fbcdn.net"],
+      browser: false,
+    },
+    {
+      id: "reddit",
+      name: "Reddit",
+      homepage: "https://www.reddit.com/",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["reddit.com", "v.redd.it"],
+      routes: ["/comments/", "^/[A-Za-z0-9]+/?$"],
+      mediaHosts: ["redd.it", "redditmedia.com"],
+      browser: false,
+    },
+    {
+      id: "twitch",
+      name: "Twitch",
+      homepage: "https://www.twitch.tv/",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["twitch.tv"],
+      routes: ["^/videos/[0-9]+", "^/[^/]+/clip/[^/]+", "^/[A-Za-z0-9_-]+/?$"],
+      mediaHosts: ["ttvnw.net", "twitch.tv", "twitchcdn.net"],
+      browser: false,
+    },
+    {
+      id: "dailymotion",
+      name: "Dailymotion",
+      homepage: "https://www.dailymotion.com/",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["dailymotion.com", "dai.ly"],
+      routes: ["^/(embed/)?video/[A-Za-z0-9]+", "^/[A-Za-z0-9]+/?$"],
+      mediaHosts: ["dmcdn.net"],
+      browser: false,
+    },
+    {
+      id: "niconico",
+      name: "niconico",
+      homepage: "https://www.nicovideo.jp/",
+      mode: "browser",
+      mediaKind: "video",
+      hosts: ["nicovideo.jp", "nico.ms"],
+      routes: ["^/watch/[A-Za-z0-9]+", "^/(sm|so|nm)?[0-9]+/?$"],
+      mediaHosts: ["nicovideo.jp", "dmc.nico", "domand.nicovideo.jp"],
+      browser: false,
+    },
+    {
+      id: "xiaoyuzhou",
+      name: "小宇宙",
+      homepage: "https://www.xiaoyuzhoufm.com/",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["xiaoyuzhoufm.com"],
+      routes: ["^/episode/[a-fA-F0-9]{24}(/|$)"],
+      mediaHosts: ["xyzcdn.net"],
+      browser: true,
+      audio: true,
+    },
+    {
+      id: "soundcloud",
+      name: "SoundCloud",
+      homepage: "https://soundcloud.com/",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["soundcloud.com"],
+      routes: ["^/[^/]+/[^/]+/?$"],
+      mediaHosts: ["sndcdn.com", "soundcloud.com"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "bandcamp",
+      name: "Bandcamp",
+      homepage: "https://bandcamp.com/",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["bandcamp.com"],
+      routes: ["^/(track|album)/[^/?#]+/?(?:[?#]|$)"],
+      mediaHosts: ["bcbits.com"],
+      browser: true,
+      audio: true,
+    },
+    {
+      id: "ximalaya",
+      name: "喜马拉雅",
+      homepage: "https://www.ximalaya.com/",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["ximalaya.com"],
+      routes: ["/sound/[0-9]+"],
+      mediaHosts: ["xmcdn.com", "ximalaya.com"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "netease",
+      name: "网易云音乐",
+      homepage: "https://music.163.com/",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["music.163.com"],
+      routes: ["(^/|#/)song[?].*id=[0-9]+"],
+      mediaHosts: ["music.126.net"],
+      browser: false,
+      audio: true,
+    },
+    {
+      id: "applepodcasts",
+      name: "Apple Podcasts",
+      homepage: "https://podcasts.apple.com/",
+      mode: "browser",
+      mediaKind: "audio",
+      hosts: ["podcasts.apple.com"],
+      routes: ["/podcast/.*[?].*i=[0-9]+"],
+      mediaHosts: ["podcasts.apple.com", "mzstatic.com"],
+      browser: false,
+      audio: true,
+    },
+  ]; // Replaced by the readable-bundle build.
+  const defaults = Object.freeze({
+    captions: true,
+    aiTranscription: true,
+    directAudio: false,
+    browserCapture: false,
+    nativePage: true,
+    download: true,
+    drm: false,
+    specialized: true,
+  });
+  const registry = new Map(
+    PLATFORM_CATALOG.map((entry) => [
+      entry.id,
+      Object.freeze({
+        ...defaults,
+        ...(entry.capabilities || {}),
+        id: entry.id,
+        platform: entry.platform || entry.id,
+        mode: entry.mode,
+        mediaKind: entry.mediaKind || "video",
+        hosts: Object.freeze([...(entry.hosts || [])]),
+        specialized: entry.mode === "specialized",
+      }),
+    ]),
+  );
+  registry.set(
+    "html5",
+    Object.freeze({
+      ...defaults,
+      id: "html5",
+      platform: "html5",
+      mode: "generic",
+      mediaKind: "video",
+      browserCapture: true,
+      specialized: false,
+      hosts: [],
+    }),
+  );
+  const byPlatform = new Map([...registry.values()].map((entry) => [entry.platform, entry]));
+  const hostMatches = (host, entry) =>
+    entry.hosts.some((value) => host === value || host.endsWith(`.${value}`));
+  const resolve = ({ platform, page, host = "" } = {}) => {
+    const normalizedHost = String(host || "").toLowerCase();
+    const hostEntry = [...registry.values()].find(
+      (entry) => entry.specialized && hostMatches(normalizedHost, entry),
+    );
+    const entry =
+      hostEntry ||
+      registry.get(page?.id) ||
+      byPlatform.get(platform) ||
+      registry.get(platform) ||
+      registry.get("html5");
+    const pageCapabilities = globalThis.lexihaloMediaContract?.capabilities(page) || {};
+    return Object.freeze({
+      ...entry,
+      browserCapture:
+        entry.browserCapture === true ||
+        entry.mode === "browser" ||
+        (entry.id === "html5" && pageCapabilities.browserReadable === true),
+      audioOnly: entry.mediaKind === "audio" || pageCapabilities.audioOnly === true,
+      generic: pageCapabilities.generic === true,
+      key: entry.id,
+    });
+  };
+  globalThis.lexihaloPlatformCapabilities = Object.freeze({
+    catalog: Object.freeze(PLATFORM_CATALOG),
+    entries: Object.freeze([...registry.values()]),
+    keys: Object.freeze([...registry.keys()]),
+    get: (id) => registry.get(id) || null,
+    resolve,
+  });
+})();
+
 (() => {
   const __trancyStandaloneLinkGuard = (e) => {
+    const platformLink = e.composedPath?.().find((node) => node?.tagName === "A");
+    if (
+      platformLink?.matches(".support-platform .support-platform-item[data-platform-id]") &&
+      globalThis.lexihaloPlatformCapabilities?.catalog.some(
+        (platform) =>
+          platform.id === platformLink.getAttribute("data-platform-id") &&
+          platform.homepage === platformLink.href,
+      )
+    )
+      return;
     const t = "function" == typeof e.composedPath ? e.composedPath() : [],
       n = t.find((e) => e && "A" === e.tagName),
       r = t.some(
@@ -63498,9 +63944,51 @@
         const useDispatchBridge = dependencies.useDispatchBridge;
         const useLocale = dependencies.useLocale;
         const useSliderNavigation = dependencies.useSliderNavigation;
+
+        // Only presentation belongs here; supported sites come from the shared catalog.
+        const platformIcons = {
+          youtube: "",
+          netflix: "p_netflix",
+          hbo: "p_hbo",
+          disney: "p_disney",
+          primevideo: "p_prime",
+          coursera: "p_coursera",
+          udemy: "p_udemy",
+          edx: "p_edx",
+          deeplearning: "p_deeplearning",
+          ted: "p_ted",
+          bilibili: "p_bilibili",
+          vimeo: "p_vimeo",
+          pornhub: "p_pornhub",
+          douyin: "p_douyin",
+          xiaohongshu: "p_xiaohongshu",
+          channels: "p_channels",
+          xiaoe: "p_xiaoe",
+          weibo: "p_weibo",
+          tiktok: "p_tiktok",
+          x: "p_x",
+          instagram: "p_instagram",
+          facebook: "p_facebook",
+          reddit: "p_reddit",
+          twitch: "p_twitch",
+          dailymotion: "p_dailymotion",
+          niconico: "p_niconico",
+          xiaoyuzhou: "p_xiaoyuzhou",
+          soundcloud: "p_soundcloud",
+          bandcamp: "p_bandcamp",
+          ximalaya: "p_ximalaya",
+          netease: "p_netease",
+          applepodcasts: "p_applepodcasts",
+        };
+        const supportNotes = {
+          "zh-CN":
+            "还支持普通网页中的标准 HTML5 视频播放器。双语字幕需可读取的字幕轨道，或配置 BYOK 音频识别生成字幕；部分媒体处理需安装本地助手。音频站点用于转写与资源下载，不保证原页面字幕同步。登录、地区限制、DRM 和网站接口变化可能影响可用性。",
+          "zh-Hant":
+            "亦支援一般網頁中的標準 HTML5 影片播放器。雙語字幕需可讀取的字幕軌道，或設定 BYOK 語音辨識產生字幕；部分媒體處理需安裝本機助手。音訊網站用於轉寫與資源下載，不保證原頁面字幕同步。登入、地區限制、DRM 和網站介面變更可能影響可用性。",
+          en: "Standard HTML5 video players on other websites are also supported. Bilingual subtitles require readable subtitle tracks or BYOK audio transcription; some media processing requires the local helper. Audio sites support transcription and resource downloads, without guaranteed in-page subtitle sync. Login, region restrictions, DRM and site changes may affect availability.",
+        };
         const DualSubtitleSettings = (props) => {
-          const { user: t, setting: n } = useAppSelector((e) => ({
-              user: e.user,
+          const { setting: n } = useAppSelector((e) => ({
               setting: e.setting,
             })),
             { navigate: r } = useSliderNavigation(),
@@ -63605,166 +64093,61 @@
                     className: "slider-label lg-label",
                     children: o("dual_subtitle_support_platform"),
                   }),
-                  (0, jsxRuntime.jsxs)("div", {
+                  (0, jsxRuntime.jsx)("div", {
                     className: "support-platform",
-                    children: [
-                      (0, jsxRuntime.jsxs)("a", {
-                        className: "support-platform-item",
-                        href: "https://www.youtube.com/",
-                        target: "_blank",
-                        children: [
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "platform-icon",
-                          }),
-                          (0, jsxRuntime.jsx)("span", {
-                            children: "YouTube",
-                          }),
-                        ],
-                      }),
-                      (0, jsxRuntime.jsxs)("a", {
-                        className: "support-platform-item",
-                        href: "https://www.netflix.com/",
-                        target: "_blank",
-                        children: [
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "platform-icon p_netflix",
-                          }),
-                          (0, jsxRuntime.jsx)("span", {
-                            children: "Netflix",
-                          }),
-                        ],
-                      }),
-                      (0, jsxRuntime.jsxs)("a", {
-                        className: "support-platform-item",
-                        href: "https://www.max.com/",
-                        target: "_blank",
-                        children: [
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "platform-icon p_hbo",
-                          }),
-                          (0, jsxRuntime.jsx)("span", {
-                            children: "Max / HBO",
-                          }),
-                        ],
-                      }),
-                      (0, jsxRuntime.jsxs)("a", {
-                        className: "support-platform-item",
-                        href: "https://www.disneyplus.com/",
-                        target: "_blank",
-                        children: [
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "platform-icon p_disney",
-                          }),
-                          (0, jsxRuntime.jsx)("span", {
-                            children: "Disney+",
-                          }),
-                        ],
-                      }),
-                      (0, jsxRuntime.jsxs)("a", {
-                        className: "support-platform-item",
-                        href: "https://www.primevideo.com/",
-                        target: "_blank",
-                        children: [
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "platform-icon p_prime",
-                          }),
-                          (0, jsxRuntime.jsx)("span", {
-                            children: "Prime Video",
-                          }),
-                        ],
-                      }),
-                      (0, jsxRuntime.jsxs)("a", {
-                        className: "support-platform-item",
-                        href: "https://www.coursera.org/",
-                        target: "_blank",
-                        children: [
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "platform-icon p_coursera",
-                          }),
-                          (0, jsxRuntime.jsx)("span", {
-                            children: "Coursera",
-                          }),
-                        ],
-                      }),
-                      (0, jsxRuntime.jsxs)("a", {
-                        className: "support-platform-item",
-                        href: "https://www.udemy.com/",
-                        target: "_blank",
-                        children: [
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "platform-icon p_udemy",
-                          }),
-                          (0, jsxRuntime.jsx)("span", {
-                            children: "Udemy",
-                          }),
-                        ],
-                      }),
-                      (0, jsxRuntime.jsxs)("a", {
-                        className: "support-platform-item",
-                        href: "https://www.edx.org/",
-                        target: "_blank",
-                        children: [
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "platform-icon p_edx",
-                          }),
-                          (0, jsxRuntime.jsx)("span", {
-                            children: "edX",
-                          }),
-                        ],
-                      }),
-                      (0, jsxRuntime.jsxs)("a", {
-                        className: "support-platform-item",
-                        href: "https://www.deeplearning.ai/",
-                        target: "_blank",
-                        children: [
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "platform-icon p_deeplearning",
-                          }),
-                          (0, jsxRuntime.jsx)("span", {
-                            children: "DeepLearning",
-                          }),
-                        ],
-                      }),
-                      (0, jsxRuntime.jsxs)("a", {
-                        className: "support-platform-item",
-                        href: "https://www.ted.com/",
-                        target: "_blank",
-                        children: [
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "platform-icon p_ted",
-                          }),
-                          (0, jsxRuntime.jsx)("span", {
-                            children: "TED",
-                          }),
-                        ],
-                      }),
-                      (0, jsxRuntime.jsxs)("a", {
-                        className: "support-platform-item",
-                        href: "https://www.bilibili.com/",
-                        target: "_blank",
-                        children: [
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "platform-icon p_bilibili",
-                          }),
-                          (0, jsxRuntime.jsx)("span", {
-                            children: "Bilibili",
-                          }),
-                        ],
-                      }),
-                      (0, jsxRuntime.jsxs)("a", {
-                        className: "support-platform-item",
-                        href: "https://vimeo.com/",
-                        target: "_blank",
-                        children: [
-                          (0, jsxRuntime.jsx)("div", {
-                            className: "platform-icon p_vimeo",
-                          }),
-                          (0, jsxRuntime.jsx)("span", {
-                            children: "Vimeo",
-                          }),
-                        ],
-                      }),
-                    ],
+                    children: globalThis.lexihaloPlatformCapabilities.catalog.map((platform) => {
+                      const hasIcon = Object.prototype.hasOwnProperty.call(
+                        platformIcons,
+                        platform.id,
+                      );
+                      return (0, jsxRuntime.jsxs)(
+                        "a",
+                        {
+                          className: "support-platform-item",
+                          "data-platform-id": platform.id,
+                          href: platform.homepage,
+                          title: platform.homepage,
+                          target: "_blank",
+                          rel: "noopener noreferrer",
+                          children: [
+                            (0, jsxRuntime.jsx)("div", {
+                              className: hasIcon
+                                ? `platform-icon ${platformIcons[platform.id]}`.trim()
+                                : "platform-icon platform-icon-fallback",
+                              "aria-hidden": true,
+                              children: hasIcon
+                                ? null
+                                : platform.name
+                                    .slice(0, /^[A-Za-z]/.test(platform.name) ? 2 : 1)
+                                    .toUpperCase(),
+                            }),
+                            (0, jsxRuntime.jsx)("span", {
+                              children: platform.name,
+                            }),
+                            (0, jsxRuntime.jsx)("div", {
+                              className: "support-platform-link-icon t-icon icon-14",
+                              "aria-hidden": true,
+                              children: (0, jsxRuntime.jsx)("svg", {
+                                viewBox: "0 0 24 24",
+                                fill: "none",
+                                stroke: "currentColor",
+                                strokeWidth: 2,
+                                strokeLinecap: "round",
+                                strokeLinejoin: "round",
+                                children: (0, jsxRuntime.jsx)("path", {
+                                  d: "M14 3h7v7m0-7L10 14M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5",
+                                }),
+                              }),
+                            }),
+                          ],
+                        },
+                        platform.id,
+                      );
+                    }),
+                  }),
+                  (0, jsxRuntime.jsx)("div", {
+                    className: "tips support-platform-note",
+                    children: supportNotes[n.language?.interface] || supportNotes.en,
                   }),
                 ],
               }),

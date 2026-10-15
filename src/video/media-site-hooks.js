@@ -108,12 +108,27 @@
     openGraph: false,
   });
 
+  // NetEase keeps its persistent playback controls in the outer hash-router
+  // document; /song?id=... is also loaded inside its content iframe.
+  register("netease", {
+    preferSameItemAncestor: true,
+    bindMedia({ media }) { globalThis.lexihaloNeteasePlayback.bind(media); },
+  });
+
+  register("ximalaya", {
+    bindMedia({ media }) { globalThis.lexihaloXimalayaPlayback.bind(media); },
+  });
+
+  register("soundcloud", {
+    bindMedia({ media }) { globalThis.lexihaloSoundcloudPlayback.bind(media); },
+  });
+
   register("bandcamp", {
-    snapshot({ page, sources, add }) {
-      for (const url of Object.values(globalThis.TralbumData?.trackinfo?.[0]?.file || {})) {
-        add(sources, page, url, { kind: "audio" });
-      }
-    },
+    currentItem({ page }) { return page ? globalThis.lexihaloBandcampMedia.currentItem(page) : null; },
+    pickMedia(context) { return globalThis.lexihaloBandcampMedia.pickMedia(context); },
+    snapshot(context) { return globalThis.lexihaloBandcampMedia.snapshot(context); },
+    prepare(context) { return globalThis.lexihaloBandcampMedia.prepare(context); },
+    bindMedia(context) { return globalThis.lexihaloBandcampMedia.bindMedia(context); },
   });
 
   register("xiaoe", {
@@ -159,6 +174,8 @@
     entries: Object.freeze([...hooks.values()]),
     get,
     pickMedia(page, context) { return get(page)?.pickMedia?.({ page, ...context }) || null; },
+    bindMedia(page, context) { return get(page)?.bindMedia?.({ page, ...context }); },
+    currentItem(page) { return get(page)?.currentItem?.({ page }) || page; },
     snapshot(page, context) { return get(page)?.snapshot?.({ page, ...context }); },
     prepare(page, context) { return get(page)?.prepare?.({ page, ...context }); },
     flag(page, name, fallback = false) { return get(page)?.[name] ?? fallback; },

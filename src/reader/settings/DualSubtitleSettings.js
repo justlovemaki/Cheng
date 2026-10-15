@@ -12,11 +12,51 @@ export function recoverDualSubtitleSettings(dependencies) {
   const useLocale = dependencies.useLocale;
   const useSliderNavigation = dependencies.useSliderNavigation;
 
+  // Only presentation belongs here; supported sites come from the shared catalog.
+  const platformIcons = {
+    youtube: "",
+    netflix: "p_netflix",
+    hbo: "p_hbo",
+    disney: "p_disney",
+    primevideo: "p_prime",
+    coursera: "p_coursera",
+    udemy: "p_udemy",
+    edx: "p_edx",
+    deeplearning: "p_deeplearning",
+    ted: "p_ted",
+    bilibili: "p_bilibili",
+    vimeo: "p_vimeo",
+    pornhub: "p_pornhub",
+    douyin: "p_douyin",
+    xiaohongshu: "p_xiaohongshu",
+    channels: "p_channels",
+    xiaoe: "p_xiaoe",
+    weibo: "p_weibo",
+    tiktok: "p_tiktok",
+    x: "p_x",
+    instagram: "p_instagram",
+    facebook: "p_facebook",
+    reddit: "p_reddit",
+    twitch: "p_twitch",
+    dailymotion: "p_dailymotion",
+    niconico: "p_niconico",
+    xiaoyuzhou: "p_xiaoyuzhou",
+    soundcloud: "p_soundcloud",
+    bandcamp: "p_bandcamp",
+    ximalaya: "p_ximalaya",
+    netease: "p_netease",
+    applepodcasts: "p_applepodcasts",
+  };
+  const supportNotes = {
+    "zh-CN":
+      "还支持普通网页中的标准 HTML5 视频播放器。双语字幕需可读取的字幕轨道，或配置 BYOK 音频识别生成字幕；部分媒体处理需安装本地助手。音频站点用于转写与资源下载，不保证原页面字幕同步。登录、地区限制、DRM 和网站接口变化可能影响可用性。",
+    "zh-Hant":
+      "亦支援一般網頁中的標準 HTML5 影片播放器。雙語字幕需可讀取的字幕軌道，或設定 BYOK 語音辨識產生字幕；部分媒體處理需安裝本機助手。音訊網站用於轉寫與資源下載，不保證原頁面字幕同步。登入、地區限制、DRM 和網站介面變更可能影響可用性。",
+    en: "Standard HTML5 video players on other websites are also supported. Bilingual subtitles require readable subtitle tracks or BYOK audio transcription; some media processing requires the local helper. Audio sites support transcription and resource downloads, without guaranteed in-page subtitle sync. Login, region restrictions, DRM and site changes may affect availability.",
+  };
+
   const DualSubtitleSettings = (props) => {
-    const { user: t, setting: n } = useAppSelector((e) => ({
-        user: e.user,
-        setting: e.setting,
-      })),
+    const { setting: n } = useAppSelector((e) => ({ setting: e.setting })),
       { navigate: r } = useSliderNavigation(),
       { dispatch: i } = useDispatchBridge(),
       a = (useApiClient(!0), !1 !== n.dualSubtitleEnabled),
@@ -91,11 +131,7 @@ export function recoverDualSubtitleSettings(dependencies) {
                           i(Br(e)),
                             window.dispatchEvent(
                               new CustomEvent("edvideo:caption.reload", {
-                                detail: {
-                                  body: {
-                                    status: e ? "on" : "off",
-                                  },
-                                },
+                                detail: { body: { status: e ? "on" : "off" } },
                               }),
                             );
                         },
@@ -119,166 +155,67 @@ export function recoverDualSubtitleSettings(dependencies) {
               className: "slider-label lg-label",
               children: o("dual_subtitle_support_platform"),
             }),
-            (0, jsxRuntime.jsxs)("div", {
+            (0, jsxRuntime.jsx)("div", {
               className: "support-platform",
-              children: [
-                (0, jsxRuntime.jsxs)("a", {
-                  className: "support-platform-item",
-                  href: "https://www.youtube.com/",
-                  target: "_blank",
-                  children: [
-                    (0, jsxRuntime.jsx)("div", {
-                      className: "platform-icon",
-                    }),
-                    (0, jsxRuntime.jsx)("span", {
-                      children: "YouTube",
-                    }),
-                  ],
-                }),
-                (0, jsxRuntime.jsxs)("a", {
-                  className: "support-platform-item",
-                  href: "https://www.netflix.com/",
-                  target: "_blank",
-                  children: [
-                    (0, jsxRuntime.jsx)("div", {
-                      className: "platform-icon p_netflix",
-                    }),
-                    (0, jsxRuntime.jsx)("span", {
-                      children: "Netflix",
-                    }),
-                  ],
-                }),
-                (0, jsxRuntime.jsxs)("a", {
-                  className: "support-platform-item",
-                  href: "https://www.max.com/",
-                  target: "_blank",
-                  children: [
-                    (0, jsxRuntime.jsx)("div", {
-                      className: "platform-icon p_hbo",
-                    }),
-                    (0, jsxRuntime.jsx)("span", {
-                      children: "Max / HBO",
-                    }),
-                  ],
-                }),
-                (0, jsxRuntime.jsxs)("a", {
-                  className: "support-platform-item",
-                  href: "https://www.disneyplus.com/",
-                  target: "_blank",
-                  children: [
-                    (0, jsxRuntime.jsx)("div", {
-                      className: "platform-icon p_disney",
-                    }),
-                    (0, jsxRuntime.jsx)("span", {
-                      children: "Disney+",
-                    }),
-                  ],
-                }),
-                (0, jsxRuntime.jsxs)("a", {
-                  className: "support-platform-item",
-                  href: "https://www.primevideo.com/",
-                  target: "_blank",
-                  children: [
-                    (0, jsxRuntime.jsx)("div", {
-                      className: "platform-icon p_prime",
-                    }),
-                    (0, jsxRuntime.jsx)("span", {
-                      children: "Prime Video",
-                    }),
-                  ],
-                }),
-                (0, jsxRuntime.jsxs)("a", {
-                  className: "support-platform-item",
-                  href: "https://www.coursera.org/",
-                  target: "_blank",
-                  children: [
-                    (0, jsxRuntime.jsx)("div", {
-                      className: "platform-icon p_coursera",
-                    }),
-                    (0, jsxRuntime.jsx)("span", {
-                      children: "Coursera",
-                    }),
-                  ],
-                }),
-                (0, jsxRuntime.jsxs)("a", {
-                  className: "support-platform-item",
-                  href: "https://www.udemy.com/",
-                  target: "_blank",
-                  children: [
-                    (0, jsxRuntime.jsx)("div", {
-                      className: "platform-icon p_udemy",
-                    }),
-                    (0, jsxRuntime.jsx)("span", {
-                      children: "Udemy",
-                    }),
-                  ],
-                }),
-                (0, jsxRuntime.jsxs)("a", {
-                  className: "support-platform-item",
-                  href: "https://www.edx.org/",
-                  target: "_blank",
-                  children: [
-                    (0, jsxRuntime.jsx)("div", {
-                      className: "platform-icon p_edx",
-                    }),
-                    (0, jsxRuntime.jsx)("span", {
-                      children: "edX",
-                    }),
-                  ],
-                }),
-                (0, jsxRuntime.jsxs)("a", {
-                  className: "support-platform-item",
-                  href: "https://www.deeplearning.ai/",
-                  target: "_blank",
-                  children: [
-                    (0, jsxRuntime.jsx)("div", {
-                      className: "platform-icon p_deeplearning",
-                    }),
-                    (0, jsxRuntime.jsx)("span", {
-                      children: "DeepLearning",
-                    }),
-                  ],
-                }),
-                (0, jsxRuntime.jsxs)("a", {
-                  className: "support-platform-item",
-                  href: "https://www.ted.com/",
-                  target: "_blank",
-                  children: [
-                    (0, jsxRuntime.jsx)("div", {
-                      className: "platform-icon p_ted",
-                    }),
-                    (0, jsxRuntime.jsx)("span", {
-                      children: "TED",
-                    }),
-                  ],
-                }),
-                (0, jsxRuntime.jsxs)("a", {
-                  className: "support-platform-item",
-                  href: "https://www.bilibili.com/",
-                  target: "_blank",
-                  children: [
-                    (0, jsxRuntime.jsx)("div", {
-                      className: "platform-icon p_bilibili",
-                    }),
-                    (0, jsxRuntime.jsx)("span", {
-                      children: "Bilibili",
-                    }),
-                  ],
-                }),
-                (0, jsxRuntime.jsxs)("a", {
-                  className: "support-platform-item",
-                  href: "https://vimeo.com/",
-                  target: "_blank",
-                  children: [
-                    (0, jsxRuntime.jsx)("div", {
-                      className: "platform-icon p_vimeo",
-                    }),
-                    (0, jsxRuntime.jsx)("span", {
-                      children: "Vimeo",
-                    }),
-                  ],
-                }),
-              ],
+              children: globalThis.lexihaloPlatformCapabilities.catalog.map(
+                (platform) => {
+                  const hasIcon = Object.prototype.hasOwnProperty.call(
+                    platformIcons,
+                    platform.id,
+                  );
+                  return (0, jsxRuntime.jsxs)(
+                    "a",
+                    {
+                      className: "support-platform-item",
+                      "data-platform-id": platform.id,
+                      href: platform.homepage,
+                      title: platform.homepage,
+                      target: "_blank",
+                      rel: "noopener noreferrer",
+                      children: [
+                        (0, jsxRuntime.jsx)("div", {
+                          className: hasIcon
+                            ? `platform-icon ${platformIcons[platform.id]}`.trim()
+                            : "platform-icon platform-icon-fallback",
+                          "aria-hidden": true,
+                          children: hasIcon
+                            ? null
+                            : platform.name
+                                .slice(
+                                  0,
+                                  /^[A-Za-z]/.test(platform.name) ? 2 : 1,
+                                )
+                                .toUpperCase(),
+                        }),
+                        (0, jsxRuntime.jsx)("span", {
+                          children: platform.name,
+                        }),
+                        (0, jsxRuntime.jsx)("div", {
+                          className:
+                            "support-platform-link-icon t-icon icon-14",
+                          "aria-hidden": true,
+                          children: (0, jsxRuntime.jsx)("svg", {
+                            viewBox: "0 0 24 24",
+                            fill: "none",
+                            stroke: "currentColor",
+                            strokeWidth: 2,
+                            strokeLinecap: "round",
+                            strokeLinejoin: "round",
+                            children: (0, jsxRuntime.jsx)("path", {
+                              d: "M14 3h7v7m0-7L10 14M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5",
+                            }),
+                          }),
+                        }),
+                      ],
+                    },
+                    platform.id,
+                  );
+                },
+              ),
+            }),
+            (0, jsxRuntime.jsx)("div", {
+              className: "tips support-platform-note",
+              children: supportNotes[n.language?.interface] || supportNotes.en,
             }),
           ],
         }),

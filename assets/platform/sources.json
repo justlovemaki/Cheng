@@ -1,0 +1,162 @@
+[
+  {
+    "id": "pornhub",
+    "source": "https://ei.phncdn.com/www-static/favicon.ico?cache=2026101405",
+    "sourceSize": [48, 48],
+    "file": "p_pornhub.png",
+    "format": "ICO",
+    "sha256": "2c8c4188ce1d406fb322d16bbd91e7b83f5519d99effed5b090ced92ee0e4734"
+  },
+  {
+    "id": "xiaohongshu",
+    "source": "https://picasso-static.xiaohongshu.com/fe-platform/f43dc4a8baf03678996c62d8db6ebc01a82256ff.png",
+    "sourceSize": [180, 180],
+    "file": "p_xiaohongshu.png",
+    "format": "PNG",
+    "sha256": "02831f5ae8ff12a083419563f4074083b7b6ef13a76f400cceac61c1cab055fe"
+  },
+  {
+    "id": "x",
+    "source": "https://x.com/apple-touch-icon.png",
+    "sourceSize": [1024, 1024],
+    "file": "p_x.png",
+    "format": "PNG",
+    "sha256": "82ba0f440ad7ea2d7b8c5407501d21684c4694a000c5137e74aca4697d2d5acf"
+  },
+  {
+    "id": "instagram",
+    "source": "https://static.cdninstagram.com/rsrc.php/yw/r/icwX0xAk0pz.webp",
+    "sourceSize": [180, 180],
+    "file": "p_instagram.png",
+    "format": "WEBP",
+    "sha256": "ebfa09f0eec6f373bd1c8b2605ac1d2df112c152f3383741bfbb1000028b890e"
+  },
+  {
+    "id": "facebook",
+    "source": "https://static.xx.fbcdn.net/rsrc.php/y1/r/ay1hV6OlegS.ico",
+    "sourceSize": [60, 60],
+    "file": "p_facebook.png",
+    "format": "ICO",
+    "sha256": "00f54ab9d5521f9be6308aafd46afbb27613d79add561ad7144594e87fb13197"
+  },
+  {
+    "id": "twitch",
+    "source": "https://assets.twitch.tv/assets/favicon-32-5c61aa63605bca4f740d.png",
+    "sourceSize": [32, 32],
+    "file": "p_twitch.png",
+    "format": "PNG",
+    "sha256": "4fd09edbafa4f154190acb22f9debb55c859562153f227600e9b8beb5be63984"
+  },
+  {
+    "id": "dailymotion",
+    "source": "https://static.neon-ssr.dailymotion.com/neon-seo-ssr/static/favicons/apple-icon-180x180.372a6bba95ad4590ddf5.png",
+    "sourceSize": [180, 180],
+    "file": "p_dailymotion.png",
+    "format": "PNG",
+    "sha256": "99a823818ee306bb7d9729bd6691094d8cb9c0f94b9f93174d75d5fe13cbe6a0"
+  },
+  {
+    "id": "niconico",
+    "source": "https://resource.video.nimg.jp/web/images/favicon_uni/144.png?re",
+    "sourceSize": [144, 144],
+    "file": "p_niconico.png",
+    "format": "PNG",
+    "sha256": "7c9cccd8d2f26d8e1d167101f575af5a579bc13586ff4e2fc70186fe563a0033"
+  },
+  {
+    "id": "xiaoyuzhou",
+    "source": "https://www.xiaoyuzhoufm.com/apple-touch-icon.png",
+    "sourceSize": [180, 180],
+    "file": "p_xiaoyuzhou.png",
+    "format": "PNG",
+    "sha256": "25cf48d529f8c802d394f78e717eb5327fa42da6acf09be2360f203ff068c45b"
+  },
+  {
+    "id": "soundcloud",
+    "source": "https://a-v2.sndcdn.com/assets/images/sc-icons/ios-a62dfc8fe7.png",
+    "sourceSize": [114, 114],
+    "file": "p_soundcloud.png",
+    "format": "PNG",
+    "sha256": "25e6d927e75919aaf159c286d7849c302723e1d12a8b6207b3464086412bcaf2"
+  },
+  {
+    "id": "bandcamp",
+    "source": "https://s4.bcbits.com/client-bundle/1/PageLayout_1/favicon-e91a942bb76c26f619d5945a00cf8e60.static/favicon/apple-touch-icon.png",
+    "sourceSize": [180, 180],
+    "file": "p_bandcamp.png",
+    "format": "PNG",
+    "sha256": "cd0f510817b7a57b931a729468aa080c324afb8b37b246816fc4b8778aabd45a"
+  },
+  {
+    "id": "netease",
+    "source": "https://s1.music.126.net/style/favicon.ico?v20180823",
+    "sourceSize": [32, 32],
+    "file": "p_netease.png",
+    "format": "ICO",
+    "sha256": "f4bcd4d360bd3be31b1c1d9c8ed6426df64544d61005eb71650ffd5bce491d49"
+  },
+  {
+    "id": "douyin",
+    "source": "https://lf1-cdn-tos.bytegoofy.com/goofy/ies/douyin_web/public/favicon.ico",
+    "sourceSize": [32, 32],
+    "file": "p_douyin.png",
+    "format": "ICO",
+    "sha256": "5c422272de0314ab8f98dead624416c6656ca4184489c043b16cb31ebc2e9b37"
+  },
+  {
+    "id": "weibo",
+    "source": "https://weibo.com/favicon.ico",
+    "sourceSize": [32, 32],
+    "file": "p_weibo.png",
+    "format": "ICO",
+    "sha256": "394ce23096b0eec2ac54e59011a8e56753b62b56bc8ae193f8ff58cec43c8fbf"
+  },
+  {
+    "id": "tiktok",
+    "source": "https://www.tiktok.com/favicon.ico",
+    "sourceSize": [32, 32],
+    "file": "p_tiktok.png",
+    "format": "PNG",
+    "sha256": "a7b61e44c6b7018ae97906abe8928e707c734af41b2ecf608050d71caa189c97"
+  },
+  {
+    "id": "reddit",
+    "source": "https://www.redditstatic.com/desktop2x/img/favicon/favicon-96x96.png",
+    "sourceSize": [96, 96],
+    "file": "p_reddit.png",
+    "format": "PNG",
+    "sha256": "f9428a9160c569f90856d02221145fac62d329c255d6f373d577aef5a49896d6"
+  },
+  {
+    "id": "ximalaya",
+    "source": "https://www.ximalaya.com/favicon.ico",
+    "sourceSize": [48, 48],
+    "file": "p_ximalaya.png",
+    "format": "ICO",
+    "sha256": "8b4390348f6d81654a72c2d3f0834acd8ebe3f24457532e0e518bbb110c8c583"
+  },
+  {
+    "id": "applepodcasts",
+    "source": "https://podcasts.apple.com/favicon.ico",
+    "sourceSize": [32, 32],
+    "file": "p_applepodcasts.png",
+    "format": "ICO",
+    "sha256": "d49790f5e02ee89e4fb842bf23e928bd48648321b9db46179a6aee983f9fb1ca"
+  },
+  {
+    "id": "channels",
+    "source": "https://res.wx.qq.com/t/wx_fed/finder/helper/finder-helper-web/res/favicon-v2.ico",
+    "sourceSize": [32, 32],
+    "file": "p_channels.png",
+    "format": "PNG",
+    "sha256": "24a2c51c7a4c484721fd79c8519e4fad46cc16b206a7c5535d103620b65e95b6"
+  },
+  {
+    "id": "xiaoe",
+    "source": "https://commonresource-1252524126.cdn.xiaoeknow.com/image/lhyaurs50zil.ico",
+    "sourceSize": [64, 64],
+    "file": "p_xiaoe.png",
+    "format": "PNG",
+    "sha256": "debf18d65d3dac0a2873e848eed58735b6bae132ed7b2c02c41496bf656d74c9"
+  }
+]

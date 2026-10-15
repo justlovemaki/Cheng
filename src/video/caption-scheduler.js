@@ -125,8 +125,8 @@
     }
     return originalCaptionLoad(...args);
   };
-  globalThis.lexihaloGetCapturedSources = () => requestSubtitleService(
-    "lexihalo:subtitle-ai:media-sources", {}, 15000,
+  globalThis.lexihaloGetCapturedSources = (urls) => requestSubtitleService(
+    "lexihalo:subtitle-ai:media-sources", { ...(urls ? { urls } : {}) }, 15000,
   );
   const mediaTasks = globalThis.lexihaloMediaTasks;
   const runBrowserMedia = async (payload, purpose, finishType, onProgress) => {
@@ -215,6 +215,8 @@
   window.addEventListener("pagehide", () => {
     mediaTasks.cancelAll();
   });
+  globalThis.lexihaloGetHelperStatus = () =>
+    requestSubtitleService("lexihalo:subtitle-ai:helper-status", {}, 15000);
   globalThis.lexihaloListVideoFormats = (mediaPageUrl) =>
     requestSubtitleService(
       "lexihalo:subtitle-ai:video-formats",
@@ -226,6 +228,12 @@
     : requestSubtitleService("lexihalo:subtitle-ai:video-download", payload, 14400000, onProgress);
   globalThis.lexihaloCancelVideoDownload = (requestId) =>
     cancelBrowserMedia(requestId, "lexihalo:subtitle-ai:cancel-video-download");
+  provider.event?.on?.("video.change", () => {
+    for (const task of mediaTasks.tasks.values()) {
+      void cancelBrowserMedia(task.requestId, task.purpose === "download"
+        ? "lexihalo:subtitle-ai:cancel-video-download" : "lexihalo:subtitle-ai:cancel-transcription").catch(() => {});
+    }
+  });
 
   let youtubeNativeCaptionWasEnabled = false;
   let youtubeNativeCaptionSuppressionActive = false;

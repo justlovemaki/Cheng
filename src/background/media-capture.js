@@ -27,7 +27,9 @@
     const ext = /mpegurl/.test(mimeType) || /\.m3u8$/i.test(url.pathname) ? 'm3u8'
       : /dash\+xml/.test(mimeType) || /\.mpd$/i.test(url.pathname) ? 'mpd'
       : /^(audio|video)\//.test(mimeType) || /\.(mp4|m4a|webm|mp3|aac|ogg|wav|flac)$/i.test(url.pathname)
-        ? url.pathname.match(/\.(mp4|m4a|webm|mp3|aac|ogg|wav|flac)$/i)?.[1]?.toLowerCase() || (mimeType.startsWith('audio/') ? 'm4a' : 'mp4') : '';
+        ? url.pathname.match(/\.(mp4|m4a|webm|mp3|aac|ogg|wav|flac)$/i)?.[1]?.toLowerCase() ||
+          ({ 'audio/mpeg': 'mp3', 'audio/mp3': 'mp3', 'audio/aac': 'aac', 'audio/ogg': 'ogg', 'audio/flac': 'flac', 'audio/wav': 'wav' }[mimeType]) ||
+          (mimeType.startsWith('audio/') ? 'm4a' : 'mp4') : '';
     if (!ext) return null;
     const total = Number(header(details.responseHeaders, 'content-range').match(/\/(\d+)$/)?.[1] || header(details.responseHeaders, 'content-length')) || 0;
     return { url: url.href, ext, mimeType, size: total, isAudio: mimeType.startsWith('audio/') };
@@ -95,9 +97,12 @@
     }
     return false;
   };
-  const list = (sender) => {
+  const list = (sender, urls) => {
     prune();
-    return { sources: [...candidates.values()].filter(item => belongs(item, sender))
+    const wanted = Array.isArray(urls) ? new Set(urls.slice(0, 24).flatMap(raw => {
+      try { return [publicUrl(raw)]; } catch { return []; }
+    })) : null;
+    return { sources: [...candidates.values()].filter(item => belongs(item, sender) && (!wanted || wanted.has(item.url)))
       .sort((a, b) => b.at - a.at).slice(0, 16).map(item => globalThis.lexihaloMediaContract.normalize({
         transport: 'capture', captureId: item.id, ext: item.ext,
         mimeType: item.mimeType, size: item.size, isAudio: item.isAudio, resolution: 0,

@@ -65,7 +65,6 @@ export function recoverDualCaptionApp(dependencies) {
       [transcriptionTip, setTranscriptionTip] = (0, React.useState)(null),
       { locale: m } = useLocale(),
       [g, f] = (0, React.useState)(props.container.clientWidth / 60),
-      [v, y] = (0, React.useState)(!1),
       b = (0, React.useRef)(null),
       w = (0, React.useRef)(null),
       transcriptionTipTimer = (0, React.useRef)(0),
@@ -217,7 +216,7 @@ export function recoverDualCaptionApp(dependencies) {
           : "",
       O = (0, React.useRef)(!1),
       q = (0, React.useRef)(!1),
-      R = SA(captionProvider.platform),
+      R = SA(captionProvider.platform) && !captionProvider.video?.hasAttribute?.("data-lexihalo-readonly-clock"),
       z = R && !0 === s.hotkeys,
       [M, B] = (0, React.useState)(!1),
       D = z && M,
@@ -457,13 +456,12 @@ export function recoverDualCaptionApp(dependencies) {
             if (e) {
               const { video: t, element: n } =
                   yield captionProvider.queryContainerElement(),
-                r =
-                  (null == t ? void 0 : t.getBoundingClientRect()) ||
-                  n.getBoundingClientRect();
+                audioSurface = n.classList.contains("lexihalo-audio-caption-host"),
+                r = (audioSurface ? n : t || n).getBoundingClientRect();
               r &&
                 ((e.style.width = `${r.width}px`),
                 (e.style.height = `${r.height}px`));
-              const i = r.width / 60;
+              const i = audioSurface ? Math.max(14, Math.min(20, r.width / 40)) : r.width / 60;
               f(i);
             }
           }),
@@ -478,11 +476,12 @@ export function recoverDualCaptionApp(dependencies) {
           FA(null, null, function* () {
             const { video: t, element: n } =
               yield captionProvider.queryContainerElement();
-            (t || n) &&
-              (e.observe(t || n, {
+            const target = n.classList.contains("lexihalo-audio-caption-host") ? n : t || n;
+            target &&
+              (e.observe(target, {
                 box: "content-box",
               }),
-              e.observe(t || n, {
+              e.observe(target, {
                 box: "border-box",
               }));
           });
@@ -686,7 +685,7 @@ export function recoverDualCaptionApp(dependencies) {
             const t = yield platformContext.getYoutubeTracks();
             if (!((t && 0 !== t.length) || captionProvider.endableWhisper)) {
               if (Ie(e)) return;
-              y(!1), h(!0);
+              h(!0);
               const t = platformContext.id;
               return void (Le.current = window.setTimeout(
                 () =>
@@ -708,8 +707,9 @@ export function recoverDualCaptionApp(dependencies) {
               ));
             }
           }
+          // Discover native subtitle tracks quietly. Explicit transcription
+          // progress and errors are rendered from transcription.status below.
           "und" === sourceLanguage && (e = !1),
-            e && y(!0),
             (captionProvider.engine = l),
             (captionProvider.to = translationLanguage);
           const n = captionProvider.getPreferLanguage();
@@ -744,7 +744,6 @@ export function recoverDualCaptionApp(dependencies) {
                     captionProvider.event.on("source.waiting", i);
                   const o = setTimeout(a, e);
                 }))()),
-              y(!1),
               captionProvider.event.on("changed", Ce),
               (Ee.current = 0),
               logDebug("dual-caption onload", {
@@ -756,7 +755,6 @@ export function recoverDualCaptionApp(dependencies) {
             captionProvider.suppressNativeCaptions?.();
             if (Ie(e)) return;
             return (
-              y(!1),
               je("error"),
               void logError("caption.load.error", {
                 e: t,
@@ -962,22 +960,6 @@ export function recoverDualCaptionApp(dependencies) {
                   className: "trancy-btn-retry trancy-btn-error-close",
                   onClick: () => je(null),
                   children: (0, jsxRuntime.jsx)(At, {}),
-                }),
-              ],
-            }),
-          v &&
-            !transcriptionTip &&
-            !qe &&
-            (0, jsxRuntime.jsxs)("div", {
-              className: "trancy-caption-loading",
-              children: [
-                (0, jsxRuntime.jsx)("div", {
-                  className: "trancy-caption-loading-icon",
-                  children: (0, jsxRuntime.jsx)(Se, {}),
-                }),
-                (0, jsxRuntime.jsx)("div", {
-                  className: "trancy-caption-loading-text",
-                  children: m("caption_loading"),
                 }),
               ],
             }),

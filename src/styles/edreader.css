@@ -10092,27 +10092,42 @@
 .support-platform {
   margin-top: 32px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 .support-platform .support-platform-item {
   display: flex;
   align-items: center;
+  min-width: 0;
   border-radius: 12px;
   background-color: var(--rd-bg-1);
   padding: 12px;
   gap: 12px;
   transition: background-color 0.2s ease;
   text-decoration: none;
+  cursor: pointer;
 }
 .support-platform .support-platform-item:hover {
   background-color: var(--rd-bg-2);
 }
+.support-platform .support-platform-item:focus-visible {
+  outline: 2px solid var(--rd-primary);
+  outline-offset: 2px;
+}
+.support-platform .support-platform-item:hover span {
+  text-decoration: underline;
+}
+.support-platform .support-platform-link-icon {
+  flex-shrink: 0;
+  color: var(--rd-text-60);
+}
 .support-platform .support-platform-item .platform-icon {
   width: 32px;
   height: 32px;
+  flex-shrink: 0;
   background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_youtube.webp");
-  background-size: cover;
+  background-size: contain;
+  background-repeat: no-repeat;
   border-radius: 8px;
   background-position: center;
 }
@@ -10150,7 +10165,83 @@
 .support-platform .support-platform-item .platform-icon.p_vimeo {
   background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_vimeo.svg");
 }
+.support-platform .support-platform-item .platform-icon.p_pornhub {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_pornhub.png");
+}
+.support-platform .support-platform-item .platform-icon.p_douyin {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_douyin.png");
+}
+.support-platform .support-platform-item .platform-icon.p_xiaohongshu {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_xiaohongshu.png");
+}
+.support-platform .support-platform-item .platform-icon.p_channels {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_channels.png");
+}
+.support-platform .support-platform-item .platform-icon.p_xiaoe {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_xiaoe.png");
+}
+.support-platform .support-platform-item .platform-icon.p_weibo {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_weibo.png");
+}
+.support-platform .support-platform-item .platform-icon.p_tiktok {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_tiktok.png");
+}
+.support-platform .support-platform-item .platform-icon.p_x {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_x.png");
+}
+.support-platform .support-platform-item .platform-icon.p_instagram {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_instagram.png");
+}
+.support-platform .support-platform-item .platform-icon.p_facebook {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_facebook.png");
+}
+.support-platform .support-platform-item .platform-icon.p_reddit {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_reddit.png");
+}
+.support-platform .support-platform-item .platform-icon.p_twitch {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_twitch.png");
+}
+.support-platform .support-platform-item .platform-icon.p_dailymotion {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_dailymotion.png");
+}
+.support-platform .support-platform-item .platform-icon.p_niconico {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_niconico.png");
+}
+.support-platform .support-platform-item .platform-icon.p_xiaoyuzhou {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_xiaoyuzhou.png");
+}
+.support-platform .support-platform-item .platform-icon.p_soundcloud {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_soundcloud.png");
+}
+.support-platform .support-platform-item .platform-icon.p_bandcamp {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_bandcamp.png");
+}
+.support-platform .support-platform-item .platform-icon.p_ximalaya {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_ximalaya.png");
+}
+.support-platform .support-platform-item .platform-icon.p_netease {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_netease.png");
+}
+.support-platform .support-platform-item .platform-icon.p_applepodcasts {
+  background-image: url("chrome-extension://__MSG_@@extension_id__/assets/platform/p_applepodcasts.png");
+}
+.support-platform .support-platform-item .platform-icon-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: none;
+  background-color: var(--rd-bg-2);
+  color: var(--rd-text-80);
+  font-size: 13px;
+  font-weight: 600;
+}
+.support-platform-note {
+  margin-top: 24px;
+}
 .support-platform .support-platform-item span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 15px;
   font-weight: 500;
   color: var(--rd-text-80);

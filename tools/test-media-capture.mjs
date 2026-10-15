@@ -65,4 +65,19 @@ assert.equal(context.lexihaloMediaCapture.list({ ...sender, url: 'https://www.4k
 assert.equal(context.lexihaloMediaCapture.list({ ...sender, frameId: 4, url: 'https://unrelated.example.com/' }).sources.length, 0);
 listeners.removed(1);
 assert.equal(context.lexihaloMediaCapture.list(sender).sources.length, 0);
+const albumPage = 'https://artist.bandcamp.com/album/example';
+listeners.navigate({ tabId: 9, frameId: 0, type: 'main_frame', url: albumPage });
+for (const id of ['111', '333']) listeners.response({ tabId: 9, frameId: 0, documentId: 'album-doc', requestId: `song-${id}`,
+  url: `https://t4.bcbits.com/stream/hash/mp3-128/${id}?token=private`, statusCode: 200,
+  responseHeaders: [{ name: 'content-type', value: 'audio/mpeg' }] });
+const albumSender = { tab: { id: 9 }, frameId: 0, documentId: 'album-doc', url: albumPage };
+const selectedUrl = 'https://t4.bcbits.com/stream/hash/mp3-128/333?token=private';
+const selectedCapture = context.lexihaloMediaCapture.list(albumSender, [selectedUrl]).sources;
+assert.equal(selectedCapture.length, 1, 'Only return the selected track, not the album preloads');
+assert.equal(selectedCapture[0].ext, 'mp3', 'Extensionless Bandcamp streams use the real audio MIME type');
+assert.equal(selectedCapture[0].kind, 'audio');
+assert(!JSON.stringify(selectedCapture).includes('private'));
+assert.equal(context.lexihaloMediaCapture.list(albumSender, []).sources.length, 0);
+assert.equal(context.lexihaloMediaCapture.list({ ...albumSender, documentId: 'other-doc' }, [selectedUrl]).sources.length, 0);
+assert.equal(context.lexihaloMediaCapture.list(albumSender, ['https://t4.bcbits.com/not-current']).sources.length, 0);
 console.log('Network capture, public IP/port, frame binding, header replay and discontinuity tests passed');

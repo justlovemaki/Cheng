@@ -1375,7 +1375,7 @@ function patchGenericHtml5Video(ast) {
       if (path.node.kind === "get" && ["id", "vid"].includes(path.node.key?.name) &&
           path.parentPath.node.body.some(method => method.key?.name === "addYoutubeListener")) {
         path.get("body").unshiftContainer("body", parseStatements(`
-          const mediaItem = globalThis.lexihaloSites?.page(location.href);
+          const mediaItem = globalThis.lexihaloSiteAdapters?.currentItem?.() || globalThis.lexihaloSites?.page(location.href);
           if (this.platform === "html5" && mediaItem) return mediaItem.identity;
         `));
         counts[path.node.key.name === "id" ? "contextId" : "contextVid"] += 1;
@@ -1434,7 +1434,7 @@ function patchGenericHtml5Video(ast) {
                   if (!video) { yield yn("video"); video = lexihaloPickHtml5Video(); }
                   if (!video) return {};
                   const element = video.tagName === "AUDIO"
-                    ? globalThis.lexihaloSiteAdapters.ensureHost(video)
+                    ? globalThis.lexihaloSiteAdapters.ensureCaptionHost(video)
                     : video.parentElement || document.documentElement;
                   element.classList.add("lexihalo-html5-container");
                   return { element, video };
@@ -1479,14 +1479,19 @@ function patchGenericHtml5Video(ast) {
             const video = captionProvider.platform === "html5"
               ? lexihaloPickHtml5Video()
               : document.querySelector("video");
-            if (video && video !== this.lastVideoEl) {
-              if (captionProvider.platform === "html5" && this.lastVideoEl) {
+            const item = globalThis.lexihaloSiteAdapters?.currentItem?.();
+            const itemId = item?.id === "bandcamp" ? item.identity : null;
+            const itemChanged = Boolean(itemId && this.lastHtml5ItemIdentity && itemId !== this.lastHtml5ItemIdentity);
+            if (video && (video !== this.lastVideoEl || itemChanged)) {
+              if (video !== this.lastVideoEl && captionProvider.platform === "html5" && this.lastVideoEl) {
                 this.unmountButton();
                 document.querySelector("#xt-toggle-button")?.remove();
                 this.lastVideoEl.parentElement?.classList.remove("lexihalo-html5-container");
               }
               if (captionProvider.platform === "html5") captionProvider.video = video;
               this.lastVideoEl = video;
+              this.lastHtml5ItemIdentity = itemId;
+              if (itemChanged) captionProvider.event.emit("video.change");
               Ht("[video.element.changed] re-render caption");
               this.renderCaption();
               this.ensureQuickButtonInjected();
@@ -1527,7 +1532,8 @@ function patchGenericHtml5Video(ast) {
                     globalThis.lexihaloSiteAdapters.ensureHost(null);
                     video = lexihaloPickHtml5Video();
                   }
-                  const element = video?.parentElement;
+                  const element = video?.tagName === "AUDIO"
+                    ? globalThis.lexihaloSiteAdapters.ensureHost(video) : video?.parentElement;
                   if (video) captionProvider.video = video;
                   if (element) element.classList.add("lexihalo-html5-container");
                   const isPornhub = /(^|\\.)pornhub\\.com$/i.test(location.hostname);
@@ -1586,7 +1592,8 @@ function patchGenericHtml5Video(ast) {
                     this.html5ButtonPosition = () => {
                       const activeVideo = lexihaloPickHtml5Video();
                       const button = document.querySelector("#xt-toggle-button.trancy-html5-button");
-                      if (!activeVideo || !button) return;
+                      if (!button) return;
+                      if (!activeVideo) { button.style.display = "none"; return; }
                       const host = lexihaloFindHtml5PlayerHost(activeVideo);
                       if (!host) return;
                       host.classList.add("lexihalo-html5-button-host");
@@ -1598,7 +1605,8 @@ function patchGenericHtml5Video(ast) {
                       const hostRect = host.getBoundingClientRect();
                       const size = 34;
                       const toolAnchor = activeVideo.hasAttribute?.("data-lexihalo-tool-anchor");
-                      const visible = toolAnchor || (rect.width >= 160 &&
+                      const floatingAudio = activeVideo.tagName === "AUDIO" && host.classList.contains("lexihalo-audio-tool-host");
+                      const visible = toolAnchor || floatingAudio || (rect.width >= 160 &&
                         (rect.height >= 90 || activeVideo.tagName === "AUDIO") &&
                         rect.bottom > 0 && rect.right > 0 &&
                         rect.top < window.innerHeight && rect.left < window.innerWidth);
@@ -1669,7 +1677,7 @@ function patchGenericHtml5Video(ast) {
               t.logicalExpression(
                 "||",
                 t.binaryExpression("!==", t.callExpression(t.identifier("Zt"), []), t.stringLiteral("html5")),
-                parser.parseExpression('document.querySelector("video") || globalThis.lexihaloSites?.page(location.href) || globalThis.lexihaloSiteAdapters?.hasPlayerFrame()'),
+                parser.parseExpression('globalThis.lexihaloSiteAdapters?.ownsRuntime() !== false && (document.querySelector("video") || globalThis.lexihaloSites?.page(location.href) || globalThis.lexihaloSiteAdapters?.hasPlayerFrame())'),
               ),
               t.expressionStatement(t.callExpression(boot, [])),
               t.blockStatement([
@@ -1679,7 +1687,7 @@ function patchGenericHtml5Video(ast) {
                     t.newExpression(t.identifier("MutationObserver"), [
                       t.arrowFunctionExpression([], t.blockStatement([
                         t.ifStatement(
-                          t.unaryExpression("!", parser.parseExpression('document.querySelector("video") || globalThis.lexihaloSites?.page(location.href) || globalThis.lexihaloSiteAdapters?.hasPlayerFrame()')),
+                          t.unaryExpression("!", parser.parseExpression('globalThis.lexihaloSiteAdapters?.ownsRuntime() !== false && (document.querySelector("video") || globalThis.lexihaloSites?.page(location.href) || globalThis.lexihaloSiteAdapters?.hasPlayerFrame())')),
                           t.returnStatement(),
                         ),
                         t.expressionStatement(t.callExpression(t.memberExpression(observer, t.identifier("disconnect")), [])),
@@ -2001,6 +2009,8 @@ const getCaptionSchedulerSource = () =>
   "\n" +
   fs.readFileSync(path.join(root, "src/video/audio-source.js"), "utf8") +
   "\n" +
+  fs.readFileSync(path.join(root, "src/video/media-workflow.js"), "utf8") +
+  "\n" +
   fs.readFileSync(path.join(root, "src/video/browser-audio.js"), "utf8") +
   "\n" +
   fs.readFileSync(path.join(root, "src/video/caption-scheduler.js"), "utf8");
@@ -2103,6 +2113,29 @@ function patchSchemesDefault(ast, area) {
   }
 }
 
+function patchStandalonePlatformLinks(ast, area) {
+  let patched = 0;
+  traverse(ast, {
+    VariableDeclarator(declaration) {
+      if (!t.isIdentifier(declaration.node.id, { name: "__trancyStandaloneLinkGuard" })) return;
+      const guard = declaration.get("init");
+      if (!guard.isArrowFunctionExpression() || !guard.get("body").isBlockStatement()) return;
+      const eventName = guard.node.params[0].name;
+      // Both MAIN video and ISOLATED reader guards see the same click. Exempt
+      // only catalogued platform cards with their exact configured homepage.
+      guard.get("body").unshiftContainer("body", parseStatements(`
+        const platformLink = ${eventName}.composedPath?.().find(node => node?.tagName === "A");
+        if (platformLink?.matches(".support-platform .support-platform-item[data-platform-id]") &&
+            globalThis.lexihaloPlatformCapabilities?.catalog.some(platform =>
+              platform.id === platformLink.getAttribute("data-platform-id") &&
+              platform.homepage === platformLink.href)) return;
+      `));
+      patched += 1;
+    },
+  });
+  if (patched !== 1) throw new Error(`${area}: expected one standalone link guard, got ${patched}`);
+}
+
 async function buildMain(name, config) {
   const sourcePath = path.join(root, config.source);
   const source = fs.readFileSync(sourcePath, "utf8");
@@ -2130,6 +2163,7 @@ async function buildMain(name, config) {
     });
   }
   const applied = applySemanticRenames(name, ast);
+  if (name === "reader" || name === "video") patchStandalonePlatformLinks(ast, name);
   if (name === "background" || name === "reader" || name === "video") {
     patchSchemesDefault(ast, name);
   }
@@ -2183,10 +2217,15 @@ async function buildMain(name, config) {
       getPlatformCapabilitySource() + "\n" +
       fs.readFileSync(path.join(root, "src/shared/media-message-schema.js"), "utf8") + "\n" +
       fs.readFileSync(path.join(root, "src/shared/media-reader.js"), "utf8") + "\n" + (name === "video"
-      ? fs.readFileSync(path.join(root, "src/video/media-site-hooks.js"), "utf8") + "\n" +
+      ? fs.readFileSync(path.join(root, "src/video/native-audio-clock.js"), "utf8") + "\n" +
+        fs.readFileSync(path.join(root, "src/video/netease-playback.js"), "utf8") + "\n" +
+        fs.readFileSync(path.join(root, "src/video/ximalaya-playback.js"), "utf8") + "\n" +
+        fs.readFileSync(path.join(root, "src/video/soundcloud-playback.js"), "utf8") + "\n" +
+        fs.readFileSync(path.join(root, "src/video/bandcamp-media.js"), "utf8") + "\n" +
+        fs.readFileSync(path.join(root, "src/video/media-site-hooks.js"), "utf8") + "\n" +
         fs.readFileSync(path.join(root, "src/video/site-adapters.js"), "utf8") + "\n"
       : "")
-    : "";
+    : name === "reader" ? getPlatformCapabilitySource() + "\n" : "";
   let output = `/* LexiHalo readable single bundle: ${name}. */\n${siteRuntime}${generate(ast, { comments: true, compact: false }).code}\n`;
   if (name === "background")
     output += fs.readFileSync(path.join(root, "src/background/media-task-manager.js"), "utf8") + "\n" +

@@ -24,14 +24,15 @@
     return sources.sort((a, b) => a.quality - b.quality).slice(0, 12);
   };
   const readBrowserMedia = async ({ signal, sendPart, onProgress, source, purpose = "transcribe" }) => {
-    const page = globalThis.lexihaloSites?.browserPage(location.href);
+    const item = () => globalThis.lexihaloSiteAdapters?.currentItem?.() || globalThis.lexihaloSites?.browserPage(location.href);
+    const page = item();
     if (!page && !ph()) throw new Error("当前页面不支持媒体读取");
     const identity = page?.identity || location.href;
     const prepared = page ? await globalThis.lexihaloSiteAdapters?.prepare({ signal, onProgress }) : null;
     const sources = source ? [source] : prepared?.sources?.length ? prepared.sources : ph() ? phSources() : [];
     if (!sources.length) throw new Error("未找到当前播放器真实媒体，请播放几秒后重试");
     const fetchResource = async (url, sig, range) => {
-      if ((globalThis.lexihaloSites?.browserPage(location.href)?.identity || location.href) !== identity) throw new Error("视频已切换");
+      if ((item()?.identity || location.href) !== identity) throw new Error("视频已切换");
       return fetch(safeUrl(url), { credentials: "omit", redirect: "error", cache: "no-store",
         signal: AbortSignal.any([sig, AbortSignal.timeout(90000)].filter(Boolean)),
         ...(range ? { headers: { Range: `bytes=${range.start}-${range.end}` } } : {}) });
