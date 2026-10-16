@@ -26,6 +26,11 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*", "file://*/*"],
+      "exclude_matches": [
+        "*://challenges.cloudflare.com/*",
+        "*://*.challenges.cloudflare.com/*",
+        "*://*/cdn-cgi/challenge-platform/*"
+      ],
       "js": ["assets/edvideo-onload.js"],
       "css": ["assets/edvideo.css", "assets/subtitle-ai.css"],
       "run_at": "document_start",
@@ -33,6 +38,11 @@
     },
     {
       "matches": ["http://*/*", "https://*/*", "file://*/*"],
+      "exclude_matches": [
+        "*://challenges.cloudflare.com/*",
+        "*://*.challenges.cloudflare.com/*",
+        "*://*/cdn-cgi/challenge-platform/*"
+      ],
       "js": [
         "assets/romanize-main.js",
         "assets/ld-main.js",
@@ -45,6 +55,11 @@
     },
     {
       "matches": ["http://*/*", "https://*/*", "file://*/*"],
+      "exclude_matches": [
+        "*://challenges.cloudflare.com/*",
+        "*://*.challenges.cloudflare.com/*",
+        "*://*/cdn-cgi/challenge-platform/*"
+      ],
       "js": [
         "assets/site-rules-loader.js",
         "assets/tagger-main.js",

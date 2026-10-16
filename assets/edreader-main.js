@@ -1,3 +1,32 @@
+(() => {
+// Embedded into each content-script bundle by the build, in a private scope.
+// Do not touch the DOM, page APIs, storage or messaging until this gate passes.
+function lexihaloRunOutsideChallenge(boot) {
+  const hostname = location.hostname.toLowerCase().replace(/\.$/, "");
+  if (
+    hostname === "challenges.cloudflare.com" ||
+    hostname.endsWith(".challenges.cloudflare.com") ||
+    /^\/cdn-cgi\/challenge-platform(?:\/|$)/i.test(location.pathname)
+  ) return;
+
+  const start = () => {
+    // Cloudflare interstitials keep the original site's URL. Check after parsing,
+    // before any reader UI, network hooks or Trusted Types changes are installed.
+    // A normal page with an embedded .cf-turnstile widget must NOT be excluded.
+    if (document.querySelector(
+      "#challenge-form, #challenge-running, #cf-challenge-running, #cf-challenge-stage",
+    )) return;
+    boot();
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
+}
+
+lexihaloRunOutsideChallenge(() => {
 /* LexiHalo readable single bundle: reader. */
 /* Platform capability registry generated from config/media-platforms.json. */
 (() => {
@@ -29949,7 +29978,8 @@
               enable: !0,
               transformY: 0,
               blackList: [],
-              opacity: 100,
+              opacity: 25,
+              opacityVersion: 1,
             },
             blacklist: [],
             wordHighlightMode: "blacklist",
@@ -30325,6 +30355,7 @@
             }),
             e.addCase(Ht, (e, t) => {
               e.setting.conrolCenter.opacity = t.payload;
+              e.setting.conrolCenter.opacityVersion = 1;
             }),
             e.addCase(bn, (e, t) => {
               e.subtitleLoadStatus = t.payload;
@@ -60632,7 +60663,8 @@
             [_, p] = (0, React.useState)(!1),
             [h, m] = (0, React.useState)(!1),
             [g, f] = (0, React.useState)(!1),
-            v = null != (t = a.conrolCenter.opacity) ? t : 100;
+            [focused, setFocused] = (0, React.useState)(!1),
+            v = null != (t = a.conrolCenter.opacity) ? t : 25;
           (0, React.useEffect)(() => {
             if (g) {
               const e = () => f(!1);
@@ -60710,11 +60742,15 @@
                     children: (0, jsxRuntime.jsxs)("div", {
                       className: classNames()("rd-theme rd-float-btn", i.theme),
                       style: {
-                        opacity: h ? 1 : v / 100,
+                        opacity: h || focused || g ? 1 : v / 100,
                         transition: "opacity 0.2s ease, padding 0.2s ease",
                       },
                       onMouseEnter: () => m(!0),
                       onMouseLeave: () => m(!1),
+                      onFocus: () => setFocused(!0),
+                      onBlur: (event) => {
+                        if (!event.currentTarget.contains(event.relatedTarget)) setFocused(!1);
+                      },
                       children: [
                         (0, jsxRuntime.jsxs)("div", {
                           className: "rd-float-btn-hover",
@@ -63533,7 +63569,7 @@
                               children: [
                                 (0, jsxRuntime.jsxs)("label", {
                                   className: "slider-range-value",
-                                  children: [null != (t = i.conrolCenter.opacity) ? t : 100, "%"],
+                                  children: [null != (t = i.conrolCenter.opacity) ? t : 25, "%"],
                                 }),
                                 (0, jsxRuntime.jsxs)("div", {
                                   className: "slider-range",
@@ -63542,7 +63578,7 @@
                                       className: "slider-range-track",
                                       style: {
                                         width:
-                                          (((null != (n = i.conrolCenter.opacity) ? n : 100) - 20) /
+                                          (((null != (n = i.conrolCenter.opacity) ? n : 25) - 20) /
                                             80) *
                                             100 +
                                           "%",
@@ -63561,7 +63597,7 @@
                                             event_value: parseInt(e.target.value),
                                           });
                                       },
-                                      value: null != (r = i.conrolCenter.opacity) ? r : 100,
+                                      value: null != (r = i.conrolCenter.opacity) ? r : 25,
                                     }),
                                   ],
                                 }),
@@ -70321,4 +70357,7 @@ window.lexihaloClearScopedCache = clearScopedCache;
   globalThis.__lexihaloReadableReader = true;
   if (typeof document !== "undefined" && document.documentElement)
     document.documentElement.setAttribute("data-lexihalo-reader-runtime", "readable");
+})();
+
+});
 })();

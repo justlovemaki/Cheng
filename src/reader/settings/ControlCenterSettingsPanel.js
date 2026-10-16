@@ -117,7 +117,7 @@ export function recoverControlCenterSettingsPanel(dependencies) {
                           (0, jsxRuntime.jsxs)("label", {
                             className: "slider-range-value",
                             children: [
-                              null != (t = i.conrolCenter.opacity) ? t : 100,
+                              null != (t = i.conrolCenter.opacity) ? t : 25,
                               "%",
                             ],
                           }),
@@ -130,7 +130,7 @@ export function recoverControlCenterSettingsPanel(dependencies) {
                                   width:
                                     (((null != (n = i.conrolCenter.opacity)
                                       ? n
-                                      : 100) -
+                                      : 25) -
                                       20) /
                                       80) *
                                       100 +
@@ -153,7 +153,7 @@ export function recoverControlCenterSettingsPanel(dependencies) {
                                 value:
                                   null != (r = i.conrolCenter.opacity)
                                     ? r
-                                    : 100,
+                                    : 25,
                               }),
                             ],
                           }),

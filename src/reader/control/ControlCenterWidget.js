@@ -43,7 +43,8 @@ export function recoverControlCenterWidget(dependencies) {
       [_, p] = (0, React.useState)(!1),
       [h, m] = (0, React.useState)(!1),
       [g, f] = (0, React.useState)(!1),
-      v = null != (t = a.conrolCenter.opacity) ? t : 100;
+      [focused, setFocused] = (0, React.useState)(!1),
+      v = null != (t = a.conrolCenter.opacity) ? t : 25;
     (0, React.useEffect)(() => {
       if (g) {
         const e = () => f(!1);
@@ -121,11 +122,16 @@ export function recoverControlCenterWidget(dependencies) {
               children: (0, jsxRuntime.jsxs)("div", {
                 className: classNames()("rd-theme rd-float-btn", i.theme),
                 style: {
-                  opacity: h ? 1 : v / 100,
+                  opacity: h || focused || g ? 1 : v / 100,
                   transition: "opacity 0.2s ease, padding 0.2s ease",
                 },
                 onMouseEnter: () => m(!0),
                 onMouseLeave: () => m(!1),
+                onFocus: () => setFocused(!0),
+                onBlur: (event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget))
+                    setFocused(!1);
+                },
                 children: [
                   (0, jsxRuntime.jsxs)("div", {
                     className: "rd-float-btn-hover",

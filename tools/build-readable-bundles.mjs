@@ -14,6 +14,17 @@ const baseline = JSON.parse(
   fs.readFileSync(path.join(root, "config", "bundle-baseline.json"), "utf8"),
 );
 const renameReport = {};
+const challengeGuardSource = fs.readFileSync(
+  path.join(root, "src/shared/challenge-page-guard.js"), "utf8",
+);
+const contentBundleNames = new Set([
+  "reader", "video", "languageDetector", "posTagger", "romanize",
+]);
+function guardContentScript(source) {
+  // Keep the complete runtime (including prepended helpers and markers) behind
+  // the gate. A reader-only blacklist is too late to protect page APIs.
+  return `(() => {\n${challengeGuardSource}\nlexihaloRunOutsideChallenge(() => {\n${source}\n});\n})();\n`;
+}
 
 const symbolIndexes = {
   background: "config/symbols/background.json",
@@ -2136,6 +2147,57 @@ function patchStandalonePlatformLinks(ast, area) {
   if (patched !== 1) throw new Error(`${area}: expected one standalone link guard, got ${patched}`);
 }
 
+function patchControlCenterAppearance(ast, area) {
+  let defaults = 0;
+  let reducers = 0;
+  traverse(ast, {
+    ObjectProperty(propertyPath) {
+      if (propertyPath.node.key?.name !== "conrolCenter" ||
+          !t.isObjectExpression(propertyPath.node.value)) return;
+      const properties = propertyPath.node.value.properties;
+      const opacity = properties.find((property) => property.key?.name === "opacity");
+      if (!opacity || !t.isNumericLiteral(opacity.value, { value: 100 })) return;
+      opacity.value = t.numericLiteral(25);
+      properties.push(t.objectProperty(t.identifier("opacityVersion"), t.numericLiteral(1)));
+      defaults += 1;
+    },
+    AssignmentExpression(assignmentPath) {
+      const { left } = assignmentPath.node;
+      if (!t.isMemberExpression(left) || left.property?.name !== "opacity" ||
+          !t.isMemberExpression(left.object) || left.object.property?.name !== "conrolCenter") return;
+      const statement = assignmentPath.parentPath;
+      if (!statement.isExpressionStatement())
+        throw new Error(`${area}: control-center opacity reducer shape changed`);
+      statement.insertAfter(t.expressionStatement(t.assignmentExpression(
+        "=",
+        t.memberExpression(t.cloneNode(left.object, true), t.identifier("opacityVersion")),
+        t.numericLiteral(1),
+      )));
+      reducers += 1;
+    },
+  });
+  if (defaults !== 1 || reducers !== 1)
+    throw new Error(`${area}: expected one control-center default/reducer, got ${defaults}/${reducers}`);
+  if (area === "background") {
+    const appPath = findPrimaryFunction(ast);
+    for (const binding of ["getHydratedState", "store", "setControlCenterOpacityAction"]) {
+      if (!appPath?.scope.hasBinding(binding))
+        throw new Error(`background: opacity migration dependency ${binding} missing`);
+    }
+    appPath.get("body").pushContainer("body", parseStatements(`
+      // Adopt the quiet default once for old profiles. Preserve non-default
+      // custom values; later manual choices (including 100%) are versioned.
+      getHydratedState().then((state) => {
+        const center = state.setting?.conrolCenter;
+        if (!center || center.opacityVersion >= 1) return;
+        store.dispatch(setControlCenterOpacityAction(
+          center.opacity == null || center.opacity === 100 ? 25 : center.opacity,
+        ));
+      });
+    `));
+  }
+}
+
 async function buildMain(name, config) {
   const sourcePath = path.join(root, config.source);
   const source = fs.readFileSync(sourcePath, "utf8");
@@ -2166,6 +2228,7 @@ async function buildMain(name, config) {
   if (name === "reader" || name === "video") patchStandalonePlatformLinks(ast, name);
   if (name === "background" || name === "reader" || name === "video") {
     patchSchemesDefault(ast, name);
+    patchControlCenterAppearance(ast, name);
   }
   let sourceComponents = [];
   if (name === "background") installBackgroundStructuredAiBridge(ast);
@@ -2258,6 +2321,7 @@ async function buildMain(name, config) {
     output += marker(markerName);
   }
   output = await formatJs(output);
+  if (contentBundleNames.has(name)) output = guardContentScript(output);
   fs.writeFileSync(path.join(root, config.output), output);
 }
 
@@ -2280,7 +2344,10 @@ for (const [input, output] of Object.entries(directSources)) {
     .replaceAll("assets/semantic-language-detector.js", "assets/ld-main.js")
     .replaceAll("assets/semantic-pos-tagger.js", "assets/tagger-main.js")
     .replaceAll('"semantic"', '"readable"');
-  fs.writeFileSync(path.join(root, output), await formatJs(source));
+  source = await formatJs(source);
+  if (input.startsWith("src/content/") || input === "src/video/onload.js")
+    source = guardContentScript(source);
+  fs.writeFileSync(path.join(root, output), source);
 }
 for (const filename of [
   "index.html",

@@ -6056,7 +6056,8 @@
             enable: !0,
             transformY: 0,
             blackList: [],
-            opacity: 100,
+            opacity: 25,
+            opacityVersion: 1,
           },
           blacklist: [],
           wordHighlightMode: "blacklist",
@@ -6432,6 +6433,7 @@
           }),
           e.addCase(setControlCenterOpacityAction, (e, t) => {
             e.setting.conrolCenter.opacity = t.payload;
+            e.setting.conrolCenter.opacityVersion = 1;
           }),
           e.addCase(setSubtitleLoadStatusAction, (e, t) => {
             e.subtitleLoadStatus = t.payload;
@@ -12997,6 +12999,17 @@
         yield Ba;
       const r = store.getState();
       analyticsClient.updateMetadata(r);
+    });
+    // Adopt the quiet default once for old profiles. Preserve non-default
+    // custom values; later manual choices (including 100%) are versioned.
+    getHydratedState().then((state) => {
+      const center = state.setting?.conrolCenter;
+      if (!center || center.opacityVersion >= 1) return;
+      store.dispatch(
+        setControlCenterOpacityAction(
+          center.opacity == null || center.opacity === 100 ? 25 : center.opacity,
+        ),
+      );
     });
     function recoverStructuredAiBridge(dependencies) {
       const TranslationEngineExecutor = dependencies.TranslationEngineExecutor;

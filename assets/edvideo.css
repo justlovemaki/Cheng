@@ -10448,6 +10448,13 @@ trancy-video-summary
   width: 24px;
   height: 24px;
   box-shadow: none;
+  opacity: 0.25;
+  transition: opacity 0.2s ease;
+}
+.trancy-button-container:hover .trancy-button-logo,
+.trancy-button-container:focus-within .trancy-button-logo,
+.trancy-button-container[data-lexihalo-menu-open="true"] .trancy-button-logo {
+  opacity: 1;
 }
 .trancy-button-container .trancy-button-logo.trancy-magic-btn {
   position: relative;
@@ -10704,10 +10711,19 @@ trancy-video-summary
   z-index: 2147483647 !important;
   cursor: pointer;
   pointer-events: auto !important;
+  opacity: 0.25;
+  transition: opacity 0.2s ease;
+}
+#xt-toggle-button.trancy-html5-button.trancy-floating:hover,
+#xt-toggle-button.trancy-html5-button.trancy-floating:focus-within,
+#xt-toggle-button.trancy-html5-button.trancy-floating:has([data-lexihalo-menu-open="true"]) {
+  opacity: 1;
 }
 .trancy-html5-button.trancy-floating .trancy-button-logo {
   width: 26px;
   height: 26px;
+  /* The floating host fades the background and logo together, only once. */
+  opacity: 1;
 }
 .trancy-html5-button.trancy-floating .trancy-panel-menu {
   top: 42px;

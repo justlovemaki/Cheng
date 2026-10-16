@@ -1,3 +1,32 @@
+(() => {
+// Embedded into each content-script bundle by the build, in a private scope.
+// Do not touch the DOM, page APIs, storage or messaging until this gate passes.
+function lexihaloRunOutsideChallenge(boot) {
+  const hostname = location.hostname.toLowerCase().replace(/\.$/, "");
+  if (
+    hostname === "challenges.cloudflare.com" ||
+    hostname.endsWith(".challenges.cloudflare.com") ||
+    /^\/cdn-cgi\/challenge-platform(?:\/|$)/i.test(location.pathname)
+  ) return;
+
+  const start = () => {
+    // Cloudflare interstitials keep the original site's URL. Check after parsing,
+    // before any reader UI, network hooks or Trusted Types changes are installed.
+    // A normal page with an embedded .cf-turnstile widget must NOT be excluded.
+    if (document.querySelector(
+      "#challenge-form, #challenge-running, #cf-challenge-running, #cf-challenge-stage",
+    )) return;
+    boot();
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
+}
+
+lexihaloRunOutsideChallenge(() => {
 /* LexiHalo readable single bundle: video. */
 /* LexiHalo-owned browser routing policy derived from config/media-platforms.json. */
 (() => {
@@ -34725,7 +34754,8 @@
             enable: !0,
             transformY: 0,
             blackList: [],
-            opacity: 100,
+            opacity: 25,
+            opacityVersion: 1,
           },
           blacklist: [],
           wordHighlightMode: "blacklist",
@@ -35100,6 +35130,7 @@
           }),
           e.addCase(setControlCenterOpacityAction, (e, t) => {
             e.setting.conrolCenter.opacity = t.payload;
+            e.setting.conrolCenter.opacityVersion = 1;
           }),
           e.addCase(setSubtitleLoadStatusAction, (e, t) => {
             e.subtitleLoadStatus = t.payload;
@@ -73075,6 +73106,7 @@
         const Te = be ? Math.max(0, Math.min(414, Math.floor(be) - 41)) : 414;
         return (0, jsxRuntime.jsxs)("div", {
           className: xb()("trancy-button-container", `lt-${l.language.interface}`),
+          "data-lexihalo-menu-open": T ? "true" : "false",
           ref: P,
           children: [
             (0, jsxRuntime.jsx)("div", {
@@ -76003,4 +76035,7 @@
   globalThis.__lexihaloReadableVideo = true;
   if (typeof document !== "undefined" && document.documentElement)
     document.documentElement.setAttribute("data-lexihalo-video-runtime", "readable");
+})();
+
+});
 })();

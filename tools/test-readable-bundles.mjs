@@ -11,7 +11,28 @@ const errors = [];
 const aiRequests = [];
 const transcriptionRequests = [];
 const transcriptionRequestHeaders = [];
+const challengeFixture = `<!doctype html><html><head><script>
+  window.challengeNatives = {
+    fetch: window.fetch, worker: window.Worker,
+    xhrOpen: XMLHttpRequest.prototype.open,
+    innerHTML: Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML").set,
+    policy: window.trustedTypes?.defaultPolicy
+  };
+</script></head><body><form id="challenge-form">Verifying you are human</form></body></html>`;
 const server = http.createServer((request, response) => {
+  if (request.url?.startsWith("/challenge-fixture") ||
+      request.url?.startsWith("/cdn-cgi/challenge-platform/")) {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.end(challengeFixture);
+    return;
+  }
+  if (request.url?.startsWith("/turnstile-host-fixture")) {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.end(`<!doctype html><html><body><p>Ordinary article with a captcha.</p>
+      <div class="cf-turnstile"><iframe src="https://challenges.cloudflare.com/fixture"></iframe></div>
+    </body></html>`);
+    return;
+  }
   if (request.url?.startsWith("/html5-fixture")) {
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     response.end(`<!doctype html><html><body style="margin:0;background:#111">
@@ -154,6 +175,46 @@ try {
   if (!backgroundReady)
     throw new Error("Readable background did not initialize");
   const extensionId = new URL(worker.url()).host;
+
+  // Local fixtures test non-interference, not whether a live CF challenge passes.
+  await context.route("https://challenges.cloudflare.com/**", (route) =>
+    route.fulfill({ status: 200, contentType: "text/html", body: challengeFixture }),
+  );
+  const assertChallengeUntouched = async (frame, allowStaticStyles = false) => {
+    await frame.locator("#challenge-form").waitFor();
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const untouched = await frame.evaluate((allowStaticStyles) => {
+      const before = window.challengeNatives;
+      return before.fetch === window.fetch && before.worker === window.Worker &&
+        before.xhrOpen === XMLHttpRequest.prototype.open &&
+        before.innerHTML === Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML").set &&
+        before.policy === window.trustedTypes?.defaultPolicy &&
+        !window.romanize && !window.posTagger && !window.detectLanguage &&
+        !document.querySelector("trancy-app, #trancy-root, #xt-toggle-button") &&
+        !Array.from(document.documentElement.attributes).some((attr) =>
+          attr.name.startsWith("data-lexihalo-")) &&
+        (allowStaticStyles || !Array.from(document.styleSheets).some((sheet) =>
+          sheet.href?.startsWith("chrome-extension://")));
+    }, allowStaticStyles);
+    if (!untouched) throw new Error(`Extension modified a challenge document: ${frame.url()}`);
+  };
+  const challengePage = await context.newPage();
+  await challengePage.goto("https://challenges.cloudflare.com/fixture");
+  await assertChallengeUntouched(challengePage);
+  await challengePage.goto(`${localUrl}cdn-cgi/challenge-platform/fixture`);
+  await assertChallengeUntouched(challengePage);
+  await challengePage.goto(`${localUrl}challenge-fixture`);
+  // Manifest CSS is scoped to extension UI; original-site interstitials can
+  // still receive these static sheets, but must run no extension JavaScript.
+  await assertChallengeUntouched(challengePage, true);
+  await challengePage.goto(`${localUrl}turnstile-host-fixture`);
+  await challengePage.locator('html[data-lexihalo-reader-runtime="readable"]').waitFor({ timeout: 15000 });
+  const challengeFrame = challengePage.frames().find((frame) =>
+    frame.url().startsWith("https://challenges.cloudflare.com/"));
+  if (!challengeFrame) throw new Error("Turnstile fixture iframe missing");
+  await assertChallengeUntouched(challengeFrame);
+  await challengePage.close();
+  await context.unroute("https://challenges.cloudflare.com/**");
 
   const popup = await context.newPage();
   popup.on("pageerror", (error) => errors.push(`popup:${error.message}`));
@@ -648,6 +709,40 @@ try {
     throw new Error("Immersive translation did not render translated DOM");
   }
   await reader.bringToFront();
+  // Loopback URLs are treated as the standalone dashboard, so test the page
+  // floating button on an ordinary routed host instead.
+  const iconUrl = "https://lexihalo-reader.example/article";
+  await context.route(iconUrl, (route) => route.fulfill({
+    status: 200, contentType: "text/html", body: "<!doctype html><html><body><p>Reader icon fixture.</p></body></html>",
+  }));
+  const iconPage = await context.newPage();
+  await iconPage.goto(iconUrl);
+  const floatingIcon = iconPage.locator(".rd-float-btn");
+  await floatingIcon.waitFor({ timeout: 15000 });
+  const waitForIconOpacity = async (expected) => {
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      const opacity = await floatingIcon.evaluate((node) => Number(getComputedStyle(node).opacity));
+      if (Math.abs(opacity - expected) < 0.01) return;
+      await iconPage.waitForTimeout(50);
+    }
+    throw new Error(`Floating icon did not reach opacity ${expected}`);
+  };
+  await iconPage.mouse.move(5, 5);
+  await waitForIconOpacity(0.25);
+  await floatingIcon.hover();
+  await waitForIconOpacity(1);
+  await iconPage.mouse.move(5, 5);
+  await waitForIconOpacity(0.25);
+  await iconPage.evaluate(() => window.postMessage({
+    eventName: "trancy:slider-toggle", path: "/setting/float-button",
+  }, "*"));
+  const opacitySetting = iconPage.locator('.slider-range-thumb[type="range"]');
+  await opacitySetting.waitFor({ timeout: 10000 });
+  if (await opacitySetting.inputValue() !== "25")
+    throw new Error("Floating-button opacity setting is missing or has the wrong default");
+  await iconPage.close();
+  await context.unroute(iconUrl);
+  await reader.bringToFront();
   if (
     !(await reader.locator("main").innerText()).includes(
       "readable bundle regression",
@@ -870,6 +965,21 @@ try {
   ) {
     throw new Error(`Generic HTML5 video mode failed: ${JSON.stringify(genericVideoState)}`);
   }
+  const waitForVideoIconOpacity = async (expected) => {
+    await genericVideo.waitForFunction((expected) => {
+      const host = document.querySelector("#xt-toggle-button");
+      const logo = host?.querySelector(".trancy-button-logo");
+      return host && logo && Math.abs(
+        Number(getComputedStyle(host).opacity) * Number(getComputedStyle(logo).opacity) - expected,
+      ) < 0.01;
+    }, expected, { timeout: 5000 });
+  };
+  await genericVideo.mouse.move(5, 5);
+  await waitForVideoIconOpacity(0.25);
+  await genericVideo.locator("#xt-toggle-button").hover();
+  await waitForVideoIconOpacity(1);
+  await genericVideo.mouse.move(5, 5);
+  await waitForVideoIconOpacity(0.25);
   // Slow native-track loading must stay silent, even on a fresh caption mount.
   // Explicit ASR progress and real error messages must still render normally.
   await genericVideo.evaluate(() => {
@@ -932,6 +1042,10 @@ try {
     throw new Error(`Long captions did not wrap inside the player: ${JSON.stringify(captionWrap)}`);
   }
   await genericVideo.locator("#xt-toggle-button .trancy-button-logo").click();
+  await genericVideo.mouse.move(5, 5);
+  await waitForVideoIconOpacity(1);
+  const menuOpacity = await genericVideo.locator("#xt-toggle-button .trancy-panel-menu").evaluate((menu) => getComputedStyle(menu).opacity);
+  if (menuOpacity !== "1") throw new Error("Open player menu must stay fully opaque");
   const genericTranscriptionRequestsBefore = transcriptionRequests.length;
   await genericVideo
     .locator('#xt-toggle-button [data-lexihalo-audio-transcribe="true"]')
@@ -1968,6 +2082,15 @@ try {
   await video
     .locator("#xt-toggle-button")
     .waitFor({ state: "attached", timeout: 30000 });
+  await video.mouse.move(5, 500);
+  await video.waitForFunction(() => {
+    const logo = document.querySelector("#xt-toggle-button .trancy-button-logo");
+    return logo && Math.abs(Number(getComputedStyle(logo).opacity) - 0.25) < 0.01;
+  }, null, { timeout: 5000 });
+  await video.locator("#xt-toggle-button .trancy-button-logo").hover();
+  await video.waitForFunction(() =>
+    Number(getComputedStyle(document.querySelector("#xt-toggle-button .trancy-button-logo")).opacity) === 1,
+  );
   await video.locator("#xt-toggle-button .trancy-button-logo").click();
   await video
     .locator("#xt-toggle-button .trancy-panel-menu.visible")

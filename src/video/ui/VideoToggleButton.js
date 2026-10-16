@@ -1139,6 +1139,7 @@ export function recoverVideoToggleButton(dependencies) {
     const Te = be ? Math.max(0, Math.min(414, Math.floor(be) - 41)) : 414;
     return (0, jsxRuntime.jsxs)("div", {
       className: xb()("trancy-button-container", `lt-${l.language.interface}`),
+      "data-lexihalo-menu-open": T ? "true" : "false",
       ref: P,
       children: [
         (0, jsxRuntime.jsx)("div", {
