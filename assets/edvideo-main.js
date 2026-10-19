@@ -35595,7 +35595,13 @@ lexihaloRunOutsideChallenge(() => {
           return (
             (bs = vi({
               reducer: ys,
-              preloadedState: e,
+              preloadedState:
+                e == null
+                  ? e
+                  : {
+                      ...e,
+                      tasks: Array.isArray(e.tasks) ? e.tasks : [],
+                    },
             })),
             bs
           );
@@ -36073,8 +36079,22 @@ lexihaloRunOutsideChallenge(() => {
           Us(this, "history", 0),
           Us(this, "cardPined", !1),
           (this.event = new xs.EventEmitter()),
-          chrome.runtime.onMessage.addListener((e) =>
-            Ks(this, null, function* () {
+          chrome.runtime.onMessage.addListener((e) => {
+            // Typed learning/media messages belong to their own listeners. Ignore
+            // them BEFORE starting a Promise, or the legacy bus both throws on
+            // missing 'to' and may incorrectly claim their response channel.
+            if (
+              !e ||
+              typeof e !== "object" ||
+              Array.isArray(e) ||
+              !Array.isArray(e.to) ||
+              !e.to.every((target) => typeof target === "string") ||
+              typeof e.from !== "string" ||
+              (typeof e.name !== "string" &&
+                !(e.response !== undefined && typeof e.uuid === "string"))
+            )
+              return false;
+            return Ks(this, null, function* () {
               const { response: t, from: n, to: r, uuid: i, name: a } = e;
               if ("content" === n && t) return this.event.emit(i, e), !0;
               if (r.includes("content") && this.handlers[a]) {
@@ -36088,8 +36108,8 @@ lexihaloRunOutsideChallenge(() => {
                 }),
                 !0
               );
-            }),
-          );
+            });
+          });
       }
       emit(e, t, n) {
         return Ks(this, null, function* () {
@@ -49910,6 +49930,11 @@ lexihaloRunOutsideChallenge(() => {
                 cacheScope: "subtitle",
                 useCache: !0,
                 requestGroup: this.id,
+                learningSource: globalThis.chengVideoBridge?.sourceHint?.() || {
+                  platform: this.platform,
+                  sourceId: String(window.metacontext?.vid || this.id || ""),
+                  sourceUrl: location.href,
+                },
                 requestGeneration: this.translationGeneration || 0,
               });
             if (
@@ -72123,10 +72148,11 @@ lexihaloRunOutsideChallenge(() => {
             setting: l,
             user: c,
             translatorService: u,
-            tasks: d,
+            tasks: storedTasks,
             shortcuts: p,
             video: _,
           } = useAppSelector((e) => e, shallowEqual),
+          d = Array.isArray(storedTasks) ? storedTasks : [],
           h = s.target
             ? jn.find((e) => e.code === s.target)
             : jn.find((e) => e.code === l.language.subtitle),
@@ -73125,7 +73151,7 @@ lexihaloRunOutsideChallenge(() => {
               children: (0, jsxRuntime.jsx)("img", {
                 className: "icon-trancy-brand lexihalo-brand-icon",
                 src: `${props.runtime.scheme}/assets/icons/ic48.png`,
-                alt: "LexiHalo",
+                alt: "澄 Cheng",
                 draggable: !1,
               }),
             }),

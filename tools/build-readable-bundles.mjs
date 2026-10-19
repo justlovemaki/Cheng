@@ -234,6 +234,35 @@ function parseStatements(source) {
   }).program.body;
 }
 
+function guardLegacyRuntimeMessages(ast, area) {
+  let guarded = 0;
+  traverse(ast, { CallExpression(call) {
+    const receiver = call.node.callee?.object;
+    if (call.node.callee?.property?.name !== "addListener" || receiver?.property?.name !== "onMessage" || receiver.object?.property?.name !== "runtime") return;
+    const owner = call.findParent(parent => parent.isClass());
+    const methods = owner?.node.body.body.map(method => method.key?.name) || [];
+    if (!methods.includes("emit") || (!methods.includes("response") && !methods.includes("getStateChunks"))) return;
+    const listener = call.node.arguments[0];
+    if ((!t.isArrowFunctionExpression(listener) && !t.isFunctionExpression(listener)) || listener.async || !t.isIdentifier(listener.params[0])) throw new Error(`${area}: legacy message callback shape changed`);
+    const message = listener.params[0].name;
+    const original = t.isBlockStatement(listener.body) ? listener.body.body : [t.returnStatement(listener.body)];
+    listener.body = t.blockStatement([
+      ...parseStatements(`
+        // Typed learning/media messages belong to their own listeners. Ignore
+        // them BEFORE starting a Promise, or the legacy bus both throws on
+        // missing 'to' and may incorrectly claim their response channel.
+        if (!${message} || typeof ${message} !== "object" || Array.isArray(${message}) ||
+            !Array.isArray(${message}.to) || !${message}.to.every(target => typeof target === "string") ||
+            typeof ${message}.from !== "string" ||
+            (typeof ${message}.name !== "string" && !(${message}.response !== undefined && typeof ${message}.uuid === "string"))) return false;
+      `),
+      ...original,
+    ]);
+    guarded++;
+  } });
+  if (guarded !== 1) throw new Error(`${area}: expected one legacy runtime-message guard, got ${guarded}`);
+}
+
 function installBackgroundStructuredAiBridge(ast) {
   const appPath = findPrimaryFunction(ast);
   if (!appPath) throw new Error("background: primary application scope not found");
@@ -269,6 +298,7 @@ function installBackgroundStructuredAiBridge(ast) {
                       if (t) {
                         e.frameId = t.frameId;
                         if (t.tab?.id) e.tabid = t.tab.id;
+                        if (e.body?.learningSource) e.body.learningSource = { ...e.body.learningSource, sourceUrl: t.url || t.tab?.url || "" };
                       }
                     `),
                   );
@@ -1798,6 +1828,7 @@ function patchVideoAiRequests(ast) {
               t.identifier("requestGroup"),
               t.memberExpression(t.thisExpression(), t.identifier("id")),
             ),
+            t.objectProperty(t.identifier("learningSource"), parser.parseExpression("(globalThis.chengVideoBridge?.sourceHint?.() || { platform: this.platform, sourceId: String(window.metacontext?.vid || this.id || ''), sourceUrl: location.href })")),
             t.objectProperty(
               t.identifier("requestGeneration"),
               t.logicalExpression(
@@ -2198,6 +2229,54 @@ function patchControlCenterAppearance(ast, area) {
   }
 }
 
+function patchControlCenterVisibility(ast) {
+  let languageGate = 0, videoGate = 0, preferences = 0;
+  traverse(ast, {
+    ClassMethod(method) {
+      if (method.node.key?.name !== "renderControlCenter") return;
+      method.traverse({ IfStatement(statement) {
+        if (generate(statement.node).code.includes('"control center is disabled in video"')) {
+          statement.remove(); videoGate++; return;
+        }
+        let stateName;
+        t.traverseFast(statement.node.test, node => {
+          if (!t.isCallExpression(node) || node.callee?.property?.name !== "includes") return;
+          const list = node.callee.object;
+          if (list?.property?.name === "blackList" && list.object?.property?.name === "conrolCenter" && list.object.object?.property?.name === "setting" && t.isIdentifier(list.object.object.object)) stateName = list.object.object.object.name;
+        });
+        if (!stateName) return;
+        statement.node.test = parser.parseExpression(`(${stateName}.setting.conrolCenter.enable === false || (Array.isArray(${stateName}.setting.conrolCenter.blackList) && ${stateName}.setting.conrolCenter.blackList.includes(window.location.host)))`);
+        preferences++;
+      } });
+    },
+    LogicalExpression(expression) {
+      const node = expression.node;
+      if (node.operator !== "&&" || !t.isCallExpression(node.right) || node.right.callee?.object?.name !== "controlCenter" || node.right.callee?.property?.name !== "renderControlCenter") return;
+      const left = node.left;
+      if (!t.isLogicalExpression(left, { operator: "&&" }) || !t.isUnaryExpression(left.right, { operator: "!" })) return;
+      const check = left.right.argument;
+      if (!t.isCallExpression(check) || check.callee?.property?.name !== "includes" || !t.isArrayExpression(check.callee.object) || !check.arguments.some(argument => t.isStringLiteral(argument, { value: "und" }))) return;
+      // This is a settings/translation entry point, not an active translation.
+      // Language onboarding and video-page detection must not remove the dock.
+      node.left = left.left; languageGate++;
+    },
+  });
+  if (languageGate !== 1 || videoGate !== 1 || preferences !== 1) throw new Error(`reader: control-center visibility hooks changed (${languageGate}/${videoGate}/${preferences})`);
+}
+
+function patchPartialStateTasks(ast, area) {
+  let patched = 0;
+  traverse(ast, { ObjectProperty(property) {
+    if (!t.isIdentifier(property.node.key, { name: "preloadedState" }) || !t.isIdentifier(property.node.value)) return;
+    const value = property.node.value.name;
+    // A root reducer does not merge default fields into a partial preloaded
+    // state. Control-center hydration can omit tasks, then video menus crash.
+    property.node.value = parser.parseExpression(`(${value} == null ? ${value} : { ...${value}, tasks: Array.isArray(${value}.tasks) ? ${value}.tasks : [] })`);
+    patched++;
+  } });
+  if (patched !== 1) throw new Error(`${area}: expected one partial-state tasks normalization, got ${patched}`);
+}
+
 async function buildMain(name, config) {
   const sourcePath = path.join(root, config.source);
   const source = fs.readFileSync(sourcePath, "utf8");
@@ -2225,7 +2304,10 @@ async function buildMain(name, config) {
     });
   }
   const applied = applySemanticRenames(name, ast);
-  if (name === "reader" || name === "video") patchStandalonePlatformLinks(ast, name);
+  if (name === "reader" || name === "video") {
+    patchStandalonePlatformLinks(ast, name);
+    patchPartialStateTasks(ast, name);
+  }
   if (name === "background" || name === "reader" || name === "video") {
     patchSchemesDefault(ast, name);
     patchControlCenterAppearance(ast, name);
@@ -2233,6 +2315,7 @@ async function buildMain(name, config) {
   let sourceComponents = [];
   if (name === "background") installBackgroundStructuredAiBridge(ast);
   if (name === "reader") {
+    patchControlCenterVisibility(ast);
     patchExtensionClientEmit(ast, "reader");
     sourceComponents = installUiSourceFactories(ast, {
       area: "reader",
@@ -2267,6 +2350,7 @@ async function buildMain(name, config) {
       minimumComponents: 1,
     });
   }
+  if (["background", "reader", "video"].includes(name)) guardLegacyRuntimeMessages(ast, name);
   renameReport[name] = {
     source: config.source,
     output: config.output,
@@ -2291,7 +2375,7 @@ async function buildMain(name, config) {
     : name === "reader" ? getPlatformCapabilitySource() + "\n" : "";
   let output = `/* LexiHalo readable single bundle: ${name}. */\n${siteRuntime}${generate(ast, { comments: true, compact: false }).code}\n`;
   if (name === "background")
-    output += fs.readFileSync(path.join(root, "src/background/media-task-manager.js"), "utf8") + "\n" +
+    output += ["schema.js", "store.js", "background.js", "ai.js", "media.js", "study-background.js"].map((file) => fs.readFileSync(path.join(root, "src/learning", file), "utf8")).join("\n") + "\n" + fs.readFileSync(path.join(root, "src/background/media-task-manager.js"), "utf8") + "\n" +
       fs.readFileSync(path.join(root, "src/background/media-capture.js"), "utf8") + "\n" +
       fs.readFileSync(path.join(root, "src/background/site-resolver.js"), "utf8") + "\n" +
       fs.readFileSync(
@@ -2328,6 +2412,14 @@ async function buildMain(name, config) {
 for (const [name, config] of Object.entries(baseline.entries))
   await buildMain(name, config);
 
+// Independent learning workbench: new code stays outside recovered UI factories.
+fs.mkdirSync(path.join(root, "assets/learning"), { recursive: true });
+for (const file of ["schema.js", "store.js", "transfer.js", "workspace.js", "workspace.css", "understanding.js", "reading.js", "notes.js", "notes-library.js", "study.js", "study.css"]) {
+  fs.copyFileSync(path.join(root, "src/learning", file), path.join(root, "assets/learning", file));
+}
+fs.copyFileSync(path.join(root, "node_modules/fflate/umd/index.js"), path.join(root, "assets/learning/fflate.js"));
+fs.copyFileSync(path.join(root, "node_modules/fflate/LICENSE"), path.join(root, "assets/learning/fflate-LICENSE.txt"));
+
 const directSources = {
   "src/video/onload.js": "assets/edvideo-onload.js",
   "src/content/site-rules-loader.js": "assets/site-rules-loader.js",
@@ -2335,6 +2427,8 @@ const directSources = {
   "src/options/byok.js": "assets/byok.js",
   "src/options/site-rules.js": "assets/site-rules.js",
   "src/background/asr-offscreen.js": "assets/asr-offscreen.js",
+  "src/content/learning-entry.js": "assets/cheng-learning-entry.js",
+  "src/video/learning-bridge.js": "assets/cheng-video-bridge.js",
 };
 for (const [input, output] of Object.entries(directSources)) {
   let source = fs
@@ -2345,7 +2439,7 @@ for (const [input, output] of Object.entries(directSources)) {
     .replaceAll("assets/semantic-pos-tagger.js", "assets/tagger-main.js")
     .replaceAll('"semantic"', '"readable"');
   source = await formatJs(source);
-  if (input.startsWith("src/content/") || input === "src/video/onload.js")
+  if (input.startsWith("src/content/") || input === "src/video/onload.js" || input === "src/video/learning-bridge.js")
     source = guardContentScript(source);
   fs.writeFileSync(path.join(root, output), source);
 }
@@ -2355,17 +2449,26 @@ for (const filename of [
   "byok.html",
   "site-rules.html",
   "offscreen.html",
+  "workspace.html",
+  "study.html",
 ]) {
   fs.copyFileSync(
     path.join(root, "src", "pages", filename),
     path.join(root, filename),
   );
 }
-fs.cpSync(path.join(root, "src", "locales"), path.join(root, "_locales"), {
-  recursive: true,
-  force: true,
-});
+const brand = JSON.parse(fs.readFileSync(path.join(root, "config/brand.json"), "utf8"));
+for (const locale of fs.readdirSync(path.join(root, "src/locales"))) {
+  const input = path.join(root, "src/locales", locale, "messages.json");
+  const messages = JSON.parse(fs.readFileSync(input, "utf8").replaceAll("LexiHalo", brand.name));
+  const chinese = locale === "zh_CN", traditional = locale === "zh_TW";
+  messages.PKG_NAME.message = chinese ? brand.zhPackageName : traditional ? brand.zhTWPackageName : brand.packageName;
+  messages.PKG_DESC.message = chinese ? brand.zhDescription : traditional ? brand.zhTWDescription : brand.description;
+  fs.mkdirSync(path.join(root, "_locales", locale), { recursive: true });
+  fs.writeFileSync(path.join(root, "_locales", locale, "messages.json"), JSON.stringify(messages, null, 2) + "\n");
+}
 for (const filename of [
+  "cheng-theme.css",
   "byok.css",
   "edreader.css",
   "eduser.css",
@@ -2390,7 +2493,7 @@ fs.copyFileSync(path.join(root, "manifest.json"), path.join(distDir, "manifest.j
 fs.copyFileSync(path.join(root, "native/THIRD_PARTY_NOTICES.txt"), path.join(distDir, "THIRD_PARTY_NOTICES.txt"));
 
 // 2. Copy HTML pages
-for (const filename of ["index.html", "popup.html", "byok.html", "site-rules.html", "offscreen.html"]) {
+for (const filename of ["index.html", "popup.html", "byok.html", "site-rules.html", "offscreen.html", "workspace.html", "study.html"]) {
   fs.copyFileSync(path.join(root, filename), path.join(distDir, filename));
 }
 

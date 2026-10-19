@@ -3,24 +3,30 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>LexiHalo 自定义翻译引擎</title>
+    <title>澄 Cheng · AI 引擎设置</title>
+    <link rel="stylesheet" href="assets/cheng-theme.css" />
     <link rel="stylesheet" href="assets/byok.css" />
   </head>
   <body>
     <main>
       <header>
-        <img src="assets/logo.svg" alt="LexiHalo" />
+        <a
+          class="cheng-mark"
+          href="workspace.html?view=materials"
+          aria-label="返回澄资料与媒体"
+          ><img src="assets/logo.svg" alt="澄 Cheng"
+        /></a>
         <div>
-          <h1>LexiHalo 自定义翻译引擎</h1>
+          <h1>澄 Cheng · AI 引擎设置</h1>
           <p>配置 AI 模型或 DeepL API，翻译请求由扩展直接发送给对应服务商。</p>
         </div>
       </header>
 
       <section class="notice">
         API Key 保存在本机的 <code>chrome.storage.local</code> 中，不会上传到
-        LexiHalo 或其他中间服务器。Google 翻译无需密钥；Microsoft Translator
-        使用官方 Azure API Key，DeepL 可填写 Free 或 Pro API
-        Key。请勿在共享电脑上保存密钥。
+        澄的产品服务器或其他中间服务器。音频、字幕等请求内容会直接发送给你配置的供应商；数据本地保存不代表
+        AI 处理离线。Google 翻译无需密钥；Microsoft Translator 使用官方 Azure
+        API Key，DeepL 可填写 Free 或 Pro API Key。请勿在共享电脑上保存密钥。
       </section>
 
       <section class="card">
@@ -122,8 +128,9 @@
               />
             </label>
             <p id="transcription-note" class="wide field-note">
-              用于无字幕视频。LexiHalo 会获取视频音频并以 multipart/form-data
-              直接上传到该接口；建议使用 <code>whisper-1</code> 以获得分段时间戳。
+              用于无字幕视频。澄会获取视频音频并以 multipart/form-data
+              直接上传到该接口；建议使用
+              <code>whisper-1</code> 以获得分段时间戳。
             </p>
           </div>
           <div class="actions">
@@ -148,15 +155,18 @@
           <span id="helper-status">正在检查…</span>
         </div>
         <p class="diagnostics-note">
-          当浏览器无法直接读取完整音频时，助手可用 yt-dlp 和 ffmpeg 下载并切块；API Key
-          始终由扩展直接发给你的 BYOK 服务商，不会交给助手。助手不会绕过 DRM。
+          当浏览器无法直接读取完整音频时，助手可用 yt-dlp 和 ffmpeg
+          下载并切块；API Key 始终由扩展直接发给你的 BYOK
+          服务商，不会交给助手。助手不会绕过 DRM。
         </p>
         <p>扩展 ID：<code id="helper-extension-id"></code></p>
         <p>安装命令：<code id="helper-command"></code></p>
         <div class="actions">
           <button type="button" id="refresh-helper">重新检查</button>
         </div>
-        <p class="field-note">完整安装步骤和当前支持范围见仓库 <code>native/README.md</code>。</p>
+        <p class="field-note">
+          完整安装步骤和当前支持范围见仓库 <code>native/README.md</code>。
+        </p>
       </section>
 
       <section class="card">
@@ -165,12 +175,15 @@
           <span id="diagnostics-status"></span>
         </div>
         <p class="diagnostics-note">
-          仅记录请求阶段、服务商、模型、Endpoint、耗时和错误，不记录字幕文本或 API Key。
+          仅记录请求阶段、服务商、模型、Endpoint、耗时和错误，不记录字幕文本或
+          API Key。
         </p>
         <div class="actions">
           <button type="button" id="refresh-diagnostics">刷新诊断</button>
           <button type="button" id="copy-diagnostics">复制诊断</button>
-          <button type="button" id="clear-diagnostics" class="danger">清空诊断</button>
+          <button type="button" id="clear-diagnostics" class="danger">
+            清空诊断
+          </button>
         </div>
         <pre id="diagnostics-output">尚无诊断记录。</pre>
       </section>

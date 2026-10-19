@@ -76,10 +76,11 @@ export function recoverVideoToggleButton(dependencies) {
         setting: l,
         user: c,
         translatorService: u,
-        tasks: d,
+        tasks: storedTasks,
         shortcuts: p,
         video: _,
       } = useAppSelector((e) => e, shallowEqual),
+      d = Array.isArray(storedTasks) ? storedTasks : [],
       h = s.target
         ? jn.find((e) => e.code === s.target)
         : jn.find((e) => e.code === l.language.subtitle),
@@ -1158,7 +1159,7 @@ export function recoverVideoToggleButton(dependencies) {
           children: (0, jsxRuntime.jsx)("img", {
             className: "icon-trancy-brand lexihalo-brand-icon",
             src: `${props.runtime.scheme}/assets/icons/ic48.png`,
-            alt: "LexiHalo",
+            alt: "澄 Cheng",
             draggable: !1,
           }),
         }),

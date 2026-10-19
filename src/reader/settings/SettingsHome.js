@@ -537,7 +537,7 @@ export function recoverSettingsHome(dependencies) {
                                   (0, jsxRuntime.jsx)("div", {
                                     className: "tips",
                                     children:
-                                      "彻底清除双语字幕、网页沉浸式翻译、划词释义与快速翻译全部缓存",
+                                      "清除翻译缓存，不会删除澄资料库中的字幕副本、片段、笔记或截图",
                                   }),
                                 ],
                               }),

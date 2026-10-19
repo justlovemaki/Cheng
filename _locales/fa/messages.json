@@ -1,23 +1,23 @@
 {
   "PKG_NAME": {
-    "message": "LexiHalo - مترجم هوش مصنوعی و زیرنویس دو زبانه"
+    "message": "Cheng - Video Study & Knowledge Notes"
   },
   "PKG_DESC": {
-    "message": "LexiHalo زیرنویس دوزبانه برای پلتفرم‌هایی مانند YouTube، Disney+ و همچنین مترجم هوش مصنوعی برای وب‌سایت‌ها ارائه می‌دهد."
+    "message": "Study foreign-language videos with bilingual subtitles, contextual explanations and timestamped notes. Local data, import/export and BYOK."
   },
   "toggleVideoImmersive": {
-    "message": "حالت یادگیری ویدیو_LexiHalo"
+    "message": "حالت یادگیری ویدیو_Cheng"
   },
   "toggleFulltextImmersive": {
-    "message": "ترجمه فراگیر_LexiHalo"
+    "message": "ترجمه فراگیر_Cheng"
   },
   "quickTranslator": {
-    "message": "مترجم سریع_LexiHalo"
+    "message": "مترجم سریع_Cheng"
   },
   "aiTranscribe": {
-    "message": "رونویسی هوش مصنوعی یوتیوب_LexiHalo"
+    "message": "رونویسی هوش مصنوعی یوتیوب_Cheng"
   },
   "captionToggle": {
-    "message": "زیرنویس دوزبانه_LexiHalo"
+    "message": "زیرنویس دوزبانه_Cheng"
   }
 }

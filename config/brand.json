@@ -1,0 +1,10 @@
+{
+  "name": "Cheng",
+  "zhName": "澄 Cheng",
+  "packageName": "Cheng - Video Study & Knowledge Notes",
+  "description": "Study foreign-language videos with bilingual subtitles, contextual explanations and timestamped notes. Local data, import/export and BYOK.",
+  "zhPackageName": "澄 Cheng - 外语视频精读与知识笔记",
+  "zhDescription": "用双语字幕和上下文解释精读外语视频，收藏片段、整理知识笔记。数据本地保存，支持导入导出及 BYOK。",
+  "zhTWPackageName": "澄 Cheng - 外語影片精讀與知識筆記",
+  "zhTWDescription": "以雙語字幕與上下文解釋精讀外語影片，收藏片段、整理知識筆記。資料儲存於本機，支援匯入匯出與 BYOK。"
+}

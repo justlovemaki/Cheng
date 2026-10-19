@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>澄 Cheng · 边看边学</title>
+    <link rel="stylesheet" href="assets/cheng-theme.css" />
+    <link rel="stylesheet" href="assets/learning/study.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <img
+          class="cheng-brand-icon"
+          src="assets/logo.svg"
+          alt="澄 Cheng"
+        /><span>边看边学</span>
+      </div>
+      <a
+        id="library"
+        href="workspace.html?view=materials"
+        target="_blank"
+        rel="noopener"
+        >资料与媒体 ↗</a
+      >
+    </header>
+    <p id="connection" role="status">正在连接当前视频…</p>
+    <section class="source">
+      <h1 id="video-title">切换到视频网页即可开始</h1>
+      <p id="clock">自动跟随当前标签页</p>
+    </section>
+    <div class="actions">
+      <button id="repeat" disabled>重听当前句</button
+      ><button id="follow">跟随播放</button>
+    </div>
+    <section class="subtitles">
+      <div class="heading">
+        <h2>实时双语对照（视频）</h2>
+        <span id="subtitle-count"></span>
+      </div>
+      <div id="cues" aria-label="实时双语字幕"></div>
+      <div id="caption-selection" hidden>
+        <div class="selection-toolbar">
+          <button id="selection-summary" type="button" title="查看全部已选字幕">
+            已选 0 句
+          </button>
+          <div>
+            <button id="selection-note" class="primary">记笔记</button
+            ><button id="repeat-selection">重听</button
+            ><button id="selection-ai-toggle">AI 解释</button
+            ><button id="selection-clear">清除</button>
+          </div>
+        </div>
+        <div id="selection-review" class="selection-drawer" hidden>
+          <div class="heading">
+            <strong>已选字幕</strong
+            ><button id="selection-review-close" aria-label="关闭已选字幕">
+              关闭
+            </button>
+          </div>
+          <p class="muted">
+            字幕滚出实时窗口后仍会保留；可在这里跳回或单独取消。
+          </p>
+          <div id="selection-review-list"></div>
+        </div>
+        <dialog id="selection-ai" class="selection-ai">
+          <div class="heading">
+            <strong>解释选中字幕</strong
+            ><button id="selection-ai-close" aria-label="关闭 AI 解释">
+              关闭
+            </button>
+          </div>
+          <p id="ai-help" class="muted">选择字幕后，可以结合附近上下文解释。</p>
+          <select id="engine" aria-label="解释使用的 AI 引擎">
+            <option value="">正在读取引擎…</option>
+          </select>
+          <input
+            id="question"
+            aria-label="关于选中字幕的问题"
+            placeholder="可选：针对这些字幕问一个具体问题"
+            maxlength="2000"
+          />
+          <p id="privacy" class="privacy">
+            只有点击“解释选中字幕”才会发送所选字幕、附近上下文、问题及匹配术语；不发送你的笔记。
+          </p>
+          <details id="preview">
+            <summary>查看发送范围（可选）</summary>
+            <pre id="preview-content">展开后预览，不调用模型。</pre>
+          </details>
+          <button id="explain" class="primary" disabled>解释选中字幕</button
+          ><a id="configure" href="byok.html" target="_blank" rel="noopener"
+            >配置 BYOK</a
+          >
+          <article id="answer" hidden>
+            <h3 id="answer-title"></h3>
+            <p id="answer-anchor" class="muted"></p>
+            <strong>视频中的内容</strong>
+            <p id="answer-video"></p>
+            <strong>AI 补充背景</strong>
+            <p id="answer-background"></p>
+            <strong>尚不能确认</strong>
+            <p id="answer-uncertainty"></p>
+            <p class="muted">
+              解释已保存到本机资料库。AI 补充不等于报告或论文证据。
+            </p>
+          </article>
+        </dialog>
+      </div>
+      <details id="caption-help">
+        <summary>没有字幕或译文？</summary>
+        <p id="subtitle-help" class="muted">
+          读取当前播放器可见字幕，不下载视频。
+        </p>
+        <p>
+          译文复用原有双语字幕结果。可以开启原有双语字幕，或在原视频使用 AI
+          转写；面板会自动更新。
+        </p>
+        <button id="enable-captions">启用原有双语字幕</button>
+        <p class="muted">
+          按原翻译引擎运行。使用 AI 引擎可能产生供应商费用，不会另外创建一套自动
+          AI 翻译。
+        </p>
+      </details>
+    </section>
+    <div class="study-tools">
+      <section id="note-section">
+        <div class="heading">
+          <h2>学习笔记</h2>
+          <button id="note-new" type="button">新建</button>
+        </div>
+        <p id="note-purpose" class="muted">
+          直接写下理解、问题或灵感，自动保存在本机。无需先选择片段；关联出处是可选的，也不会发送给
+          AI。
+        </p>
+        <div class="heading note-input-heading">
+          <label id="note-input-label" for="note" class="note-label"
+            >你的理解 / 疑问</label
+          ><span id="save-state" role="status">直接输入即可自动保存</span>
+        </div>
+        <textarea
+          id="note"
+          rows="4"
+          maxlength="100000"
+          aria-describedby="note-purpose note-guidance"
+          placeholder="想到什么就写下来……&#10;例如：我的理解、待确认的问题、下次要尝试的做法。"
+        ></textarea>
+        <p id="note-guidance" class="muted">
+          这是独立笔记，不关联任何页面也能保存。想写另一条，点“新建”。
+        </p>
+        <details id="note-sources">
+          <summary>关联出处（选填）</summary>
+          <div class="toolbar">
+            <button id="note-page">关联网页 / 选中文字</button
+            ><button id="remember" disabled>关联当前字幕</button
+            ><button id="note-detach" hidden>取消关联</button>
+          </div>
+          <p class="muted">
+            在原网页选中文字后点“关联网页”；没有选文时只记录链接。关联或取消都不会清空笔记文字。
+          </p>
+        </details>
+        <div class="note-context" id="note-context" hidden>
+          <p id="note-target-label" class="muted"></p>
+          <a
+            id="note-source-url"
+            href="#"
+            target="_blank"
+            rel="noopener"
+            hidden
+          ></a>
+          <blockquote id="note-anchor" hidden></blockquote>
+          <p id="note-translation" class="translation" hidden></p>
+        </div>
+        <a
+          id="note-library"
+          href="workspace.html"
+          target="_blank"
+          rel="noopener"
+          hidden
+          >到资料库回看这条笔记 ↗</a
+        >
+        <details class="note-example">
+          <summary>可以记什么？看个例子</summary>
+          <p>我的理解：讲者是在比较两种方法各自适用的条件。</p>
+          <p>还没懂：为什么这里不能直接用前一种方法？</p>
+          <p>下一步：找一个例子验证，再回来看这段。</p>
+        </details>
+        <p id="draft-recovery" class="muted"></p>
+      </section>
+    </div>
+    <script src="assets/learning/schema.js"></script>
+    <script src="assets/learning/store.js"></script>
+    <script src="assets/learning/notes.js"></script>
+    <script src="assets/learning/study.js"></script>
+  </body>
+</html>

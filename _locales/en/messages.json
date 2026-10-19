@@ -1,23 +1,23 @@
 {
   "PKG_NAME": {
-    "message": "LexiHalo - AI Translator & Dual Subtitles"
+    "message": "Cheng - Video Study & Knowledge Notes"
   },
   "PKG_DESC": {
-    "message": "LexiHalo provides bilingual subtitle for platforms like YouTube, Disney+, as well as AI translator for websites."
+    "message": "Study foreign-language videos with bilingual subtitles, contextual explanations and timestamped notes. Local data, import/export and BYOK."
   },
   "toggleVideoImmersive": {
-    "message": "Video Learning Mode_LexiHalo"
+    "message": "Video Study_Cheng"
   },
   "toggleFulltextImmersive": {
-    "message": "Immersive Translate_LexiHalo"
+    "message": "Immersive Translate_Cheng"
   },
   "quickTranslator": {
-    "message": "Quick Translator_LexiHalo"
+    "message": "Quick Translator_Cheng"
   },
   "aiTranscribe": {
-    "message": "Youtube AI Transcription_LexiHalo"
+    "message": "Audio Transcription_Cheng"
   },
   "captionToggle": {
-    "message": "Bilingual Subtitles_LexiHalo"
+    "message": "Bilingual Subtitles_Cheng"
   }
 }

@@ -5454,11 +5454,17 @@ trancy-caption-window {
   min-width: min(280px, calc(100% - 24px));
   max-width: min(520px, calc(100% - 24px));
 }
-.lexihalo-audio-caption-host .trancy-caption-container .trancy-caption-loading-icon {
+.lexihalo-audio-caption-host
+  .trancy-caption-container
+  .trancy-caption-loading-icon {
   flex-shrink: 0;
 }
-.lexihalo-audio-caption-host .trancy-caption-container .trancy-caption-loading-text,
-.lexihalo-audio-caption-host .trancy-caption-container .trancy-caption-error-text {
+.lexihalo-audio-caption-host
+  .trancy-caption-container
+  .trancy-caption-loading-text,
+.lexihalo-audio-caption-host
+  .trancy-caption-container
+  .trancy-caption-error-text {
   min-width: 0;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -6162,9 +6168,7 @@ trancy-caption-setting.lt-fa .MuiSwitch-root {
   padding-top: 7px;
   padding-bottom: 7px;
 }
-.lexihalo-video-download-panel
-  .lexihalo-download-format
-  .trancy-menuitem-icon {
+.lexihalo-video-download-panel .lexihalo-download-format .trancy-menuitem-icon {
   flex: 0 0 auto;
 }
 .lexihalo-video-download-panel .lexihalo-download-format-copy {
@@ -6878,13 +6882,17 @@ trancy-caption-setting.lt-fa .MuiSwitch-root {
   border-radius: 0;
   background: transparent !important;
   color: #ffb4ab !important;
-  font: 600 12px/1 system-ui, sans-serif !important;
+  font:
+    600 12px/1 system-ui,
+    sans-serif !important;
   letter-spacing: 0;
   text-shadow: none;
   box-shadow: none;
   opacity: 1 !important;
   visibility: visible !important;
-  transition: color 0.15s ease, opacity 0.15s ease;
+  transition:
+    color 0.15s ease,
+    opacity 0.15s ease;
   forced-color-adjust: auto;
 }
 .trancy-second-panel-menu-container
@@ -10716,7 +10724,9 @@ trancy-video-summary
 }
 #xt-toggle-button.trancy-html5-button.trancy-floating:hover,
 #xt-toggle-button.trancy-html5-button.trancy-floating:focus-within,
-#xt-toggle-button.trancy-html5-button.trancy-floating:has([data-lexihalo-menu-open="true"]) {
+#xt-toggle-button.trancy-html5-button.trancy-floating:has(
+    [data-lexihalo-menu-open="true"]
+  ) {
   opacity: 1;
 }
 .trancy-html5-button.trancy-floating .trancy-button-logo {
@@ -15149,4 +15159,122 @@ trancy-app
 .trancy-word-details .rd-dict-definition .dict-def-error .dict-def-btn.outline {
   border: 1px solid var(--border-10, var(--text-50));
   color: var(--text-80);
+}
+
+/* Cheng visual system — default Video UI follows the learning workspace. */
+.trancy-container.light {
+  --purple: #386753;
+  --green: #56806d;
+  --bg-0: #f7f7f1;
+  --bg-1: #fffefb;
+  --bgf: #f0f3e9;
+  --bg-avatar: #e8eee5;
+  --active-subtitle: #386753;
+  --word-popup-bg: #386753;
+  --anker: #386753;
+  --anker-hover: #2b5543;
+  --root-bg: #f7f7f1;
+  --readmode-bg: rgba(255, 254, 251, 0.78);
+  --controller-bg: rgba(255, 254, 251, 0.84);
+  --controller-timeline-bg: #e8eee5;
+  --controller-timeline-hover: #dce3d9;
+  --card-bg: #fffefb;
+  --card-border: 1px solid #dce3d9;
+  --switch-hover: rgba(56, 103, 83, 0.08);
+  --before-bg: linear-gradient(
+    rgba(56, 103, 83, 0.7),
+    rgba(205, 223, 212, 0.72)
+  );
+  --openai: linear-gradient(90deg, #56806d, #386753);
+}
+.trancy-container.light .trancy-panel-menu,
+.trancy-container.light .trancy-second-panel-menu-container {
+  border-color: #dce3d9;
+  border-radius: 10px;
+}
+.trancy-panel-menu {
+  background: rgba(255, 254, 251, 0.97);
+  color: #263d35;
+  border-color: #dce3d9;
+  border-radius: 10px;
+  box-shadow: 0 5px 18px rgba(32, 58, 48, 0.16);
+}
+.trancy-panel-menu .trancy-menuitem-label,
+.trancy-panel-menu .trancy-menuitem-action,
+.trancy-panel-menu .trancy-action-label,
+.trancy-panel-menu .second-panel-menu-header {
+  color: rgba(38, 61, 53, 0.9);
+}
+.trancy-panel-menu .trancy-menuitem-label svg,
+.trancy-panel-menu .trancy-menuitem-icon svg,
+.trancy-panel-menu .trancy-menuitem-action svg {
+  fill: rgba(38, 61, 53, 0.7);
+}
+.trancy-panel-menu .trancy-menuitem:hover,
+.trancy-panel-menu .trancy-menuitem-secondary:hover,
+.trancy-panel-menu .lexihalo-media-action:focus-visible {
+  background: #f0f3e9;
+}
+.trancy-panel-menu
+  .trancy-second-panel-menu-container
+  .second-panel-menu-header {
+  border-color: #dce3d9;
+}
+.trancy-panel-menu .trancy-menuitem .trancy-menuitem-action .Mui-checked {
+  color: #386753 !important;
+}
+.trancy-panel-menu
+  .trancy-menuitem
+  .trancy-menuitem-action
+  .Mui-checked
+  + .MuiSwitch-track {
+  background-color: #386753 !important;
+}
+.trancy-caption-source-banner {
+  color: #755514;
+}
+.trancy-panel-menu
+  .trancy-second-panel-menu-container
+  .second-panel-menu-header
+  .btn-back-panel-action {
+  color: rgba(38, 61, 53, 0.82);
+}
+.trancy-panel-menu
+  .trancy-second-panel-menu-container
+  .second-panel-menu-header
+  .btn-back-panel-action
+  svg {
+  fill: rgba(38, 61, 53, 0.68);
+}
+.trancy-panel-menu
+  .trancy-second-panel-menu-container
+  .second-panel-menu-header
+  .btn-back-panel-action:hover
+  > span:not(.MuiSwitch-root) {
+  color: #386753;
+}
+.trancy-panel-menu
+  .trancy-second-panel-menu-container
+  .second-panel-menu-header
+  .btn-back-panel-action:hover
+  svg {
+  fill: #386753;
+}
+.trancy-panel-menu
+  .trancy-second-panel-menu-container
+  .second-panel-menu-header
+  .btn-back-panel-action.lexihalo-download-cancel,
+.trancy-panel-menu
+  .trancy-second-panel-menu-container
+  .second-panel-menu-header
+  .btn-back-panel-action.lexihalo-download-cancel:hover,
+.trancy-panel-menu
+  .trancy-second-panel-menu-container
+  .second-panel-menu-header
+  .btn-back-panel-action.lexihalo-download-cancel:focus-visible {
+  color: #9c4339 !important;
+}
+.trancy-panel-menu .lexihalo-media-workflow-panel .lexihalo-media-note {
+  color: #6b7c73;
+  border-color: #dce3d9;
 }

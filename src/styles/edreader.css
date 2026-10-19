@@ -4873,7 +4873,12 @@
   background: transparent;
   box-shadow: none;
 }
-.rd-slider .rd-slider-container .rd-slider-header .brand .logo .lexihalo-brand-icon {
+.rd-slider
+  .rd-slider-container
+  .rd-slider-header
+  .brand
+  .logo
+  .lexihalo-brand-icon {
   width: 28px;
   height: 28px;
 }
@@ -11790,4 +11795,54 @@
 }
 .md-0 {
   margin-top: 0 !important;
+}
+
+/* Cheng visual system — default Reader UI follows the learning workspace. */
+#trancy-root,
+.rd-theme {
+  --purple: #386753;
+  --rd-primary: #386753;
+  --icon-purple: #386753;
+  --bg-avatar: #e8eee5;
+  --openai: linear-gradient(90deg, #56806d, #386753);
+  --gd: linear-gradient(90deg, #56806d, #386753);
+}
+#trancy-root.light,
+#trancy-root.auto,
+.rd-theme.light,
+.rd-theme.auto {
+  --rd-text-100: #263d35;
+  --rd-text-90: rgba(38, 61, 53, 0.9);
+  --rd-text-80: rgba(38, 61, 53, 0.8);
+  --rd-text-70: rgba(38, 61, 53, 0.7);
+  --rd-text-60: rgba(38, 61, 53, 0.62);
+  --rd-primary: #386753;
+  --rd-bg-0: #fffefb;
+  --rd-bg-1: #f7f7f1;
+  --rd-bg-2: #f0f3e9;
+  --rd-bg-3: #e8eee5;
+  --rd-bg-4: #cddfd4;
+  --rd-card-bg: rgba(255, 254, 251, 0.97);
+  --rd-shimmer-bg: #dce3d9;
+  --rd-border-slider: #dce3d9;
+  --scrollbar-thumb: rgba(56, 103, 83, 0.24);
+}
+.rd-float-btn {
+  background: rgba(56, 103, 83, 0.18);
+  border-color: rgba(56, 103, 83, 0.18);
+  border-radius: 10px 0 0 10px;
+}
+.rd-float-btn .btn-rd-app {
+  border-radius: 7px;
+}
+.rd-float-btn .btn-rd-app:hover {
+  background: #fffefb;
+}
+.rd-float-btn .btn-rd-app:hover .t-icon svg {
+  fill: #386753;
+}
+.rd-float-btn .cheng-study-button .t-icon svg,
+.rd-float-btn .cheng-study-button:hover .t-icon svg {
+  color: #386753;
+  fill: none;
 }

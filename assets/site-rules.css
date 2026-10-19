@@ -251,3 +251,73 @@ code {
     background: #292e38;
   }
 }
+
+/* Cheng visual system — aligned with the learning workspace. */
+:root,
+body {
+  color-scheme: light;
+  background: var(--cheng-paper);
+  color: var(--cheng-ink);
+  font-family: var(--cheng-font);
+}
+.card,
+.notice {
+  background: var(--cheng-surface);
+  border-color: var(--cheng-border);
+  border-radius: var(--cheng-radius);
+}
+.card {
+  box-shadow: var(--cheng-shadow);
+}
+header p,
+.section-heading p,
+.notice,
+summary {
+  color: var(--cheng-muted);
+}
+textarea,
+button,
+.quick-add input {
+  background: #fff;
+  color: var(--cheng-ink);
+  border-color: var(--cheng-border-strong);
+  border-radius: 7px;
+}
+.quick-add input:focus,
+textarea:focus {
+  border-color: var(--cheng-accent);
+  box-shadow: 0 0 0 3px var(--cheng-focus);
+}
+button.primary {
+  border-color: var(--cheng-accent);
+  background: var(--cheng-accent);
+}
+button.primary:hover {
+  background: var(--cheng-accent-hover);
+}
+.rule-row {
+  background: var(--cheng-surface-soft);
+  border-color: var(--cheng-border);
+}
+.rule-empty {
+  border-color: var(--cheng-border-strong);
+  color: var(--cheng-muted);
+}
+code {
+  background: var(--cheng-accent-soft);
+}
+#status {
+  color: var(--cheng-accent);
+}
+.cheng-mark {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  color: var(--cheng-ink);
+  font:
+    38px/1 "Songti SC",
+    SimSun,
+    serif;
+  text-decoration: none;
+}

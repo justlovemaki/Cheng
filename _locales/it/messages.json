@@ -1,23 +1,23 @@
 {
   "PKG_NAME": {
-    "message": "LexiHalo - Traduttore AI & Sottotitoli bilingue"
+    "message": "Cheng - Video Study & Knowledge Notes"
   },
   "PKG_DESC": {
-    "message": "LexiHalo fornisce sottotitoli bilingue per piattaforme come YouTube, Disney+, TED, edX, Kehan, Coursera... oltre a un traduttore AI per siti web."
+    "message": "Study foreign-language videos with bilingual subtitles, contextual explanations and timestamped notes. Local data, import/export and BYOK."
   },
   "toggleVideoImmersive": {
-    "message": "Modalità di apprendimento video_LexiHalo"
+    "message": "Modalità di apprendimento video_Cheng"
   },
   "toggleFulltextImmersive": {
-    "message": "Traduzione immersiva_LexiHalo"
+    "message": "Traduzione immersiva_Cheng"
   },
   "quickTranslator": {
-    "message": "Traduttore rapido_LexiHalo"
+    "message": "Traduttore rapido_Cheng"
   },
   "aiTranscribe": {
-    "message": "Sottotitoli AI di Youtube_LexiHalo"
+    "message": "Sottotitoli AI di Youtube_Cheng"
   },
   "captionToggle": {
-    "message": "Sottotitoli bilingue_LexiHalo"
+    "message": "Sottotitoli bilingue_Cheng"
   }
 }

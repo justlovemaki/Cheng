@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>澄 Cheng · 学习资料库</title>
+    <link rel="stylesheet" href="assets/cheng-theme.css" />
+    <link rel="stylesheet" href="assets/learning/workspace.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <img class="cheng-brand-icon" src="assets/logo.svg" alt="澄 Cheng" />
+        <span>Cheng<small>外语视频精读与知识笔记</small></span>
+      </div>
+      <div class="toolbar">
+        <button id="refresh-tabs">刷新视频标签页</button
+        ><select id="source-tabs" aria-label="视频标签页"></select>
+        <button id="capture" class="primary">保存当前视频</button>
+        <a href="byok.html" target="_blank" rel="noopener">AI 引擎设置</a>
+      </div>
+    </header>
+    <p id="status" role="status" aria-live="polite"></p>
+    <div class="layout">
+      <aside>
+        <h2>学习资料</h2>
+        <button id="open-learning-notes" class="material-item">学习笔记</button>
+        <button id="open-learning-materials" class="material-item">
+          资料与媒体
+        </button>
+        <input
+          id="library-search"
+          type="search"
+          placeholder="搜索资料、字幕、笔记、概念"
+          aria-label="搜索资料库"
+        />
+        <div id="materials" class="materials"></div>
+        <section class="data-tools">
+          <h3>导入与导出</h3>
+          <button id="import-subtitles">导入字幕，创建新资料</button>
+          <button id="import-subtitles-current" disabled>
+            给当前媒体添加字幕版本
+          </button>
+          <p id="subtitle-import-target" class="muted">
+            选择一项资料后，可把 SRT/VTT
+            添加为它的新字幕版本；不会替换媒体或旧字幕。
+          </p>
+          <button id="export-backup">完整备份 ZIP</button>
+          <button id="import-backup">从项目包恢复</button>
+          <select id="restore-mode" aria-label="恢复方式">
+            <option value="merge">合并，保留现有内容</option>
+            <option value="skip">跳过已有资料</option>
+            <option value="replace">完整恢复，替换当前资料库</option>
+          </select>
+          <input id="subtitle-file" type="file" accept=".srt,.vtt" hidden />
+          <input id="backup-file" type="file" accept=".zip" hidden />
+        </section>
+        <p class="muted">
+          资料保存在本机。卸载扩展可能删除本地资料，请定期备份。AI
+          调用会将所选内容发送给你配置的供应商。
+        </p>
+      </aside>
+      <main>
+        <section id="learning-notes" hidden></section>
+        <section id="empty" class="empty">
+          <h1>把看过的，变成自己的。</h1>
+          <p>
+            在视频网页右侧打开「学习控制台」，记下的片段与笔记会自动出现在这里。
+            这里用于回看、搜索、备份与导出，也可以导入本地媒体和字幕。
+          </p>
+          <p>无需产品账号。笔记和收藏不会随翻译缓存清理而消失。</p>
+        </section>
+        <div id="detail" hidden>
+          <section class="material-head">
+            <h1 id="material-title"></h1>
+            <p id="material-source" class="muted"></p>
+            <div class="toolbar">
+              <button id="resume">继续学习</button
+              ><button id="export-markdown">导出 Markdown</button
+              ><button id="export-srt">导出 SRT</button
+              ><button id="export-vtt">导出 VTT</button
+              ><button id="delete-material" class="danger">删除资料</button>
+            </div>
+          </section>
+          <section id="media-section" hidden></section>
+          <div class="study-grid">
+            <section class="panel transcript-panel">
+              <div class="section-heading">
+                <h2>字幕精读</h2>
+                <select id="transcript-version" aria-label="字幕版本"></select>
+              </div>
+              <div id="reading-controls"></div>
+              <div class="toolbar">
+                <button id="save-clip" class="primary">保存为独立片段</button
+                ><button id="clear-selection">取消选择</button
+                ><span id="selection-count" class="muted"></span>
+              </div>
+              <div id="cues" class="cues"></div>
+              <div class="toolbar">
+                <button id="previous-page">上一页</button
+                ><span id="page-label"></span
+                ><button id="next-page">下一页</button>
+              </div>
+            </section>
+            <section class="panel notes-panel">
+              <div class="section-heading">
+                <h2>字幕与时间片段</h2>
+                <span id="material-note-count" class="muted"></span>
+              </div>
+              <p class="muted">
+                “笔记引用”由实时字幕写笔记时自动产生，用来保留出处；“独立保存”是你在字幕精读中主动保存的片段。
+              </p>
+              <button id="material-notes-link">查看此资料的学习笔记</button>
+              <div id="clips"></div>
+              <div id="legacy-material-notes" hidden>
+                <select id="note-clip">
+                  <option value="">整段视频</option>
+                </select>
+                <textarea id="note-body"></textarea><input id="note-tags" />
+                <button id="save-note">保存笔记</button
+                ><button id="new-note">新建笔记</button
+                ><span id="note-state"></span>
+                <div id="notes"></div>
+              </div>
+            </section>
+          </div>
+          <section id="concept-section" class="panel" hidden></section>
+          <!-- Compatibility hosts keep existing glossary/screenshots exportable without exposing obsolete creation UI. -->
+          <section
+            id="glossary-section"
+            class="retired-feature"
+            aria-hidden="true"
+            hidden
+          ></section>
+          <section
+            id="attachments-section"
+            class="retired-feature"
+            aria-hidden="true"
+            hidden
+          ></section>
+        </div>
+      </main>
+    </div>
+    <script src="assets/learning/fflate.js"></script>
+    <script src="assets/learning/schema.js"></script>
+    <script src="assets/learning/store.js"></script>
+    <script src="assets/learning/notes.js"></script>
+    <script src="assets/learning/transfer.js"></script>
+    <script src="assets/learning/workspace.js"></script>
+    <script src="assets/learning/notes-library.js"></script>
+    <script src="assets/learning/understanding.js"></script>
+    <script src="assets/learning/reading.js"></script>
+  </body>
+</html>

@@ -1,23 +1,23 @@
 {
   "PKG_NAME": {
-    "message": "LexiHalo - Yapay Zekâ Çevirmen & Çift Dilli Altyazılar"
+    "message": "Cheng - Video Study & Knowledge Notes"
   },
   "PKG_DESC": {
-    "message": "LexiHalo, YouTube, Disney+, TED, edX, Kehan, Coursera gibi platformlar için çift dilli altyazı sağlar ve aynı zamanda web siteleri için yapay zeka çevirmeni sunar."
+    "message": "Study foreign-language videos with bilingual subtitles, contextual explanations and timestamped notes. Local data, import/export and BYOK."
   },
   "toggleVideoImmersive": {
-    "message": "Video öğrenme modu_LexiHalo"
+    "message": "Video öğrenme modu_Cheng"
   },
   "toggleFulltextImmersive": {
-    "message": "Tam sayfa çeviri_LexiHalo"
+    "message": "Tam sayfa çeviri_Cheng"
   },
   "quickTranslator": {
-    "message": "Hızlı çeviri_LexiHalo"
+    "message": "Hızlı çeviri_Cheng"
   },
   "aiTranscribe": {
-    "message": "Youtube AI Altyazıları_LexiHalo"
+    "message": "Youtube AI Altyazıları_Cheng"
   },
   "captionToggle": {
-    "message": "Çift dilli altyazılar_LexiHalo"
+    "message": "Çift dilli altyazılar_Cheng"
   }
 }

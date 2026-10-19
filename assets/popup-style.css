@@ -96,3 +96,48 @@ body {
 .trancy-popup-btn.primary:hover {
   filter: brightness(1.08);
 }
+
+/* Cheng visual system — aligned with the learning workspace. */
+:root {
+  color-scheme: light;
+  --tp-bg: var(--cheng-paper);
+  --tp-text-90: var(--cheng-ink);
+  --tp-text-60: var(--cheng-muted);
+  --tp-border: var(--cheng-border);
+  --tp-hover: var(--cheng-accent-soft);
+  --tp-primary: var(--cheng-accent);
+  --tp-primary-text: #fff;
+}
+html,
+body {
+  background: var(--cheng-paper);
+  color: var(--cheng-ink);
+  font-family: var(--cheng-font);
+}
+.trancy-popup {
+  width: 320px;
+  padding: 16px;
+}
+.trancy-popup-logo.cheng-brand-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  color: var(--cheng-ink);
+  font:
+    28px/1 "Songti SC",
+    SimSun,
+    serif;
+}
+.trancy-popup-btn {
+  border-radius: 7px;
+  background: var(--cheng-surface);
+}
+.trancy-popup-btn.primary {
+  background: var(--cheng-accent);
+  border-color: var(--cheng-accent);
+}
+.trancy-popup-btn.primary:hover {
+  background: var(--cheng-accent-hover);
+  filter: none;
+}

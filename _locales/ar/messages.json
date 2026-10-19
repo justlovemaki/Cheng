@@ -1,23 +1,23 @@
 {
   "PKG_NAME": {
-    "message": "LexiHalo - مترجم بالذكاء الاصطناعي وترجمة مزدوجة"
+    "message": "Cheng - Video Study & Knowledge Notes"
   },
   "PKG_DESC": {
-    "message": "ترانسي يوفر ترجمة ثنائية اللغة لمنصات مثل يوتيوب وديزني بلس وتيد وإيديكس وكورسيرا... بالإضافة إلى مترجم ذكي للمواقع."
+    "message": "Study foreign-language videos with bilingual subtitles, contextual explanations and timestamped notes. Local data, import/export and BYOK."
   },
   "toggleVideoImmersive": {
-    "message": "تفعيل/تعطيل وضع التعلم بالفيديو [LexiHalo]"
+    "message": "تفعيل/تعطيل وضع التعلم بالفيديو [Cheng]"
   },
   "toggleFulltextImmersive": {
-    "message": "تفعيل/تعطيل الترجمة المغمورة [LexiHalo]"
+    "message": "تفعيل/تعطيل الترجمة المغمورة [Cheng]"
   },
   "quickTranslator": {
-    "message": "تفعيل/تعطيل الترجمة السريعة [LexiHalo]"
+    "message": "تفعيل/تعطيل الترجمة السريعة [Cheng]"
   },
   "aiTranscribe": {
-    "message": "تفعيل/تعطيل ترجمة الفيديو باللغة العربية [LexiHalo]"
+    "message": "تفعيل/تعطيل ترجمة الفيديو باللغة العربية [Cheng]"
   },
   "captionToggle": {
-    "message": "تفعيل/تعطيل الترجمة المتعددة اللغات [LexiHalo]"
+    "message": "تفعيل/تعطيل الترجمة المتعددة اللغات [Cheng]"
   }
 }

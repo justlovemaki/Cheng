@@ -1,23 +1,23 @@
 {
   "PKG_NAME": {
-    "message": "LexiHalo - KI Übersetzer & Zwei Untertitel"
+    "message": "Cheng - Video Study & Knowledge Notes"
   },
   "PKG_DESC": {
-    "message": "LexiHalo bietet zweisprachige Untertitel für Plattformen wie YouTube, Disney+, TED, edX, Kehan, Coursera... sowie KI-Übersetzung für Websites."
+    "message": "Study foreign-language videos with bilingual subtitles, contextual explanations and timestamped notes. Local data, import/export and BYOK."
   },
   "toggleVideoImmersive": {
-    "message": "Video Lernmodus_LexiHalo"
+    "message": "Video Lernmodus_Cheng"
   },
   "toggleFulltextImmersive": {
-    "message": "Immersive Übersetzung_LexiHalo"
+    "message": "Immersive Übersetzung_Cheng"
   },
   "quickTranslator": {
-    "message": "Schnellübersetzung_LexiHalo"
+    "message": "Schnellübersetzung_Cheng"
   },
   "aiTranscribe": {
-    "message": "Youtube AI Untertitel_LexiHalo"
+    "message": "Youtube AI Untertitel_Cheng"
   },
   "captionToggle": {
-    "message": "Bilinguale Untertitel_LexiHalo"
+    "message": "Bilinguale Untertitel_Cheng"
   }
 }

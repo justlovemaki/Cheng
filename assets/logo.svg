@@ -1,20 +1,9 @@
 <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="bg" x1="8" y1="6" x2="57" y2="60" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#071A3D"/>
-      <stop offset="0.5" stop-color="#4338CA"/>
-      <stop offset="1" stop-color="#0E7490"/>
-    </linearGradient>
-    <linearGradient id="line" x1="25" y1="38" x2="48" y2="52" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#06B6D4"/>
-      <stop offset="1" stop-color="#7C3AED"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="15" fill="url(#bg)"/>
-  <circle cx="53" cy="11" r="13" fill="#22D3EE" fill-opacity="0.18"/>
-  <path d="M13 17.5C13 14.4624 15.4624 12 18.5 12H41.5C44.5376 12 47 14.4624 47 17.5V31.5C47 34.5376 44.5376 37 41.5 37H27L19 43V37H18.5C15.4624 37 13 34.5376 13 31.5V17.5Z" stroke="white" stroke-width="4" stroke-linejoin="round"/>
-  <path d="M25 33.5C25 30.4624 27.4624 28 30.5 28H49.5C52.5376 28 55 30.4624 55 33.5V47.5C55 50.5376 52.5376 53 49.5 53H47V59L39 53H30.5C27.4624 53 25 50.5376 25 47.5V33.5Z" fill="#F8FAFC"/>
-  <rect x="32" y="36" width="16" height="3.5" rx="1.75" fill="url(#line)"/>
-  <rect x="32" y="43" width="12" height="3.5" rx="1.75" fill="url(#line)"/>
-  <path d="M53 12L54.2 15.1L57.5 16.2L54.2 17.3L53 20.5L51.8 17.3L48.5 16.2L51.8 15.1L53 12Z" fill="white"/>
+  <title>澄 Cheng</title>
+  <rect x="1" y="1" width="62" height="62" rx="15" fill="#386753" stroke="#2B5543" stroke-width="2"/>
+  <circle cx="32" cy="21" r="11.5" stroke="#CDDFD4" stroke-width="3" opacity="0.92"/>
+  <path d="M13 22.5C20.2 19.6 26.5 20.7 32 25.1C37.5 20.7 43.8 19.6 51 22.5V46.2C44.2 43.9 37.8 45 32 49.2C26.2 45 19.8 43.9 13 46.2V22.5Z" fill="#FFFEFB" stroke="#FFFEFB" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M32 25.4V48.2" stroke="#386753" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M18.5 29.4C22.2 28.6 25 29.1 27.8 30.7M18.5 35C22.2 34.2 25 34.7 27.8 36.3M36.2 30.7C39 29.1 41.8 28.6 45.5 29.4M36.2 36.3C39 34.7 41.8 34.2 45.5 35" stroke="#6B8E7E" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M20 53C27.4 55.6 36.6 55.6 44 53" stroke="#CDDFD4" stroke-width="2.5" stroke-linecap="round"/>
 </svg>

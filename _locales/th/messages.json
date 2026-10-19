@@ -1,23 +1,23 @@
 {
   "PKG_NAME": {
-    "message": "LexiHalo - ผู้แปล AI & คำบรรยายสองภาษา"
+    "message": "Cheng - Video Study & Knowledge Notes"
   },
   "PKG_DESC": {
-    "message": "LexiHalo ให้บริการคำบรรยายสองภาษาสำหรับแพลตฟอร์มเช่น YouTube, Disney+ รวมถึงเครื่องแปลภาษา AI สำหรับเว็บไซต์"
+    "message": "Study foreign-language videos with bilingual subtitles, contextual explanations and timestamped notes. Local data, import/export and BYOK."
   },
   "toggleVideoImmersive": {
-    "message": "โหมดการเรียนรู้วิดีโอ_LexiHalo"
+    "message": "โหมดการเรียนรู้วิดีโอ_Cheng"
   },
   "toggleFulltextImmersive": {
-    "message": "การแปลแบบดื่มด่ำ_LexiHalo"
+    "message": "การแปลแบบดื่มด่ำ_Cheng"
   },
   "quickTranslator": {
-    "message": "เครื่องแปลอย่างรวดเร็ว_LexiHalo"
+    "message": "เครื่องแปลอย่างรวดเร็ว_Cheng"
   },
   "aiTranscribe": {
-    "message": "การถอดเสียงด้วย AI ของ Youtube_LexiHalo"
+    "message": "การถอดเสียงด้วย AI ของ Youtube_Cheng"
   },
   "captionToggle": {
-    "message": "คำบรรยายสองภาษา_LexiHalo"
+    "message": "คำบรรยายสองภาษา_Cheng"
   }
 }

@@ -1,23 +1,23 @@
 {
   "PKG_NAME": {
-    "message": "LexiHalo - Trình dịch AI & Phụ đề song ngữ"
+    "message": "Cheng - Video Study & Knowledge Notes"
   },
   "PKG_DESC": {
-    "message": "LexiHalo cung cấp phụ đề song ngữ cho các nền tảng như YouTube, Disney+, TED, edX, Kehan, Coursera... cũng như dịch thuật trang web bằng trí tuệ nhân tạo."
+    "message": "Study foreign-language videos with bilingual subtitles, contextual explanations and timestamped notes. Local data, import/export and BYOK."
   },
   "toggleVideoImmersive": {
-    "message": "Video học_LexiHalo"
+    "message": "Video học_Cheng"
   },
   "toggleFulltextImmersive": {
-    "message": "Dịch thuật tận hưởng_LexiHalo"
+    "message": "Dịch thuật tận hưởng_Cheng"
   },
   "quickTranslator": {
-    "message": "Dịch thuận_LexiHalo"
+    "message": "Dịch thuận_Cheng"
   },
   "aiTranscribe": {
-    "message": "Youtube AI Phụ đề_LexiHalo"
+    "message": "Youtube AI Phụ đề_Cheng"
   },
   "captionToggle": {
-    "message": "Phụ đề song ngữ_LexiHalo"
+    "message": "Phụ đề song ngữ_Cheng"
   }
 }

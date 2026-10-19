@@ -1,23 +1,23 @@
 {
   "PKG_NAME": {
-    "message": "LexiHalo - AI 翻译 & 双语字幕"
+    "message": "澄 Cheng - 外语视频精读与知识笔记"
   },
   "PKG_DESC": {
-    "message": "LexiHalo 不仅提供对 YouTube,  Udemy, Disney+, TED, edX, Kehan, Coursera 等平台的双语字幕支持，还能实现对普通网页的 AI 划词/划句翻译、全文沉浸翻译等功能，真正的语言学习全能助手。"
+    "message": "用双语字幕和上下文解释精读外语视频，收藏片段、整理知识笔记。数据本地保存，支持导入导出及 BYOK。"
   },
   "toggleVideoImmersive": {
-    "message": "视频学习模式_LexiHalo"
+    "message": "视频精读_澄 Cheng"
   },
   "toggleFulltextImmersive": {
-    "message": "沉浸式翻译_LexiHalo"
+    "message": "沉浸式翻译_澄 Cheng"
   },
   "quickTranslator": {
-    "message": "快捷翻译_LexiHalo"
+    "message": "快捷翻译_澄 Cheng"
   },
   "aiTranscribe": {
-    "message": "Youtube 字幕转写_LexiHalo"
+    "message": "音频转写_澄 Cheng"
   },
   "captionToggle": {
-    "message": "双语字幕_LexiHalo"
+    "message": "双语字幕_澄 Cheng"
   }
 }

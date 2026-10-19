@@ -1,12 +1,9 @@
-/**
- * Semantic recovery of a scope-hoisted bundle function.
- */
+/** Original unsupported-page popup, with one additive workbench link. */
 export function recoverPopupApp(dependencies) {
   const React = dependencies.React;
   const englishTranslations = dependencies.englishTranslations;
   const jsxRuntime = dependencies.jsxRuntime;
   const translations = dependencies.translations;
-
   const RESTRICTED_URL_PATTERNS = [
     /^chrome(-extension|-untrusted|-search|-devtools)?:\/\//i,
     /^edge:\/\//i,
@@ -24,155 +21,125 @@ export function recoverPopupApp(dependencies) {
   const detectUiLanguage = () => {
     let language = "en";
     try {
-      language =
-        chrome.i18n?.getUILanguage?.() || navigator.language || "en";
+      language = chrome.i18n?.getUILanguage?.() || navigator.language || "en";
     } catch {}
     if (translations[language]) return language;
     const normalized = language.toLowerCase();
-    if (normalized.startsWith("zh")) {
+    if (normalized.startsWith("zh"))
       return /hant|tw|hk|mo/.test(normalized) ? "zh-Hant" : "zh-CN";
-    }
     const base = language.split("-")[0];
     return translations[base] ? base : "en";
   };
-  const openExtensionPage = (url) => {
-    if (!/^https?:/i.test(url)) {
-      try {
-        chrome.tabs.create({ url });
-      } catch {}
-    }
-    window.close();
-  };
-
   const PopupApp = () => {
-    const [e, t] = (0, React.useState)(void 0),
-      [i, o] = (0, React.useState)(detectUiLanguage),
-      [r, s] = (0, React.useState)(null);
-    (0, React.useEffect)(() => {
-      let e = !0;
-      return (
-        new Promise((e) => {
-          try {
-            chrome.tabs.query(
-              {
-                active: !0,
-                currentWindow: !0,
-              },
-              (t) => {
-                var i;
-                chrome.runtime.lastError,
-                  e(null == (i = null == t ? void 0 : t[0]) ? void 0 : i.url);
-              },
-            );
-          } catch (t) {
-            e(void 0);
-          }
-        }).then(
-          (i) =>
-            e &&
-            t(
-              ((e) => {
-                if (!e) return "browser";
-                if (RESTRICTED_URL_PATTERNS.some((t) => t.test(e)))
-                  return "browser";
-                try {
-                  return (t = new URL(e).host) &&
-                    ("learn.trancy.org" === t ||
-                      "localhost" === t ||
-                      t.startsWith("localhost:") ||
-                      "127.0.0.1" === t ||
-                      t.startsWith("127.0.0.1:"))
-                    ? "dashboard"
-                    : null;
-                } catch (e) {
-                  return "browser";
-                }
-                var t;
-              })(i),
-            ),
-        ),
-        new Promise((e) => {
-          let t = null;
-          const i = (i) => {
-              clearTimeout(n);
-              try {
-                null == t || t.disconnect();
-              } catch (e) {}
-              e(i);
-            },
-            n = setTimeout(() => i(null), 3e3);
-          try {
-            (t = chrome.runtime.connect({
-              name: "trancy-popup-context",
-            })),
-              t.onMessage.addListener((e) => {
-                i(e && "object" == typeof e ? e : null);
-              }),
-              t.onDisconnect.addListener(() => {
-                chrome.runtime.lastError, i(null);
-              });
-          } catch (e) {
-            i(null);
-          }
-        }).then((t) => {
-          e && t && (s(t), t.uiLang && translations[t.uiLang] && o(t.uiLang));
-        }),
-        () => {
-          e = !1;
+    const [pageKind, setPageKind] = React.useState(undefined);
+    const [language, setLanguage] = React.useState(detectUiLanguage);
+    React.useEffect(() => {
+      let active = true;
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (!active) return;
+        const address = tabs?.[0]?.url;
+        if (
+          !address ||
+          RESTRICTED_URL_PATTERNS.some((pattern) => pattern.test(address))
+        )
+          return setPageKind("browser");
+        try {
+          const host = new URL(address).hostname;
+          setPageKind(
+            ["learn.trancy.org", "localhost", "127.0.0.1"].includes(host)
+              ? "dashboard"
+              : null,
+          );
+        } catch {
+          setPageKind("browser");
         }
-      );
+      });
+      let port;
+      const timer = setTimeout(() => {
+        try {
+          port?.disconnect();
+        } catch {}
+      }, 3000);
+      try {
+        port = chrome.runtime.connect({ name: "trancy-popup-context" });
+        port.onMessage.addListener((context) => {
+          if (active && translations[context?.uiLang])
+            setLanguage(context.uiLang);
+          clearTimeout(timer);
+          port.disconnect();
+        });
+        port.onDisconnect.addListener(() => {
+          chrome.runtime.lastError;
+          clearTimeout(timer);
+        });
+      } catch {
+        clearTimeout(timer);
+      }
+      return () => {
+        active = false;
+        clearTimeout(timer);
+        try {
+          port?.disconnect();
+        } catch {}
+      };
     }, []);
-    const l = (e) => {
-        var t;
-        return (
-          (null == (t = translations[i]) ? void 0 : t[e]) ||
-          englishTranslations[e] ||
-          e
-        );
-      },
-      _ = "dashboard" === e;
-    return (0, jsxRuntime.jsxs)("div", {
-      className: "trancy-popup " + (void 0 !== e ? "ready" : ""),
+    const label = (key) =>
+      translations[language]?.[key] || englishTranslations[key] || key;
+    const dashboard = pageKind === "dashboard";
+    return jsxRuntime.jsxs("div", {
+      className: `trancy-popup ${pageKind !== undefined ? "ready" : ""}`,
       children: [
-        (0, jsxRuntime.jsxs)("div", {
+        jsxRuntime.jsxs("div", {
           className: "trancy-popup-head",
           children: [
-            (0, jsxRuntime.jsx)("img", {
-              className: "trancy-popup-logo",
-              src: "assets/icons/ic48.png",
-              alt: "",
+            jsxRuntime.jsx("img", {
+              className: "trancy-popup-logo cheng-brand-icon",
+              src: "assets/logo.svg",
+              alt: "澄 Cheng",
             }),
-            (0, jsxRuntime.jsx)("span", {
+            jsxRuntime.jsx("span", {
               className: "trancy-popup-brand",
-              children: "LexiHalo",
+              children: "澄 Cheng",
             }),
           ],
         }),
-        (0, jsxRuntime.jsx)("div", {
+        jsxRuntime.jsx("div", {
           className: "trancy-popup-title",
-          children: l(_ ? "popup_dashboard_title" : "popup_unsupported_title"),
+          children: label(
+            dashboard ? "popup_dashboard_title" : "popup_unsupported_title",
+          ),
         }),
-        (0, jsxRuntime.jsx)("div", {
+        jsxRuntime.jsx("div", {
           className: "trancy-popup-desc",
-          children: l(_ ? "popup_dashboard_des" : "popup_unsupported_des"),
+          children: label(
+            dashboard ? "popup_dashboard_des" : "popup_unsupported_des",
+          ),
         }),
-        (0, jsxRuntime.jsx)("div", {
+        jsxRuntime.jsxs("div", {
           className: "trancy-popup-actions",
-          children: _
-            ? (0, jsxRuntime.jsx)("button", {
-                className: "trancy-popup-btn primary",
-                onClick: () => window.close(),
-                children: l("popup_got_it"),
-              })
-            : (0, jsxRuntime.jsx)("button", {
-                className: "trancy-popup-btn primary",
-                onClick: () => window.close(),
-                children: l("popup_got_it"),
-              }),
+          children: [
+            jsxRuntime.jsx("button", {
+              className: "trancy-popup-btn primary",
+              onClick: () => window.close(),
+              children: label("popup_got_it"),
+            }),
+            jsxRuntime.jsx("button", {
+              className: "trancy-popup-btn",
+              "data-cheng-workspace": true,
+              onClick: () => {
+                chrome.tabs.create({
+                  url: chrome.runtime.getURL("workspace.html"),
+                });
+                window.close();
+              },
+              children: language.startsWith("zh")
+                ? "打开学习资料库"
+                : "Open learning library",
+            }),
+          ],
         }),
       ],
     });
   };
-
   return PopupApp;
 }

@@ -222,7 +222,11 @@ code {
   border-radius: 9px;
   background: #f8fafc;
   color: #344054;
-  font: 12px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace;
+  font:
+    12px/1.55 ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -300,4 +304,82 @@ code {
   .engine {
     border-color: #303541;
   }
+}
+
+/* Cheng visual system — aligned with the learning workspace. */
+:root,
+body {
+  color-scheme: light;
+  background: var(--cheng-paper);
+  color: var(--cheng-ink);
+  font-family: var(--cheng-font);
+}
+header p,
+.notice,
+.footer-note,
+.engine-meta,
+.field-note,
+.field-heading span,
+.diagnostics-note {
+  color: var(--cheng-muted);
+}
+.notice,
+.card,
+.footer-note {
+  background: var(--cheng-surface);
+  border-color: var(--cheng-border);
+  border-radius: var(--cheng-radius);
+}
+.card {
+  box-shadow: var(--cheng-shadow);
+}
+label,
+.field-heading strong {
+  color: var(--cheng-text);
+}
+input,
+select,
+button {
+  background: #fff;
+  color: var(--cheng-ink);
+  border-color: var(--cheng-border-strong);
+  border-radius: 7px;
+}
+input:focus,
+select:focus {
+  border-color: var(--cheng-accent);
+  box-shadow: 0 0 0 3px var(--cheng-focus);
+}
+button.primary {
+  border-color: var(--cheng-accent);
+  background: var(--cheng-accent);
+}
+button.primary:hover {
+  background: var(--cheng-accent-hover);
+}
+.engine,
+.field-heading,
+#diagnostics-output {
+  border-color: var(--cheng-border);
+}
+code,
+#diagnostics-output {
+  background: var(--cheng-surface-soft);
+  color: var(--cheng-text);
+}
+#status,
+#diagnostics-status {
+  color: var(--cheng-accent);
+}
+.cheng-mark {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  color: var(--cheng-ink);
+  font:
+    38px/1 "Songti SC",
+    SimSun,
+    serif;
+  text-decoration: none;
 }

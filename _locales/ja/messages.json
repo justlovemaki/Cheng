@@ -1,23 +1,23 @@
 {
   "PKG_NAME": {
-    "message": "LexiHalo - AI翻訳 & 二重字幕"
+    "message": "Cheng - Video Study & Knowledge Notes"
   },
   "PKG_DESC": {
-    "message": "LexiHalo は YouTube、Udemy、Disney+、TED、edX、Kehan、Coursera などのプラットフォームに対するバイリンガル字幕のサポートだけでなく、一般的なウェブページの AI ワード/フレーズ翻訳、全文浸漬翻訳などの機能も提供し、本当の言語学習のオールインワンアシスタントです。"
+    "message": "Study foreign-language videos with bilingual subtitles, contextual explanations and timestamped notes. Local data, import/export and BYOK."
   },
   "toggleVideoImmersive": {
-    "message": "ビデオ学習モード_LexiHalo"
+    "message": "ビデオ学習モード_Cheng"
   },
   "toggleFulltextImmersive": {
-    "message": "全文浸漬翻訳_LexiHalo"
+    "message": "全文浸漬翻訳_Cheng"
   },
   "quickTranslator": {
-    "message": "クイック翻訳_LexiHalo"
+    "message": "クイック翻訳_Cheng"
   },
   "aiTranscribe": {
-    "message": "Youtube 字幕変換_LexiHalo"
+    "message": "Youtube 字幕変換_Cheng"
   },
   "captionToggle": {
-    "message": "バイリンガル字幕_LexiHalo"
+    "message": "バイリンガル字幕_Cheng"
   }
 }

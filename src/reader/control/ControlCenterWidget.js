@@ -44,6 +44,7 @@ export function recoverControlCenterWidget(dependencies) {
       [h, m] = (0, React.useState)(!1),
       [g, f] = (0, React.useState)(!1),
       [focused, setFocused] = (0, React.useState)(!1),
+      [studyError, setStudyError] = (0, React.useState)(""),
       v = null != (t = a.conrolCenter.opacity) ? t : 25;
     (0, React.useEffect)(() => {
       if (g) {
@@ -182,6 +183,65 @@ export function recoverControlCenterWidget(dependencies) {
                               (0, jsxRuntime.jsx)("div", {
                                 className: "rd-tool-tips",
                                 children: s("control_center_quick_translate"),
+                              }),
+                            ],
+                          }),
+                          (0, jsxRuntime.jsxs)("button", {
+                            className: "btn-rd-app show cheng-study-button",
+                            type: "button",
+                            style: { border: 0, padding: 0 },
+                            "data-cheng-workspace": true,
+                            "aria-label": "学习控制台",
+                            title: studyError || "学习控制台",
+                            onClick: async (event) => {
+                              event.stopPropagation();
+                              try {
+                                const result = await chrome.runtime.sendMessage(
+                                  { type: "cheng:study:open" },
+                                );
+                                if (!result?.ok)
+                                  throw new Error(
+                                    result?.error || "无法打开侧边学习面板",
+                                  );
+                                setStudyError("");
+                              } catch (error) {
+                                setStudyError(error.message);
+                              }
+                            },
+                            children: [
+                              (0, jsxRuntime.jsx)("div", {
+                                className: "t-icon icon-20",
+                                children: (0, jsxRuntime.jsxs)("svg", {
+                                  viewBox: "0 0 24 24",
+                                  fill: "none",
+                                  "aria-hidden": true,
+                                  children: [
+                                    (0, jsxRuntime.jsx)("circle", {
+                                      cx: 12,
+                                      cy: 7,
+                                      r: 4,
+                                      stroke: "currentColor",
+                                      strokeWidth: 1.7,
+                                    }),
+                                    (0, jsxRuntime.jsx)("path", {
+                                      d: "M3.5 8.5c3.3-1.2 6.1-.6 8.5 1.5 2.4-2.1 5.2-2.7 8.5-1.5v10c-3.2-1-6-.4-8.5 1.5-2.5-1.9-5.3-2.5-8.5-1.5v-10Z",
+                                      fill: "currentColor",
+                                      stroke: "currentColor",
+                                      strokeWidth: 1.2,
+                                      strokeLinejoin: "round",
+                                    }),
+                                    (0, jsxRuntime.jsx)("path", {
+                                      d: "M12 10v9.5",
+                                      stroke: "#fffefb",
+                                      strokeWidth: 1.4,
+                                      strokeLinecap: "round",
+                                    }),
+                                  ],
+                                }),
+                              }),
+                              (0, jsxRuntime.jsx)("div", {
+                                className: "rd-tool-tips",
+                                children: studyError || "学习控制台",
                               }),
                             ],
                           }),

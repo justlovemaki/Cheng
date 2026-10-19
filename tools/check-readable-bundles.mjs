@@ -15,7 +15,7 @@ const refs = [
   manifest.background.service_worker,
   ...manifest.content_scripts.flatMap((entry) => entry.js || []),
 ];
-for (const html of ["popup.html", "byok.html", "site-rules.html", "offscreen.html"]) {
+for (const html of ["popup.html", "byok.html", "site-rules.html", "offscreen.html", "workspace.html", "study.html"]) {
   const source = fs.readFileSync(path.join(root, html), "utf8");
   for (const match of source.matchAll(/<script[^>]+src=["']([^"']+\.js)["']/g))
     refs.push(match[1]);
@@ -32,6 +32,9 @@ const expected = [
   "assets/byok.js",
   "assets/site-rules.js",
   "assets/asr-offscreen.js",
+  "assets/cheng-learning-entry.js",
+  "assets/cheng-video-bridge.js",
+  ...["fflate", "schema", "store", "transfer", "workspace", "understanding", "reading", "notes", "notes-library", "study"].map((name) => `assets/learning/${name}.js`),
 ];
 for (const file of expected)
   if (!refs.includes(file)) fail(`Inactive readable entry: ${file}`);
@@ -82,6 +85,11 @@ const mainBundles = {
     "startDownload",
     "downloadNativeVideo",
     "subtitle-refresh",
+    "ChengLearning",
+    "cheng:learning:",
+    "glossaryForTranslation",
+    "translation-preview",
+    "save-attachment",
   ],
   "assets/edreader-main.js": [
     "LexiHalo readable single bundle: reader",
@@ -224,7 +232,7 @@ for (const language of ["languageDetector", "posTagger", "romanize"]) {
 
 const hashFiles = () =>
   Object.fromEntries(
-    Object.keys(mainBundles).map((file) => [
+    [...new Set([...Object.keys(mainBundles), ...refs, "workspace.html", "study.html", "assets/learning/workspace.css", "assets/learning/study.css"])].map((file) => [
       file,
       crypto
         .createHash("sha256")
@@ -252,6 +260,15 @@ for (const file of expected) {
     fail(`Missing file in dist/: ${file}`);
   }
 }
+
+for (const locale of fs.readdirSync(path.join(root, "_locales"))) {
+  const messages = JSON.parse(fs.readFileSync(path.join(root, "_locales", locale, "messages.json"), "utf8"));
+  if (!messages.PKG_NAME.message.includes("Cheng") || messages.PKG_NAME.message.includes("LexiHalo")) fail(`Outdated display brand: ${locale}`);
+}
+if (!fs.existsSync(path.join(distDir, "assets/learning/fflate-LICENSE.txt"))) fail("Missing archive library license");
+if (!fs.existsSync(path.join(distDir, "assets/cheng-theme.css"))) fail("Missing shared Cheng design tokens");
+
+if (manifest.side_panel?.default_path !== "study.html" || !manifest.permissions.includes("sidePanel") || Number(manifest.minimum_chrome_version) < 116) fail("The learning entry must open a supported native side panel");
 
 const browserReportPath = path.join(
   root,

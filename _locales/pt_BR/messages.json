@@ -1,23 +1,23 @@
 {
   "PKG_NAME": {
-    "message": "LexiHalo - Tradutor de IA & Legendas bilíngues"
+    "message": "Cheng - Video Study & Knowledge Notes"
   },
   "PKG_DESC": {
-    "message": "O LexiHalo fornece legendas bilíngues para plataformas como YouTube, Disney+, TED, edX, Kehan, Coursera... além de tradução de IA para sites."
+    "message": "Study foreign-language videos with bilingual subtitles, contextual explanations and timestamped notes. Local data, import/export and BYOK."
   },
   "toggleVideoImmersive": {
-    "message": "Modo de aprendizagem de vídeo_LexiHalo"
+    "message": "Modo de aprendizagem de vídeo_Cheng"
   },
   "toggleFulltextImmersive": {
-    "message": "Tradução imersiva_LexiHalo"
+    "message": "Tradução imersiva_Cheng"
   },
   "quickTranslator": {
-    "message": "Tradução rápida_LexiHalo"
+    "message": "Tradução rápida_Cheng"
   },
   "aiTranscribe": {
-    "message": "Legendas de IA de Youtube_LexiHalo"
+    "message": "Legendas de IA de Youtube_Cheng"
   },
   "captionToggle": {
-    "message": "Legendas bilíngues_LexiHalo"
+    "message": "Legendas bilíngues_Cheng"
   }
 }
