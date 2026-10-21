@@ -15,13 +15,22 @@ export function recoverSliderRoot(dependencies) {
   const SliderRoot = (props) => {
     const { edreader, setting } = useAppSelector((state) => state);
     const api = useApiClient(true);
-    const { dispatch } = useDispatchBridge();
+    const { dispatch, nativeDispatch } = useDispatchBridge();
     const loadMeta = async () => {
       const { message, data } = await api.getMeta();
       if (message === "ok") dispatch(setMetaAction(data));
     };
     (0, React.useEffect)(() => {
       loadMeta();
+      const onTheme = (changes, area) => {
+        if (area === "local" && changes.cheng_theme)
+          nativeDispatch({
+            type: "setEdreaderTheme",
+            payload: changes.cheng_theme.newValue,
+          });
+      };
+      chrome.storage.onChanged.addListener(onTheme);
+      return () => chrome.storage.onChanged.removeListener(onTheme);
     }, []);
     const [stylesheetReady, setStylesheetReady] = (0, React.useState)(false);
 

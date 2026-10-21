@@ -1,0 +1,86 @@
+{
+  "light": {
+    "label": "浅色 · 纸白",
+    "scheme": "light",
+    "paper": "#f7f7f1",
+    "surface": "#fffefb",
+    "soft": "#f0f3e9",
+    "ink": "#263d35",
+    "muted": "#6b7c73",
+    "accent": "#386753",
+    "hover": "#2b5543",
+    "border": "#dce3d9"
+  },
+  "dark": {
+    "label": "深色 · 墨绿",
+    "scheme": "dark",
+    "paper": "#15211c",
+    "surface": "#1e2e26",
+    "soft": "#293c32",
+    "ink": "#e8f0eb",
+    "muted": "#a2b8aa",
+    "accent": "#9ac4ab",
+    "hover": "#b3d8c0",
+    "border": "#41564a"
+  },
+  "desert": {
+    "label": "沙漠 · 暖沙",
+    "scheme": "light",
+    "paper": "#f6e7c6",
+    "surface": "#fff2d5",
+    "soft": "#e4d6b4",
+    "ink": "#463b28",
+    "muted": "#78684c",
+    "accent": "#0061ce",
+    "hover": "#004fAD",
+    "border": "#d7c49e"
+  },
+  "terra": {
+    "label": "大地 · 森林",
+    "scheme": "dark",
+    "paper": "#131b17",
+    "surface": "#1a231e",
+    "soft": "#23362a",
+    "ink": "#e8f0e8",
+    "muted": "#a5b7a5",
+    "accent": "#a4d477",
+    "hover": "#bee69a",
+    "border": "#3e5143"
+  },
+  "nautilus": {
+    "label": "鹦鹉螺 · 深海",
+    "scheme": "dark",
+    "paper": "#132237",
+    "surface": "#192a43",
+    "soft": "#233d62",
+    "ink": "#e9f0fb",
+    "muted": "#a6b8d0",
+    "accent": "#ffc862",
+    "hover": "#ffda92",
+    "border": "#405673"
+  },
+  "dragon": {
+    "label": "龙 · 淡紫",
+    "scheme": "light",
+    "paper": "#f8e8ff",
+    "surface": "#f5ddff",
+    "soft": "#edc0ff",
+    "ink": "#472757",
+    "muted": "#785b89",
+    "accent": "#741bd0",
+    "hover": "#5d12aa",
+    "border": "#d6afe5"
+  },
+  "tuber": {
+    "label": "夜幕 · 紫黑",
+    "scheme": "dark",
+    "paper": "#0e0918",
+    "surface": "#1b132a",
+    "soft": "#30213f",
+    "ink": "#f0e8fc",
+    "muted": "#b4a5c5",
+    "accent": "#ffc862",
+    "hover": "#ffda92",
+    "border": "#584368"
+  }
+}

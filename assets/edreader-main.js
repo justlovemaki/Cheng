@@ -8250,10 +8250,9 @@ lexihaloRunOutsideChallenge(() => {
                 Fn
               );
             })();
-            (mt._ = vn),
-              (r = function () {
-                return vn;
-              }.call(t, n, t, e)) === i || (e.exports = r);
+            (r = function () {
+              return vn;
+            }.call(t, n, t, e)) === i || (e.exports = r);
           }.call(this);
       },
       2961: (e, t, n) => {
@@ -30607,7 +30606,22 @@ lexihaloRunOutsideChallenge(() => {
                 (e.edreader.areaPhonetic = t.payload);
             }),
             e.addCase(Nn, (e, t) => {
-              e.edreader.theme = t.payload;
+              const theme = [
+                "auto",
+                "light",
+                "dark",
+                "desert",
+                "terra",
+                "nautilus",
+                "dragon",
+                "tuber",
+              ].includes(t.payload)
+                ? t.payload
+                : "auto";
+              e.edreader ||= {};
+              e.setting ||= {};
+              e.edreader.theme = theme;
+              e.setting.theme = theme;
             }),
             e.addCase(En, (e, t) => {
               (e.edreader.wordHighlight = t.payload), (e.changed = !0);
@@ -30673,7 +30687,22 @@ lexihaloRunOutsideChallenge(() => {
               e.setting.paragraph = t.payload;
             }),
             e.addCase(on, (e, t) => {
-              e.setting.theme = t.payload;
+              const theme = [
+                "auto",
+                "light",
+                "dark",
+                "desert",
+                "terra",
+                "nautilus",
+                "dragon",
+                "tuber",
+              ].includes(t.payload)
+                ? t.payload
+                : "auto";
+              e.edreader ||= {};
+              e.setting ||= {};
+              e.edreader.theme = theme;
+              e.setting.theme = theme;
             }),
             e.addCase(Vt, (e, t) => {
               e.setting.font = t.payload;
@@ -54136,7 +54165,7 @@ lexihaloRunOutsideChallenge(() => {
             return lexihaloTranslationEngineSettingsSource(...componentArgs);
           };
         })(),
-        fw = ["auto", "light", "dark", "desert", "terra", "nautilus", "dragon"],
+        fw = ["auto", "light", "dark", "desert", "terra", "nautilus", "dragon", "tuber"],
         vw = (() => {
           let lexihaloThemeSettingsSource;
           return (...componentArgs) => {
@@ -60458,13 +60487,22 @@ lexihaloRunOutsideChallenge(() => {
         const SliderRoot = (props) => {
           const { edreader, setting } = useAppSelector((state) => state);
           const api = useApiClient(true);
-          const { dispatch } = useDispatchBridge();
+          const { dispatch, nativeDispatch } = useDispatchBridge();
           const loadMeta = async () => {
             const { message, data } = await api.getMeta();
             if (message === "ok") dispatch(setMetaAction(data));
           };
           (0, React.useEffect)(() => {
             loadMeta();
+            const onTheme = (changes, area) => {
+              if (area === "local" && changes.cheng_theme)
+                nativeDispatch({
+                  type: "setEdreaderTheme",
+                  payload: changes.cheng_theme.newValue,
+                });
+            };
+            chrome.storage.onChanged.addListener(onTheme);
+            return () => chrome.storage.onChanged.removeListener(onTheme);
           }, []);
           const [stylesheetReady, setStylesheetReady] = (0, React.useState)(false);
           return (0, jsxRuntime.jsxs)(motion.div, {
@@ -60725,14 +60763,25 @@ lexihaloRunOutsideChallenge(() => {
                 t = (e) =>
                   dk(null, null, function* () {
                     const { body: t } = e;
-                    "setTranslatorService" === t.type && c(t);
+                    ["setTranslatorService", "setEdreaderTheme", "setting/setTheme"].includes(
+                      t.type,
+                    ) && c(t);
                   });
+              const onTheme = (changes, area) => {
+                if (area === "local" && changes.cheng_theme)
+                  c({
+                    type: "setEdreaderTheme",
+                    payload: changes.cheng_theme.newValue,
+                  });
+              };
+              chrome.storage.onChanged.addListener(onTheme);
               return (
                 extensionClient.on("dispatch", t),
                 extensionClient.on("fulltext-status-change", e),
                 () => {
                   extensionClient.off("fulltext-status-change", e),
                     extensionClient.off("dispatch", t),
+                    chrome.storage.onChanged.removeListener(onTheme),
                     document.removeEventListener("keydown", y);
                 }
               );
@@ -68259,7 +68308,8 @@ lexihaloRunOutsideChallenge(() => {
                 children: [
                   (0, jsxRuntime.jsx)("div", {
                     className: "tips",
-                    children: r("rd_theme_setting_tips"),
+                    children:
+                      "主题同步应用于网页与视频悬浮栏、学习侧栏和资料库；自动模式跟随系统。",
                   }),
                   (0, jsxRuntime.jsx)("div", {
                     className: "item-slider-group",
@@ -68268,6 +68318,16 @@ lexihaloRunOutsideChallenge(() => {
                         className: classNames()("item-slider pointer", r, {
                           selected: r === e.theme,
                         }),
+                        role: "button",
+                        tabIndex: 0,
+                        "aria-pressed": r === e.theme,
+                        "data-cheng-theme-option": r,
+                        onKeyDown: (event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            i(Nn(r));
+                          }
+                        },
                         onClick: () =>
                           ((e) => {
                             i(Nn(e));
@@ -68291,7 +68351,7 @@ lexihaloRunOutsideChallenge(() => {
                                   ],
                                 }),
                                 (0, jsxRuntime.jsx)("span", {
-                                  children: r,
+                                  children: r === "auto" ? "auto · 跟随系统" : r,
                                 }),
                               ],
                             }),

@@ -6684,7 +6684,22 @@
               (e.edreader.areaPhonetic = t.payload);
           }),
           e.addCase(setEdreaderThemeAction, (e, t) => {
-            e.edreader.theme = t.payload;
+            const theme = [
+              "auto",
+              "light",
+              "dark",
+              "desert",
+              "terra",
+              "nautilus",
+              "dragon",
+              "tuber",
+            ].includes(t.payload)
+              ? t.payload
+              : "auto";
+            e.edreader ||= {};
+            e.setting ||= {};
+            e.edreader.theme = theme;
+            e.setting.theme = theme;
           }),
           e.addCase(setWordHighlightAction, (e, t) => {
             (e.edreader.wordHighlight = t.payload), (e.changed = !0);
@@ -6750,7 +6765,22 @@
             e.setting.paragraph = t.payload;
           }),
           e.addCase(setThemeAction, (e, t) => {
-            e.setting.theme = t.payload;
+            const theme = [
+              "auto",
+              "light",
+              "dark",
+              "desert",
+              "terra",
+              "nautilus",
+              "dragon",
+              "tuber",
+            ].includes(t.payload)
+              ? t.payload
+              : "auto";
+            e.edreader ||= {};
+            e.setting ||= {};
+            e.edreader.theme = theme;
+            e.setting.theme = theme;
           }),
           e.addCase(setFontAction, (e, t) => {
             e.setting.font = t.payload;
@@ -13024,6 +13054,44 @@
           center.opacity == null || center.opacity === 100 ? 25 : center.opacity,
         ),
       );
+    });
+    getHydratedState().then(() => {
+      let previous;
+      const publishTheme = () => {
+        const value = store.getState().edreader?.theme;
+        const theme = [
+          "auto",
+          "light",
+          "dark",
+          "desert",
+          "terra",
+          "nautilus",
+          "dragon",
+          "tuber",
+        ].includes(value)
+          ? value
+          : "auto";
+        if (theme === previous) return;
+        previous = theme;
+        chrome.storage.local
+          .set({
+            cheng_theme: theme,
+          })
+          .catch(() => {});
+      };
+      // Adopt Reader's existing preference when old video/Reader settings differ.
+      const selected = store.getState().edreader?.theme;
+      store.dispatch(
+        setThemeAction(
+          ["auto", "light", "dark", "desert", "terra", "nautilus", "dragon", "tuber"].includes(
+            selected,
+          )
+            ? selected
+            : "auto",
+        ),
+      );
+      store.subscribe(publishTheme);
+      publishTheme();
     });
     function recoverStructuredAiBridge(dependencies) {
       const TranslationEngineExecutor = dependencies.TranslationEngineExecutor;

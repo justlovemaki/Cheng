@@ -13524,10 +13524,7 @@ trancy-app
   .item-theme-wrapper
   .item-theme.auto
   .item-box {
-  background: url("chrome-extension://__MSG_@@extension_id__/assets/icon_auto.png")
-    no-repeat;
-  background-size: 120%;
-  background-position: -12px;
+  background: var(--bg-0);
 }
 .trancy-page-setting
   .page-setting-wrapper
@@ -13543,7 +13540,7 @@ trancy-app
   .item-theme.auto
   .item-box
   .top-box {
-  opacity: 0;
+  opacity: 1;
 }
 .trancy-page-setting
   .page-setting-wrapper
@@ -13551,7 +13548,7 @@ trancy-app
   .item-theme.auto
   .item-box
   .bottom-box {
-  opacity: 0;
+  opacity: 1;
 }
 .trancy-page-setting
   .page-setting-wrapper
@@ -15189,13 +15186,13 @@ trancy-app
 }
 .trancy-container.light .trancy-panel-menu,
 .trancy-container.light .trancy-second-panel-menu-container {
-  border-color: #dce3d9;
+  border-color: var(--cheng-border);
   border-radius: 10px;
 }
 .trancy-panel-menu {
-  background: rgba(255, 254, 251, 0.97);
-  color: #263d35;
-  border-color: #dce3d9;
+  background: var(--cheng-menu-bg, rgba(255, 254, 251, 0.97));
+  color: var(--cheng-ink, #263d35);
+  border-color: var(--cheng-border, #dce3d9);
   border-radius: 10px;
   box-shadow: 0 5px 18px rgba(32, 58, 48, 0.16);
 }
@@ -15203,62 +15200,62 @@ trancy-app
 .trancy-panel-menu .trancy-menuitem-action,
 .trancy-panel-menu .trancy-action-label,
 .trancy-panel-menu .second-panel-menu-header {
-  color: rgba(38, 61, 53, 0.9);
+  color: var(--cheng-ink-90);
 }
 .trancy-panel-menu .trancy-menuitem-label svg,
 .trancy-panel-menu .trancy-menuitem-icon svg,
 .trancy-panel-menu .trancy-menuitem-action svg {
-  fill: rgba(38, 61, 53, 0.7);
+  fill: var(--cheng-ink-70);
 }
 .trancy-panel-menu .trancy-menuitem:hover,
 .trancy-panel-menu .trancy-menuitem-secondary:hover,
 .trancy-panel-menu .lexihalo-media-action:focus-visible {
-  background: #f0f3e9;
+  background: var(--cheng-surface-soft);
 }
 .trancy-panel-menu
   .trancy-second-panel-menu-container
   .second-panel-menu-header {
-  border-color: #dce3d9;
+  border-color: var(--cheng-border);
 }
 .trancy-panel-menu .trancy-menuitem .trancy-menuitem-action .Mui-checked {
-  color: #386753 !important;
+  color: var(--cheng-accent) !important;
 }
 .trancy-panel-menu
   .trancy-menuitem
   .trancy-menuitem-action
   .Mui-checked
   + .MuiSwitch-track {
-  background-color: #386753 !important;
+  background-color: var(--cheng-accent) !important;
 }
 .trancy-caption-source-banner {
-  color: #755514;
+  color: var(--cheng-accent, #755514);
 }
 .trancy-panel-menu
   .trancy-second-panel-menu-container
   .second-panel-menu-header
   .btn-back-panel-action {
-  color: rgba(38, 61, 53, 0.82);
+  color: var(--cheng-ink-90);
 }
 .trancy-panel-menu
   .trancy-second-panel-menu-container
   .second-panel-menu-header
   .btn-back-panel-action
   svg {
-  fill: rgba(38, 61, 53, 0.68);
+  fill: var(--cheng-ink-70);
 }
 .trancy-panel-menu
   .trancy-second-panel-menu-container
   .second-panel-menu-header
   .btn-back-panel-action:hover
   > span:not(.MuiSwitch-root) {
-  color: #386753;
+  color: var(--cheng-accent);
 }
 .trancy-panel-menu
   .trancy-second-panel-menu-container
   .second-panel-menu-header
   .btn-back-panel-action:hover
   svg {
-  fill: #386753;
+  fill: var(--cheng-accent);
 }
 .trancy-panel-menu
   .trancy-second-panel-menu-container
@@ -15272,9 +15269,26 @@ trancy-app
   .trancy-second-panel-menu-container
   .second-panel-menu-header
   .btn-back-panel-action.lexihalo-download-cancel:focus-visible {
-  color: #9c4339 !important;
+  color: var(--cheng-danger) !important;
 }
 .trancy-panel-menu .lexihalo-media-workflow-panel .lexihalo-media-note {
-  color: #6b7c73;
-  border-color: #dce3d9;
+  color: var(--cheng-muted);
+  border-color: var(--cheng-border);
+}
+/* Theme tokens are owned by the toolbar/caption root, never the host page. */
+#xt-toggle-button.trancy-html5-button.trancy-floating {
+  background: var(--cheng-menu-bg);
+  border: 1px solid var(--cheng-border);
+}
+.trancy-panel-menu .trancy-second-panel-menu-container,
+.trancy-panel-menu .second-panel-menu-header {
+  background: var(--cheng-surface);
+  border-color: var(--cheng-border);
+}
+.trancy-panel-menu .trancy-menuitem-label-info-tooltip,
+.trancy-panel-menu .trancy-action-label {
+  color: var(--cheng-ink);
+}
+.trancy-panel-menu .trancy-menuitem-label-info-tooltip {
+  background: var(--cheng-surface);
 }

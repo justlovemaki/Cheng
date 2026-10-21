@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light;
+  color-scheme: var(--cheng-scheme, light);
   font: 14px/1.6 var(--cheng-font);
   color: var(--cheng-ink);
   background: var(--cheng-paper);
@@ -70,7 +70,7 @@ h3 {
   font-size: 12px;
 }
 section {
-  background: #fffefb;
+  background: var(--cheng-surface);
   border: 1px solid var(--line);
   padding: 12px;
   border-radius: 9px;
@@ -86,7 +86,7 @@ select {
   font: inherit;
   color: inherit;
   border: 1px solid var(--line);
-  background: white;
+  background: var(--cheng-surface);
   border-radius: 6px;
   padding: 7px 10px;
   max-width: 100%;
@@ -95,7 +95,7 @@ button {
   cursor: pointer;
 }
 button:hover {
-  background: #edf2ec;
+  background: var(--cheng-surface-soft);
 }
 button:disabled {
   opacity: 0.45;
@@ -107,11 +107,11 @@ button[aria-busy="true"] {
 }
 .primary {
   background: var(--accent);
-  color: white;
+  color: var(--cheng-primary-ink, white);
   border-color: var(--accent);
 }
 .primary:hover {
-  background: #2b5543;
+  background: var(--cheng-accent-hover);
 }
 .actions {
   grid-row: 4;
@@ -153,7 +153,7 @@ input {
 }
 #connection.error,
 #save-state.error {
-  color: #a1372d;
+  color: var(--cheng-danger);
 }
 .subtitles {
   grid-row: 5;
@@ -200,7 +200,7 @@ input {
 }
 .cue {
   padding: 8px 6px;
-  border-bottom: 1px solid #edf0e9;
+  border-bottom: 1px solid var(--line);
   cursor: pointer;
   border-left: 3px solid transparent;
   display: grid;
@@ -209,12 +209,12 @@ input {
   align-items: start;
 }
 .cue.active {
-  background: #edf4e7;
+  background: var(--cheng-surface-soft);
   border-left-color: var(--accent);
 }
 .cue.selected {
-  background: #e2eee8;
-  outline: 1px solid #87a998;
+  background: var(--cheng-accent-soft);
+  outline: 1px solid var(--cheng-accent);
   outline-offset: -1px;
 }
 .cue-select {
@@ -244,7 +244,7 @@ input {
   overflow-wrap: anywhere;
 }
 .translation {
-  color: #627e6a;
+  color: var(--cheng-muted);
 }
 .cue:focus {
   outline: 2px solid var(--accent);
@@ -268,8 +268,8 @@ input {
   justify-content: space-between;
   gap: 5px;
   padding: 5px 7px;
-  background: #f7faf6f2;
-  border: 1px solid #afc6b9;
+  background: var(--cheng-menu-bg);
+  border: 1px solid var(--cheng-border-strong);
   border-radius: 8px;
   box-shadow: 0 3px 14px #233a3025;
   backdrop-filter: blur(8px);
@@ -305,8 +305,8 @@ input {
   max-height: min(360px, 72vh);
   overflow: auto;
   padding: 10px;
-  background: #fffefbf7;
-  border: 1px solid #afc6b9;
+  background: var(--cheng-menu-bg);
+  border: 1px solid var(--cheng-border-strong);
   border-radius: 9px;
   box-shadow: 0 -3px 18px #233a3033;
   backdrop-filter: blur(10px);
@@ -337,9 +337,9 @@ input {
   margin: auto;
   padding: 10px;
   overflow: auto;
-  color: var(--ink, #263d35);
-  background: #fffefb;
-  border: 1px solid #afc6b9;
+  color: var(--cheng-ink);
+  background: var(--cheng-surface);
+  border: 1px solid var(--cheng-border-strong);
   border-radius: 10px;
   box-shadow: 0 8px 32px #172b2255;
 }
@@ -354,7 +354,7 @@ input {
   z-index: 2;
   margin: -10px -10px 8px;
   padding: 9px 10px;
-  background: #fffefb;
+  background: var(--cheng-surface);
   border-bottom: 1px solid var(--line);
 }
 .selection-ai select,
@@ -362,7 +362,7 @@ input {
   margin: 5px 0;
 }
 #caption-selection #answer {
-  background: #f4f6ef;
+  background: var(--cheng-surface-soft);
   padding: 8px;
   border-radius: 5px;
 }
@@ -377,7 +377,7 @@ summary {
 .privacy {
   font-size: 12px;
   padding: 8px;
-  background: #f0f3e9;
+  background: var(--cheng-surface-soft);
   border-radius: 5px;
 }
 pre {
@@ -406,7 +406,7 @@ pre {
 .note-context {
   padding: 9px 10px;
   border-left: 3px solid var(--accent);
-  background: #f0f3e9;
+  background: var(--cheng-surface-soft);
   border-radius: 4px;
   margin: 10px 0;
 }

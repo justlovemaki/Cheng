@@ -87,14 +87,27 @@ export function recoverControlCenterWidget(dependencies) {
           t = (e) =>
             dk(null, null, function* () {
               const { body: t } = e;
-              "setTranslatorService" === t.type && c(t);
+              [
+                "setTranslatorService",
+                "setEdreaderTheme",
+                "setting/setTheme",
+              ].includes(t.type) && c(t);
             });
+        const onTheme = (changes, area) => {
+          if (area === "local" && changes.cheng_theme)
+            c({
+              type: "setEdreaderTheme",
+              payload: changes.cheng_theme.newValue,
+            });
+        };
+        chrome.storage.onChanged.addListener(onTheme);
         return (
           extensionClient.on("dispatch", t),
           extensionClient.on("fulltext-status-change", e),
           () => {
             extensionClient.off("fulltext-status-change", e),
               extensionClient.off("dispatch", t),
+              chrome.storage.onChanged.removeListener(onTheme),
               document.removeEventListener("keydown", y);
           }
         );

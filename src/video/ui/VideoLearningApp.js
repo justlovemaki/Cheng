@@ -13,6 +13,7 @@ export function recoverVideoLearningApp(dependencies) {
   const setPlayerPausedAction = dependencies.setPlayerPausedAction;
   const shallowEqual = dependencies.shallowEqual;
   const useAppSelector = dependencies.useAppSelector;
+  const useAppDispatch = dependencies.useAppDispatch;
   const useDispatchBridge = dependencies.useDispatchBridge;
   const useLocale = dependencies.useLocale;
   const vC = dependencies.vC;
@@ -21,6 +22,22 @@ export function recoverVideoLearningApp(dependencies) {
 
   const VideoLearningApp = (props) => {
     const [n, r] = (0, React.useState)(!1);
+    const nativeDispatch = useAppDispatch();
+    (0, React.useEffect)(() => {
+      const syncTheme = () =>
+        nativeDispatch({
+          type: "setting/setTheme",
+          payload:
+            document.documentElement.getAttribute("data-cheng-theme") || "auto",
+        });
+      const observer = new MutationObserver(syncTheme);
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-cheng-theme"],
+      });
+      syncTheme();
+      return () => observer.disconnect();
+    }, []);
     vC();
     const { setting: i, user: a } = useAppSelector(
         (e) => ({

@@ -3,6 +3,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import prettier from "prettier";
+import { scopeVideoCss } from "./scope-video-css.mjs";
+import { compileThemeCss, themeIds } from "./theme-system.mjs";
 
 const require = createRequire(import.meta.url);
 const parser = require("@babel/parser");
@@ -2277,6 +2279,87 @@ function patchPartialStateTasks(ast, area) {
   if (patched !== 1) throw new Error(`${area}: expected one partial-state tasks normalization, got ${patched}`);
 }
 
+function patchSharedTheme(ast, area) {
+  let reducers = 0;
+  traverse(ast, {
+    CallExpression(call) {
+      if (call.node.callee?.property?.name !== "addCase") return;
+      const [action, handler] = call.node.arguments;
+      const actionType = action?.name && call.scope.getBinding(action.name)?.path.node.init?.arguments?.[0]?.value;
+      if (!["setEdreaderTheme", "setting/setTheme"].includes(actionType) ||
+          !t.isFunction(handler)) return;
+      const [state, event] = handler.params;
+      handler.body = t.blockStatement(parseStatements(`
+        const theme = ${JSON.stringify(themeIds)}.includes(${event.name}.payload) ? ${event.name}.payload : "auto";
+        ${state.name}.edreader ||= {};
+        ${state.name}.setting ||= {};
+        ${state.name}.edreader.theme = theme;
+        ${state.name}.setting.theme = theme;
+      `));
+      reducers++;
+    },
+    ArrayExpression(array) {
+      const values = array.node.elements;
+      if (values?.length < 7 || !values.every(item => t.isStringLiteral(item))) return;
+      const names = values.map(item => item.value);
+      if (!["auto", "light", "dark", "dragon", "desert", "nautilus", "terra"].every(id => names.includes(id))) return;
+      array.node.elements = themeIds.map(id => t.stringLiteral(id));
+    },
+  });
+  if (reducers !== 2) throw new Error(`${area}: expected two shared theme reducers, got ${reducers}`);
+  if (area === "background") {
+    findPrimaryFunction(ast).get("body").pushContainer("body", parseStatements(`
+      getHydratedState().then(() => {
+        let previous;
+        const publishTheme = () => {
+          const value = store.getState().edreader?.theme;
+          const theme = ${JSON.stringify(themeIds)}.includes(value) ? value : "auto";
+          if (theme === previous) return;
+          previous = theme;
+          chrome.storage.local.set({ cheng_theme: theme }).catch(() => {});
+        };
+        // Adopt Reader's existing preference when old video/Reader settings differ.
+        const selected = store.getState().edreader?.theme;
+        store.dispatch(setThemeAction(${JSON.stringify(themeIds)}.includes(selected) ? selected : "auto"));
+        store.subscribe(publishTheme);
+        publishTheme();
+      });
+    `));
+  }
+}
+
+function patchLodashGlobalExport(ast, area) {
+  let patched = 0;
+  traverse(ast, {
+    ObjectProperty(modulePath) {
+      // Both recovered cores bundle Lodash as Webpack module 2935. Its UMD
+      // wrapper publishes window._ even though consumers use module.exports.
+      // In MAIN world that replaces LuCI's translation function. Never publish
+      // then restore it: even a transient write can invoke a host-page setter.
+      if (!t.isNumericLiteral(modulePath.node.key, { value: 2935 }) ||
+          !t.isFunction(modulePath.node.value)) return;
+      const source = generate(modulePath.node.value).code;
+      if (!source.includes(".noConflict") || !source.includes(".VERSION"))
+        throw new Error(`${area}: Lodash module shape changed`);
+      modulePath.traverse({
+        AssignmentExpression(assignment) {
+          const { left } = assignment.node;
+          if (!t.isMemberExpression(left) || left.computed ||
+              !t.isIdentifier(left.property, { name: "_" }) ||
+              !assignment.parentPath.isSequenceExpression()) return;
+          // The export sequence, unlike noConflict's conditional restore,
+          // contains the CommonJS export as well as the global publication.
+          if (!generate(assignment.parentPath.node).code.includes(".exports")) return;
+          assignment.remove();
+          patched++;
+        },
+      });
+    },
+  });
+  if (patched !== 1)
+    throw new Error(`${area}: expected one Lodash global publication, got ${patched}`);
+}
+
 async function buildMain(name, config) {
   const sourcePath = path.join(root, config.source);
   const source = fs.readFileSync(sourcePath, "utf8");
@@ -2305,12 +2388,14 @@ async function buildMain(name, config) {
   }
   const applied = applySemanticRenames(name, ast);
   if (name === "reader" || name === "video") {
+    patchLodashGlobalExport(ast, name);
     patchStandalonePlatformLinks(ast, name);
     patchPartialStateTasks(ast, name);
   }
   if (name === "background" || name === "reader" || name === "video") {
     patchSchemesDefault(ast, name);
     patchControlCenterAppearance(ast, name);
+    patchSharedTheme(ast, name);
   }
   let sourceComponents = [];
   if (name === "background") installBackgroundStructuredAiBridge(ast);
@@ -2421,6 +2506,7 @@ fs.copyFileSync(path.join(root, "node_modules/fflate/umd/index.js"), path.join(r
 fs.copyFileSync(path.join(root, "node_modules/fflate/LICENSE"), path.join(root, "assets/learning/fflate-LICENSE.txt"));
 
 const directSources = {
+  "src/shared/theme-runtime.js": "assets/cheng-theme.js",
   "src/video/onload.js": "assets/edvideo-onload.js",
   "src/content/site-rules-loader.js": "assets/site-rules-loader.js",
   "src/content/subtitle-ai-sidebar.js": "assets/subtitle-ai-sidebar.js",
@@ -2438,6 +2524,7 @@ for (const [input, output] of Object.entries(directSources)) {
     .replaceAll("assets/semantic-language-detector.js", "assets/ld-main.js")
     .replaceAll("assets/semantic-pos-tagger.js", "assets/tagger-main.js")
     .replaceAll('"semantic"', '"readable"');
+  if (input === "src/video/onload.js") source = fs.readFileSync(path.join(root, "src/shared/theme-runtime.js"), "utf8") + "\n" + source;
   source = await formatJs(source);
   if (input.startsWith("src/content/") || input === "src/video/onload.js" || input === "src/video/learning-bridge.js")
     source = guardContentScript(source);
@@ -2477,9 +2564,10 @@ for (const filename of [
   "site-rules.css",
   "subtitle-ai.css",
 ]) {
-  fs.copyFileSync(
-    path.join(root, "src", "styles", filename),
+  const source = compileThemeCss(fs.readFileSync(path.join(root, "src", "styles", filename), "utf8"), filename);
+  fs.writeFileSync(
     path.join(root, "assets", filename),
+    filename === "edvideo.css" ? await scopeVideoCss(source) : source,
   );
 }
 

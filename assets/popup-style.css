@@ -99,14 +99,14 @@ body {
 
 /* Cheng visual system — aligned with the learning workspace. */
 :root {
-  color-scheme: light;
+  color-scheme: var(--cheng-scheme, light);
   --tp-bg: var(--cheng-paper);
   --tp-text-90: var(--cheng-ink);
   --tp-text-60: var(--cheng-muted);
   --tp-border: var(--cheng-border);
   --tp-hover: var(--cheng-accent-soft);
   --tp-primary: var(--cheng-accent);
-  --tp-primary-text: #fff;
+  --tp-primary-text: var(--cheng-primary-ink, #fff);
 }
 html,
 body {

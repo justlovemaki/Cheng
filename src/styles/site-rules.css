@@ -255,7 +255,7 @@ code {
 /* Cheng visual system — aligned with the learning workspace. */
 :root,
 body {
-  color-scheme: light;
+  color-scheme: var(--cheng-scheme, light);
   background: var(--cheng-paper);
   color: var(--cheng-ink);
   font-family: var(--cheng-font);
@@ -278,7 +278,7 @@ summary {
 textarea,
 button,
 .quick-add input {
-  background: #fff;
+  background: var(--cheng-surface);
   color: var(--cheng-ink);
   border-color: var(--cheng-border-strong);
   border-radius: 7px;
@@ -289,6 +289,7 @@ textarea:focus {
   box-shadow: 0 0 0 3px var(--cheng-focus);
 }
 button.primary {
+  color: var(--cheng-primary-ink, #fff);
   border-color: var(--cheng-accent);
   background: var(--cheng-accent);
 }

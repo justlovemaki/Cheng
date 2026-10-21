@@ -50,7 +50,8 @@ export function recoverThemeSettings(dependencies) {
           children: [
             (0, jsxRuntime.jsx)("div", {
               className: "tips",
-              children: r("rd_theme_setting_tips"),
+              children:
+                "主题同步应用于网页与视频悬浮栏、学习侧栏和资料库；自动模式跟随系统。",
             }),
             (0, jsxRuntime.jsx)("div", {
               className: "item-slider-group",
@@ -59,6 +60,16 @@ export function recoverThemeSettings(dependencies) {
                   className: classNames()("item-slider pointer", r, {
                     selected: r === e.theme,
                   }),
+                  role: "button",
+                  tabIndex: 0,
+                  "aria-pressed": r === e.theme,
+                  "data-cheng-theme-option": r,
+                  onKeyDown: (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      i(Nn(r));
+                    }
+                  },
                   onClick: () =>
                     ((e) => {
                       i(Nn(e));
@@ -82,7 +93,7 @@ export function recoverThemeSettings(dependencies) {
                             ],
                           }),
                           (0, jsxRuntime.jsx)("span", {
-                            children: r,
+                            children: r === "auto" ? "auto · 跟随系统" : r,
                           }),
                         ],
                       }),

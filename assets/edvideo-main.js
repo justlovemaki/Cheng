@@ -11549,10 +11549,9 @@ lexihaloRunOutsideChallenge(() => {
                 Fn
               );
             })();
-            (mt._ = vn),
-              (r = function () {
-                return vn;
-              }.call(t, n, t, e)) === i || (e.exports = r);
+            (r = function () {
+              return vn;
+            }.call(t, n, t, e)) === i || (e.exports = r);
           }.call(this);
       },
       2961: (e, t, n) => {
@@ -35378,7 +35377,22 @@ lexihaloRunOutsideChallenge(() => {
               (e.edreader.areaPhonetic = t.payload);
           }),
           e.addCase(setEdreaderThemeAction, (e, t) => {
-            e.edreader.theme = t.payload;
+            const theme = [
+              "auto",
+              "light",
+              "dark",
+              "desert",
+              "terra",
+              "nautilus",
+              "dragon",
+              "tuber",
+            ].includes(t.payload)
+              ? t.payload
+              : "auto";
+            e.edreader ||= {};
+            e.setting ||= {};
+            e.edreader.theme = theme;
+            e.setting.theme = theme;
           }),
           e.addCase(setWordHighlightAction, (e, t) => {
             (e.edreader.wordHighlight = t.payload), (e.changed = !0);
@@ -35444,7 +35458,22 @@ lexihaloRunOutsideChallenge(() => {
             e.setting.paragraph = t.payload;
           }),
           e.addCase(setThemeAction, (e, t) => {
-            e.setting.theme = t.payload;
+            const theme = [
+              "auto",
+              "light",
+              "dark",
+              "desert",
+              "terra",
+              "nautilus",
+              "dragon",
+              "tuber",
+            ].includes(t.payload)
+              ? t.payload
+              : "auto";
+            e.edreader ||= {};
+            e.setting ||= {};
+            e.edreader.theme = theme;
+            e.setting.theme = theme;
           }),
           e.addCase(setFontAction, (e, t) => {
             e.setting.font = t.payload;
@@ -65267,7 +65296,7 @@ lexihaloRunOutsideChallenge(() => {
           })
         );
       },
-      MS = ["auto", "light", "dark", "dragon", "tuber", "desert", "nautilus", "terra"],
+      MS = ["auto", "light", "dark", "desert", "terra", "nautilus", "dragon", "tuber"],
       BS = ["dragon", "tuber", "nautilus", "desert", "terra"],
       DS = () => {
         const { theme: t, user: n } = Al(
@@ -68199,6 +68228,7 @@ lexihaloRunOutsideChallenge(() => {
               setPlayerCurrentAction: setPlayerCurrentAction,
               setPlayerPausedAction: setPlayerPausedAction,
               shallowEqual: Pl,
+              useAppDispatch: kl,
               useAppSelector: Al,
               useDispatchBridge: lC,
               useLocale: pC,
@@ -71928,6 +71958,7 @@ lexihaloRunOutsideChallenge(() => {
       const setPlayerPausedAction = dependencies.setPlayerPausedAction;
       const shallowEqual = dependencies.shallowEqual;
       const useAppSelector = dependencies.useAppSelector;
+      const useAppDispatch = dependencies.useAppDispatch;
       const useDispatchBridge = dependencies.useDispatchBridge;
       const useLocale = dependencies.useLocale;
       const vC = dependencies.vC;
@@ -71935,6 +71966,21 @@ lexihaloRunOutsideChallenge(() => {
       const xb = dependencies.xb;
       const VideoLearningApp = (props) => {
         const [n, r] = (0, React.useState)(!1);
+        const nativeDispatch = useAppDispatch();
+        (0, React.useEffect)(() => {
+          const syncTheme = () =>
+            nativeDispatch({
+              type: "setting/setTheme",
+              payload: document.documentElement.getAttribute("data-cheng-theme") || "auto",
+            });
+          const observer = new MutationObserver(syncTheme);
+          observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["data-cheng-theme"],
+          });
+          syncTheme();
+          return () => observer.disconnect();
+        }, []);
         vC();
         const { setting: i, user: a } = useAppSelector(
             (e) => ({

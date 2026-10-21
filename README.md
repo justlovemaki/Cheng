@@ -1,100 +1,102 @@
 # 澄 Cheng
 
-**外语视频精读与知识笔记。** 帮助认真学习外语视频内容的人，看懂内容、理解概念、积累知识。适合研究生、开发者、专业从业者与自主学习者，不限定学科。
+**外语视频精读与知识笔记浏览器扩展。** 双语字幕、上下文解释、时间点笔记与本地资料库，保留网页翻译和媒体处理能力。
 
-产品由 LexiHalo 演进而来，保留既有双语字幕、翻译和媒体处理能力。学习数据本地保存，支持导入导出；AI 使用用户配置的 BYOK，调用时相关内容仍会发送给供应商。
+无需原上游账号或会员；AI 使用自带密钥（BYOK），费用由所选服务商收取。
 
-## 边看边学与本地资料库
+## 功能
 
-**任何时候：右侧悬浮栏 → 学习控制台 → 直接写；需要时再关联网页、选文或视频片段。看视频时还能实时对照，不懂就问。**
+- **边看边学**：原生侧边面板跟随当前视频，实时对照双语字幕，支持跳转、重听、选择 1–10 句进行 AI 解释。
+- **随手记笔记**：无需先保存视频即可输入、自动保存；可关联网页选文、字幕或视频时间点，回看时直达出处。
+- **本地资料库**：管理笔记、媒体和字幕版本，全文搜索，导入/导出 SRT、VTT，导出 Markdown 或完整 ZIP 备份。
+- **字幕处理**：读取原站字幕，使用 AI 保守修复、分段和翻译；无字幕时可主动触发音频转写。
+- **网页翻译**：划词、快速翻译、沉浸式全文翻译、单词详解与发音，支持按网站常开。
+- **统一主题**：设置预览、网页与视频悬浮栏、学习侧栏和资料库同步配色，支持跟随系统明暗。
+- **媒体工具**：读取当前播放器的视频/音频资源；可选本地助手提供媒体准备、多清晰度下载及音轨合并。
 
-- 「学习控制台」在浏览器原生侧边面板打开，不跳新页面，不用选择标签页或手动保存视频；自动跟随当前视频、播放时间和附近字幕。需要 Chrome / Edge 116+ 及侧边面板支持。
-- 原文、已有译文实时高亮滚动；点击字幕正文或时间可跳回原视频位置。左侧复选框单独负责选择 1–10 句，可把它们作为学习笔记出处、连续重听，或就所选内容调用 AI 解释。打开和同步不自动调用 AI。
-- 「学习笔记」打开即可直接写，自动保存；不要求先选视频或字幕。出处可选：关联视频字幕/时间点，或文章中的网页链接和选中文字；笔记卡片可直接打开出处页面，视频笔记还可跳回关联时间点。关联、替换或取消出处不会清空正文，个人笔记不自动发送给 AI。
-- 通用笔记是新增能力，不替代其他学习功能。实时双语对照、字幕跳转、重听当前句、视频片段 AI 解释、原设置和快速/沉浸翻译全部保留；当前网页没有视频时显示不可用原因，切到视频页后自动启用。
-- AI 解释不再是独立模块：选择字幕后，实时对照区底部出现固定紧凑工具条，可记笔记、重听或解释。字幕滚出实时窗口后仍保持选择；点击“已选 N 句”可在浮层中查看、跳回或逐句取消。工具条和浮层都不改变对照区高度。解释只使用所选 1–10 句及附近上下文。
-- 原视频悬浮菜单、设置和翻译按钮保持原样。独立「资料库」只负责回看、管理、搜索、导入导出；受限页面弹窗提供资料库备用入口。
-- 资料库也支持选中字幕解释概念、拆解逻辑、对比概念，并校验字幕引用。
-- 原文/译文全文搜索、按需揭示译文、字幕原文对照、选中字幕 BYOK 翻译及不可变版本。
-- 本地视频/音频读取、字幕高亮、片段重听和进度保存。文件输入使用临时 `blob:` 权限：刷新后明确显示“需要重新连接”，而不是“已关联”；重新选择同一文件即可恢复。可“清除历史关联”，只清除文件名/指纹和当前播放句柄，不删除字幕、笔记、片段或电脑原文件。字幕导入分为“创建新字幕资料”和“给当前媒体添加字幕版本”两个明确操作；后者不替换媒体及旧字幕。
-- 侧边栏顶部“资料与媒体”始终进入资料与媒体标签；只有“查看笔记”“查看引用笔记”等明确入口进入学习笔记。“学习笔记”是正文唯一的查看和编辑入口；“资料与媒体”将片段明确标成“笔记引用”或“独立保存”，显示引用数量但不重复正文。删除或取消笔记关联后，无其他笔记/截图引用的自动片段会清理；主动独立保存的片段保留。
-- 学习资料与翻译缓存分离。专业术语表、画面与截图的新建/展示入口已从主界面移除；旧数据仍保留在本地及完整备份中，旧术语继续兼容既有翻译流程。
+## 安装与更新
 
-**注意：** 本地媒体文件不复制进资料库或备份，重开后需重新关联；卸载扩展可能删除本地资料，请定期备份。实时面板只有主动点击明确的发送按钮才调用 BYOK，预览可选；资料库批量操作仍保留预览确认。本地文件播放继续在资料库中使用。界面目前为简体中文。
+需要支持原生侧边面板的 **Chrome / Edge 116+**；开发构建建议使用 Node.js 20+。
 
-完整使用方法、文件限制、数据格式及架构见 [`docs/CHENG_LEARNING.md`](docs/CHENG_LEARNING.md)。扩展页面、侧边面板、弹窗、Reader 默认界面和视频菜单共用墨绿、米白、纸张色、边框和圆角设计令牌；源文件为 `src/styles/cheng-theme.css`。品牌图标也已统一为“清澈光环＋打开的书页＋水波”图形，覆盖扩展 16–512px、页面 Logo、右侧学习入口、视频按钮及 Safari 资源；可用 `npm run build:icons` 从 `assets/logo.svg` 重建。
+```bash
+npm ci
+npm run build
+```
 
-## 保留的翻译与媒体能力
+1. 打开 `chrome://extensions/` 或 `edge://extensions/`，开启开发者模式。
+2. 点击“加载已解压的扩展程序”，选择仓库内生成的 **`dist/`**。
+3. 停用其他同源扩展版本，避免重复注入。
 
-- 视频双语字幕与字幕样式控制
-- 使用本地 BYOK AI 对原字幕进行智能分段，并自动修复 ASR 错词、标点、大小写和重复词
-- 无字幕视频可将浏览器可读取的音频直接上传到 OpenAI 音频识别接口，先生成带时间轴的字幕，再进行修复和翻译
-- 可选本地助手可识别视频的多种分辨率，并用 yt-dlp 下载、自动合并独立音轨
-- 新增 19 个视频、课程、音频和播客站点适配，共用原有 AI 字幕和资源下载流程
-- 点击字幕单词打开 AI 详解
-- Web Dictionary 与美式/英式发音切换
-- 网页划词翻译、快速翻译和沉浸式全文翻译
-- 沉浸式翻译可按网站自动开启
-- 支持 Google 翻译、Microsoft Translator（Azure）、DeepL，以及 OpenAI、OpenRouter、DeepSeek、Gemini、Claude 和 OpenAI 兼容接口
-- API Key 仅保存在 `chrome.storage.local`
-- 不依赖原上游账号、会员系统或云端额度
+更新代码后重新构建、重新加载扩展，**再刷新已打开的网页**。访问本地文件页面时，需在扩展详情中允许访问文件网址。
 
-## 安装
+## 开始使用
 
-1. 下载或克隆本仓库。
-2. 运行构建命令：
-   ```bash
-   npm install
-   npm run build
-   ```
-3. 打开 Chromium 浏览器的扩展管理页面（如 `chrome://extensions/`）。
-4. 开启“开发者模式”。
-5. 选择“加载已解压的扩展程序”，并选择生成的 **`dist`** 目录。
-6. 建议停用其他同源版本，避免内容脚本冲突。
+| 场景             | 入口                                         |
+| ---------------- | -------------------------------------------- |
+| 看视频、记笔记   | 网页右侧悬浮栏 → 学习控制台                  |
+| 回看、搜索、备份 | 学习控制台 → 资料与媒体 / 查看笔记           |
+| 本地视频或音频   | 资料与媒体 → 打开本地视频 / 音频，再导入字幕 |
+| 字幕、转写、下载 | 播放器中的插件图标                           |
+| 设置翻译引擎     | 扩展详情 → 扩展程序选项（BYOK）              |
+| 全文翻译常开     | 网页右键菜单，或设置中的“沉浸翻译常开”       |
 
-## 配置 BYOK
+非视频页面也能写笔记；视频模块会说明不可用原因。详细流程见[学习指南](docs/CHENG_LEARNING.md)。
 
-在扩展管理页面打开 LexiHalo 的“扩展程序选项”，可添加 AI 模型、Microsoft Translator（Azure）或 DeepL。Microsoft 使用官方 Azure Translator API Key，并可选填 Region；DeepL 支持 Free/Pro API Endpoint。未配置时，两者也会显示在侧边栏和视频字幕的翻译引擎列表中，点击即可进入对应配置；API Key 仅保存在本机。
+### 引擎配置
 
-## 配置 AI 字幕翻译与修复
+- **AI 翻译与解释**：OpenAI、OpenRouter、DeepSeek、Gemini、Claude 或 OpenAI 兼容接口。
+- **机器翻译**：Google；Microsoft 需 Azure Translator Key，可选填 Region；DeepL 需对应 Free/Pro API 配置。
+- **音频转写**：在 OpenAI / 兼容引擎中单独配置识别模型和 Endpoint；推荐 `whisper-1`、`verbose_json`。直接上传的单个媒体流需小于 24 MB。
 
-在 BYOK 页面配置 OpenAI、OpenRouter、DeepSeek、Gemini、Claude 或 OpenAI 兼容接口。在视频字幕中选择该 AI 引擎作为字幕翻译引擎时，系统会用一次模型请求同时完成上下文消歧、ASR 保守修复和翻译，主副字幕同步呈现。首批优先处理当前 3 行，后续使用稳定 6 行窗口并最多并发 2 个请求；跳转播放位置会取消旧请求。组合响应缺行时仅对缺失行执行同模型普通翻译，必要时再使用机器翻译兜底，避免整批字幕失败。选择 Google / 微软等机器翻译引擎时，保持原始字幕不修改。
+基本字幕读取和网页翻译不需要本地助手。需要助手时，先安装 Python 3.9+、yt-dlp、ffmpeg / ffprobe，再注册扩展 ID：
 
-OpenAI 和 OpenAI 兼容引擎还可在 BYOK 页面配置“音频识别模型”与“音频识别 Endpoint”。在任一受支持视频平台可从播放器菜单选择“AI 字幕”：扩展优先获取独立音频流，也可使用播放器公开的直连媒体文件，以 `multipart/form-data` 直接调用 `/v1/audio/transcriptions`，将返回的分段时间戳安装为原字幕，然后进入现有 AI 修复与翻译流程。默认推荐 `whisper-1` 和 `verbose_json`，还可配置识别语言和提示词；请求使用 `file`、`model`、`language`、`prompt`、`response_format`、`timestamp_granularities[]`、`temperature` 等标准 multipart 字段。纯扩展直接读取仍要求单个媒体流小于 24 MB。对没有可读直连音频或直连下载失败的视频，可在确认后使用**可选本地助手**（需安装 Python、yt-dlp、ffmpeg），下载当前支持的视频页面音频并切块后逐块调用用户配置的 BYOK 转写接口；助手不接收 API Key。Pornhub 的 AI 字幕改由浏览器读取当前播放器的 HLS 媒体并按序导入助手切块，避免 yt-dlp 抓到失效地址；需更新到版本 10 的本地助手。安装及当前网站范围见 [`native/README.md`](native/README.md)。识别结果保存在本机缓存中。受登录保护的媒体和 DRM 无法保证读取；助手不会绕过 DRM。
+```bash
+python native/install.py <扩展ID>       # Chrome
+python native/install.py <扩展ID> edge  # Edge
+```
 
-专门适配平台及普通公网 HTTPS 视频页面的 LexiHalo 菜单统一显示“下载媒体”，优先列出当前播放器可读取的资源。读取失败时显示原因，再由用户选择本地助手解析；手动切换位于“更多功能 → 媒体处理高级选项”。需要助手时会先检查安装和依赖并请求确认，取消不会发起解析或下载。助手通过 yt-dlp 获取可用格式，列出分辨率、帧率、封装格式、预计大小及是否包含音轨；选择纯视频格式时会自动下载并合并最佳音轨，结果保存到系统 `Downloads/LexiHalo` 目录。通用网站是否可用取决于 yt-dlp；助手不支持 DRM，也不会自动使用浏览器 Cookie。安装说明见 [`native/README.md`](native/README.md)。
+安装、升级和限制见[本地助手说明](native/README.md)。
 
-“双语字幕”页提供“重新载入当前字幕”和“彻底清除 AI 字幕缓存”：前者保留持久 AI 结果并恢复原字幕，不重新下载字幕轨道；后者会强制下次重新调用模型。沉浸式翻译、划词翻译和快速翻译继续使用各自独立缓存。完整流程见 [`docs/AI_SUBTITLES.md`](docs/AI_SUBTITLES.md)。
+## 支持范围与数据
 
-## 配置沉浸式翻译常开网站
+- 支持 YouTube、Bilibili、Netflix、Coursera、Udemy、TED、Vimeo 等专门适配平台，以及普通 HTML5 视频；另有短视频、社交媒体、音乐和播客适配，见[站点说明](docs/MEDIA_SITES.md)。实际可用性取决于字幕、登录状态和播放器结构，不保证所有链接可用，不绕过 DRM。
+- 学习资料保存在扩展自身的 IndexedDB，API Key 保存在 `chrome.storage.local`；没有产品账号、云端资料库或自动同步。个人笔记不自动发送给 AI。
+- **本地保存不等于离线处理**：翻译、解释和转写会向相应服务商发送所需内容。打开学习面板或同步字幕本身不会自动调用 AI；既有翻译功能仍按用户开关运行。
+- 完整备份不包含 API Key、原媒体文件或未提交草稿，且不加密。本地媒体重开后需重新选择文件；卸载扩展或清除浏览器数据可能删除资料，请定期备份。
+- 学习界面目前为简体中文。原上游云端收藏、托管 AI、云端 TTS 等服务不再提供。
 
-在任意网页点击右键，可直接选择“将当前网站加入沉浸翻译常开”或“将当前网站移出沉浸翻译常开”。也可以打开 LexiHalo 设置，进入“沉浸翻译常开”管理规则；页面支持一键添加/移除当前网站、回车快速添加规则和单条删除；批量编辑中还可维护域名（`example.com`）、子域通配符（`*.example.com`）、路径通配符（`*.example.com/video/*`）及完整 URL。修改会立即应用到已打开的网页，并在单页应用切换地址时重新匹配。双语字幕继续使用 LexiHalo 原有的常开设置。
+## 开发
 
-## 支持范围
+```text
+src/             维护源码、页面模板、样式与本地化
+config/          品牌、媒体平台策略、构建基线与符号映射
+vendor/legacy/   原扩展 Bundle 基线
+native/          可选 Native Messaging 媒体助手
+assets/          静态资源及生成的运行代码
+tools/           构建、恢复、检查与回归测试
+docs/            专项文档
+dist/            构建输出，浏览器加载此目录
+```
 
-视频字幕脚本覆盖 YouTube、Netflix、Coursera、Udemy、TED、Max、Disney+、edX、Prime Video、Bilibili、Vimeo 等专门适配的平台，也会在普通网页检测标准 HTML5 `<video>`，选择正在播放或可见面积最大的播放器，在右上角显示 LexiHalo 图标，并读取浏览器可见的 TextTrack / `<track>` 字幕。通用模式支持公开的 `video[src]`、`source[src]` 直连媒体和当前 Video.js 播放器的真实 M3U8，并可使用浏览器导入生成 AI 字幕或下载资源；封闭 Shadow DOM、跨域受限 iframe、DRM 或只暴露 MediaSource `blob:` 的播放器仍可能需要专门适配。多清晰度 yt-dlp 下载和本地 AI 字幕入口会在通过安全校验的公网 HTTPS 视频页面显示，实际提取能力取决于 yt-dlp。
+修改 `src/`、`config/` 或构建工具，不直接修改生成的 Bundle、根目录 HTML 和 `dist/`。构建使用 AST 补丁与可维护源码生成单 Bundle；恢复分析产物不参与运行，也不能还原完整的原始工程。
 
-新增适配抖音、小红书、微信视频号、小鹅通、微博视频、TikTok、X/Twitter、Instagram、Facebook、Reddit、Twitch、Dailymotion、niconico、小宇宙、SoundCloud、Bandcamp、喜马拉雅、网易云音乐和 Apple Podcasts。可读取当前项的媒体时优先走浏览器导入；抖音首页、微博信息流等没有稳定单条 URL 的页面也会精确下载当前播放器资源，不把 feed URL 交给 yt-dlp。只有具备可验证单条页面身份时，才允许明确选择本地页面解析。播客/音乐显示音频资源入口，下载不要求 AI Key。视频号验证需用户确认，小鹅通需原站登录。新站点的结构、流程及验证边界见 [`docs/MEDIA_SITES.md`](docs/MEDIA_SITES.md)；不保证所有账号或链接可用，也不绕过 DRM。
+```bash
+npm run check                     # 构建、语法与确定性检查
+npm run test:learning              # 资料库、数据及 AI 校验
+npm run test:notes                 # 通用笔记
+npm run test:study:browser         # 原生侧边面板
+npm run test:learning:browser      # 资料库浏览器闭环
+npm run test:browser               # 翻译、字幕及站点回归
+npm run test:floating-controls     # 悬浮栏与消息路由
+npm run test:theme                 # 主题与图标颜色
+npm run test:page-global-isolation # LuCI 翻译函数等页面全局兼容
+npm run test:video-style-isolation # 视频 CSS 与宿主页面隔离
+npm run test:audio-source          # 媒体管线
+npm run test:native                # 本地助手
+```
 
-## 独立版说明
+浏览器测试需要 Playwright Chromium，可先运行 `npx playwright-core install chromium`。测试使用模拟页面和服务，不代表所有真实站点均可用。其他测试命令见 [`package.json`](package.json)；图标重建用 `npm run build:icons`，恢复分析用 `npm run recover`。
 
-本项目基于压缩后的浏览器扩展构建产物改造，不包含原始前端或后端源码。原上游账号、云端收藏、托管 AI 字幕、托管 AI 总结、托管高级引擎和云端 TTS 等功能已停用或从界面移除。
+## 文档
 
-详细改造记录见 [`docs/FREE_ACCESS.md`](docs/FREE_ACCESS.md)，网络与历史域名审计见 [`docs/EXTERNAL_LINKS.md`](docs/EXTERNAL_LINKS.md)。
-
-## 项目结构
-
-- `dist/`：构建生成的干净扩展产物目录（包含 `manifest.json`、页面 HTML、`_locales/` 和 `assets/`），Chrome 扩展直接加载此目录即可。
-- `src/`：主要可维护源码和样式；学习工作台及数据层位于 `src/learning/`，Reader 页面/卡片/设置位于 `src/reader/`，Video UI 位于 `src/video/ui/`，Popup UI 位于 `src/popup/ui/`，HTML 模板位于 `src/pages/`，界面文案位于 `src/locales/`。
-- `config/`：展示品牌（`brand.json`）、构建基线及高置信度符号配置。
-- `vendor/legacy/`：从原扩展保留的稳定 Bundle 基线。
-- `assets/`：静态资源和基础 Bundle。
-- `tools/`：恢复、构建、检查和浏览器回归脚本。
-- `docs/`：架构、改造与审计文档。
-- `artifacts/`、`recovered/`、`src-recovered/`：可再生报告和恢复分析结果，不纳入 Git。
-
-## 构建与恢复
-
-扩展现在直接运行格式化后的单 Bundle：`assets/background.js`、`assets/edreader-main.js`、`assets/edvideo-main.js`、`assets/popup.js` 及三个语言工具 Bundle。构建器以 `vendor/legacy/` 和 `src/` 为输入，使用 AST 作用域绑定进行高置信度语义命名；第三方库、Webpack/Babel 辅助函数、国际化文本、SVG 与词典数据保持原名。
-
-执行 `npm run build` 可重复生成运行文件；`npm run test:learning` 与 `npm run test:learning:browser` 验证新增学习流程，`npm run test:browser` 运行原有 Chromium 回归，`npm run check` 验证语法、行为标记、重命名映射及构建确定性。恢复分析结果可通过 `npm run recover` 重新生成。构建和测试报告写入被忽略的 `artifacts/reports/`。完整说明见 [`docs/READABLE_BUNDLES.md`](docs/READABLE_BUNDLES.md)。由于上游没有 source map，无法证明性恢复原文件名、注释、类型或全部局部变量名。
+[学习与备份](docs/CHENG_LEARNING.md) · [AI 字幕](docs/AI_SUBTITLES.md) · [媒体架构](docs/MEDIA_ARCHITECTURE.md) · [构建与恢复](docs/READABLE_BUNDLES.md) · [源码入口](src/README.md) · [独立版改造](docs/FREE_ACCESS.md) · [网络请求说明](docs/EXTERNAL_LINKS.md)

@@ -2,6 +2,13 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright-core";
+import { themes } from "./theme-system.mjs";
+const rgb = (hex) =>
+  `rgb(${hex
+    .slice(1)
+    .match(/../g)
+    .map((value) => parseInt(value, 16))
+    .join(", ")})`;
 const root = process.cwd(),
   profile = path.join(root, ".pi/cheng-theme-profile");
 fs.rmSync(profile, { recursive: true, force: true });
@@ -118,6 +125,70 @@ try {
   }));
   assert.equal(dock.background, "rgba(56, 103, 83, 0.18)");
   assert.equal(dock.radius, "10px 0px 0px 10px");
+  const fixedIcon = reader.locator(".rd-float-btn .fix-rd-app .t-icon svg");
+  const closeButton = reader.locator(".rd-float-btn .btn-float-close");
+  await closeButton.evaluate((node) => {
+    node.style.transition = "none";
+  });
+  const originalDockClass = await reader
+    .locator(".rd-float-btn")
+    .getAttribute("class");
+  for (const theme of ["light", "dark", "auto"]) {
+    const palette = themes[theme === "auto" ? "light" : theme];
+    const accent = rgb(palette.accent);
+    const close = accent.replace("rgb(", "rgba(").replace(")", ", 0.3)");
+    await reader.locator(".rd-float-btn").evaluate((node, theme) => {
+      node.classList.remove("light", "dark", "auto");
+      node.classList.add(theme);
+    }, theme);
+    await reader.mouse.move(0, 0);
+    await fixedIcon.evaluate((node) => {
+      // Ignore color interpolation when verifying the final theme token.
+      node.style.transition = "none";
+    });
+    assert.equal(
+      await fixedIcon.evaluate((node) => getComputedStyle(node).fill),
+      accent,
+      `${theme}: idle translation icon must match its palette`,
+    );
+    assert.equal(
+      await closeButton.evaluate(
+        (node) => getComputedStyle(node).backgroundColor,
+      ),
+      close,
+      `${theme}: close button must match its palette`,
+    );
+    await reader.locator(".rd-float-btn .fix-rd-app").hover();
+    assert.equal(
+      await fixedIcon.evaluate((node) => getComputedStyle(node).fill),
+      accent,
+      `${theme}: hovered translation icon must match its palette`,
+    );
+  }
+  await reader.locator(".rd-float-btn").evaluate((node, className) => {
+    node.className = className;
+  }, originalDockClass);
+  // Provider icons use a nested path rule, separate from the toolbar SVG rule.
+  await reader.locator(".rd-float-btn").evaluate((node) => {
+    const button = document.createElement("div");
+    button.className = "btn-rd-app show";
+    button.id = "theme-provider-icon-fixture";
+    button.innerHTML =
+      '<span class="t-icon"><span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M2 2h20v20H2z"/></svg></span></span>';
+    button.querySelector("path").style.transition = "none";
+    node.appendChild(button);
+  });
+  await reader.locator("#theme-provider-icon-fixture").hover();
+  assert.equal(
+    await reader
+      .locator("#theme-provider-icon-fixture path")
+      .evaluate((node) => getComputedStyle(node).fill),
+    "rgb(56, 103, 83)",
+    "Hovered provider paths must not override the green SVG color with purple",
+  );
+  await reader
+    .locator("#theme-provider-icon-fixture")
+    .evaluate((node) => node.remove());
   await reader.locator(".rd-float-btn-hover").hover();
   await reader.locator(".rd-quick-apps .btn-rd-app").first().click();
   await reader.locator("#trancy-root").waitFor();
