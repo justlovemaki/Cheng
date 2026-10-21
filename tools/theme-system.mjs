@@ -70,6 +70,7 @@ function legacyTokens(p, area) {
     for (const n of [50, 40, 30, 20, 15, 10, "06", "05", "04"])
       values[`--border-${n}`] = rgba(p.ink, Number(n) / 100);
     Object.assign(values, {
+      "--cheng-video-muted": rgba(p.ink, 0.8),
       "--bg-0": p.surface,
       "--bg-1": p.surface,
       "--bgf": p.soft,

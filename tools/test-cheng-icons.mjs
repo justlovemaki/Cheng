@@ -55,7 +55,10 @@ const video = fs.readFileSync(
   path.join(root, "src/video/ui/VideoToggleButton.js"),
   "utf8",
 );
-assert.match(video, /assets\/icons\/ic48\.png/);
+assert.match(video, /"currentColor"/);
+assert.match(video, /cx: 12/);
+assert.match(video, /M3\.5 8\.5c3\.3-1\.2/);
+assert.doesNotMatch(video, /assets\/icons\/ic48\.png/);
 console.log(
   "Cheng icon system passed: green halo/book brand at every manifest/Safari size, matching dock and video identities, with dist hash parity.",
 );

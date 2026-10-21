@@ -189,7 +189,7 @@ try {
       await reader
         .locator("#xt-toggle-button .trancy-panel-menu")
         .evaluate((el) => getComputedStyle(el).backgroundColor),
-      `rgba(${rgb(palette.surface)}, 0.97)`,
+      `rgb(${rgb(palette.surface)})`,
       `${id}: actual video menu background`,
     );
     assert.equal(
@@ -197,8 +197,35 @@ try {
         .locator("#xt-toggle-button .trancy-menuitem-label")
         .first()
         .evaluate((el) => getComputedStyle(el).color),
-      `rgba(${rgb(palette.ink)}, 0.9)`,
+      `rgb(${rgb(palette.ink)})`,
       `${id}: video menu text`,
+    );
+    const actions = await reader
+      .locator(
+        "#xt-toggle-button .trancy-primary-panel-menu .trancy-action-label",
+      )
+      .evaluateAll((nodes) =>
+        nodes
+          .filter((node) => node.textContent.trim())
+          .map((node) => getComputedStyle(node).color),
+      );
+    assert.ok(
+      actions.length,
+      "Check actual engine/language labels, not just the first menu label",
+    );
+    for (const color of actions)
+      assert.equal(
+        color,
+        `rgb(${rgb(palette.ink)})`,
+        `${id}: nested engine/language label`,
+      );
+    const glyph = reader.locator(
+      "#xt-toggle-button .trancy-button-logo svg.lexihalo-brand-icon",
+    );
+    assert.equal(
+      await glyph.evaluate((node) => getComputedStyle(node).color),
+      `rgb(${rgb(palette.accent)})`,
+      `${id}: video glyph follows theme accent`,
     );
     await reader.locator("#xt-toggle-button .trancy-button-logo").click();
     assert.equal(

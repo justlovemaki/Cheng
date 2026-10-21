@@ -14,7 +14,7 @@
     "test:study:browser": "node tools/test-study-browser.mjs",
     "test:challenge-pages": "node tools/test-challenge-pages.mjs",
     "test:control-center": "node tools/test-control-center-appearance.mjs",
-    "test:theme": "node tools/test-cheng-theme.mjs && node tools/test-shared-themes.mjs",
+    "test:theme": "node tools/test-cheng-theme.mjs && node tools/test-shared-themes.mjs && node tools/test-video-menu-contrast.mjs",
     "test:icons": "node tools/test-cheng-icons.mjs",
     "test:video-style-isolation": "node tools/test-video-style-isolation.mjs",
     "test:page-global-isolation": "node tools/test-page-global-isolation.mjs",

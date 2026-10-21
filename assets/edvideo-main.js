@@ -73194,11 +73194,35 @@ lexihaloRunOutsideChallenge(() => {
                     learning_entry: y,
                   });
               },
-              children: (0, jsxRuntime.jsx)("img", {
+              "aria-label": "澄 Cheng · 视频菜单",
+              title: "澄 Cheng · 视频菜单",
+              children: (0, jsxRuntime.jsxs)("svg", {
                 className: "icon-trancy-brand lexihalo-brand-icon",
-                src: `${props.runtime.scheme}/assets/icons/ic48.png`,
-                alt: "澄 Cheng",
-                draggable: !1,
+                viewBox: "0 0 24 24",
+                fill: "none",
+                "aria-hidden": true,
+                children: [
+                  (0, jsxRuntime.jsx)("circle", {
+                    cx: 12,
+                    cy: 7,
+                    r: 4,
+                    stroke: "currentColor",
+                    strokeWidth: 1.7,
+                  }),
+                  (0, jsxRuntime.jsx)("path", {
+                    d: "M3.5 8.5c3.3-1.2 6.1-.6 8.5 1.5 2.4-2.1 5.2-2.7 8.5-1.5v10c-3.2-1-6-.4-8.5 1.5-2.5-1.9-5.3-2.5-8.5-1.5v-10Z",
+                    fill: "currentColor",
+                    stroke: "currentColor",
+                    strokeWidth: 1.2,
+                    strokeLinejoin: "round",
+                  }),
+                  (0, jsxRuntime.jsx)("path", {
+                    d: "M12 10v9.5",
+                    stroke: "var(--cheng-surface)",
+                    strokeWidth: 1.4,
+                    strokeLinecap: "round",
+                  }),
+                ],
               }),
             }),
             (0, jsxRuntime.jsx)("div", {

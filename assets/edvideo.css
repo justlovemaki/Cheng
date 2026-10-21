@@ -10448,16 +10448,19 @@ trancy-video-summary
   justify-content: center;
   cursor: pointer;
   line-height: 1.5;
-  color: #d8d8d8;
+  color: var(--cheng-accent);
   z-index: 1000;
   position: relative;
-  background: transparent;
+  box-sizing: border-box;
+  padding: 3px;
+  background: var(--cheng-surface);
+  border: 1px solid var(--cheng-accent);
   border-radius: 8px;
   width: 24px;
   height: 24px;
-  box-shadow: none;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.28);
   opacity: 0.25;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 .trancy-button-container:hover .trancy-button-logo,
 .trancy-button-container:focus-within .trancy-button-logo,
@@ -10719,21 +10722,21 @@ trancy-video-summary
   z-index: 2147483647 !important;
   cursor: pointer;
   pointer-events: auto !important;
-  opacity: 0.25;
-  transition: opacity 0.2s ease;
+  opacity: 1;
 }
-#xt-toggle-button.trancy-html5-button.trancy-floating:hover,
-#xt-toggle-button.trancy-html5-button.trancy-floating:focus-within,
+#xt-toggle-button.trancy-html5-button.trancy-floating:hover .trancy-button-logo,
+#xt-toggle-button.trancy-html5-button.trancy-floating:focus-within .trancy-button-logo,
 #xt-toggle-button.trancy-html5-button.trancy-floating:has(
     [data-lexihalo-menu-open="true"]
-  ) {
+  ) .trancy-button-logo {
   opacity: 1;
 }
 .trancy-html5-button.trancy-floating .trancy-button-logo {
-  width: 26px;
-  height: 26px;
-  /* The floating host fades the background and logo together, only once. */
-  opacity: 1;
+  width: 34px;
+  height: 34px;
+  /* Fade only this chip, never the ancestor that also contains the menu. */
+  padding: 4px;
+  backdrop-filter: blur(6px);
 }
 .trancy-html5-button.trancy-floating .trancy-panel-menu {
   top: 42px;
@@ -15190,7 +15193,7 @@ trancy-app
   border-radius: 10px;
 }
 .trancy-panel-menu {
-  background: var(--cheng-menu-bg, rgba(255, 254, 251, 0.97));
+  background: var(--cheng-surface, #fffefb);
   color: var(--cheng-ink, #263d35);
   border-color: var(--cheng-border, #dce3d9);
   border-radius: 10px;
@@ -15277,8 +15280,10 @@ trancy-app
 }
 /* Theme tokens are owned by the toolbar/caption root, never the host page. */
 #xt-toggle-button.trancy-html5-button.trancy-floating {
-  background: var(--cheng-menu-bg);
-  border: 1px solid var(--cheng-border);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 .trancy-panel-menu .trancy-second-panel-menu-container,
 .trancy-panel-menu .second-panel-menu-header {
@@ -15291,6 +15296,83 @@ trancy-app
 }
 .trancy-panel-menu .trancy-menuitem-label-info-tooltip {
   background: var(--cheng-surface);
+}
+
+/* The legacy menu contains high-specificity white-on-dark rules. Scope these
+ * semantic overrides to our toolbar so every nested view uses the same palette. */
+#xt-toggle-button .trancy-panel-menu,
+#xt-toggle-button .trancy-second-panel-menu-container,
+#xt-toggle-button .second-panel-menu-header,
+#xt-toggle-button .trancy-menuitem-label-info-tooltip {
+  background: var(--cheng-surface);
+  border-color: var(--cheng-border);
+  color: var(--cheng-ink);
+}
+#xt-toggle-button :is(
+  .trancy-menuitem-label, .trancy-action-label, .trancy-menuitem-shrotcut,
+  .tc-shortcuts, .trancy-caption-keycap, .btn-back-panel-header span,
+  .btn-back-panel-action > span:not(.MuiSwitch-root),
+  .trancy-menuitem-label-info-tooltip, .lexihalo-download-format-title
+) {
+  color: var(--cheng-ink);
+}
+#xt-toggle-button :is(
+  .trancy-menuitem-desc, .lexihalo-download-format-meta,
+  .lexihalo-download-progress-value, .lexihalo-download-status .trancy-menuitem-label,
+  .lexihalo-media-note
+) {
+  color: var(--cheng-video-muted);
+}
+#xt-toggle-button :is(
+  .trancy-menuitem-icon svg, .trancy-menuitem-action svg,
+  .trancy-panel-close-icon svg, .trancy-menuitem-label-info svg,
+  .btn-back-panel-action svg
+) {
+  fill: var(--cheng-video-muted);
+}
+#xt-toggle-button :is(.trancy-caption-keycap, .tc-shortcuts) {
+  background: var(--cheng-surface-soft);
+  border: 1px solid var(--cheng-border);
+}
+#xt-toggle-button :is(.trancy-menuitem-group, .caption-force-ai-translation) {
+  border-color: var(--cheng-border);
+}
+#xt-toggle-button :is(.trancy-menuitem-dashboard, .trancy-menuitem-focus),
+#xt-toggle-button :is(.trancy-menuitem-dashboard, .trancy-menuitem-focus):hover {
+  background: var(--cheng-surface-soft) !important;
+  border-color: var(--cheng-border);
+}
+#xt-toggle-button .lexihalo-download-status.done .trancy-menuitem-label {
+  color: var(--cheng-accent);
+}
+#xt-toggle-button .lexihalo-download-status.error .trancy-menuitem-label {
+  color: var(--cheng-danger);
+}
+#xt-toggle-button .lexihalo-download-progress-track {
+  background: var(--cheng-surface-soft);
+}
+#xt-toggle-button .lexihalo-download-progress-track > span {
+  background: var(--cheng-accent);
+}
+#xt-toggle-button .trancy-button-logo {
+  color: var(--cheng-accent);
+  background: var(--cheng-surface);
+}
+#xt-toggle-button .MuiSwitch-track {
+  background-color: var(--cheng-video-muted) !important;
+}
+#xt-toggle-button .Mui-checked {
+  color: var(--cheng-accent) !important;
+}
+#xt-toggle-button .Mui-checked + .MuiSwitch-track {
+  background-color: var(--cheng-accent) !important;
+}
+#xt-toggle-button .Mui-checked:hover {
+  background-color: var(--cheng-focus) !important;
+}
+#xt-toggle-button:has([data-lexihalo-menu-open="true"]) {
+  opacity: 1;
+  pointer-events: auto !important;
 }
 
 /* Generated from config/themes.json — previews and live UI share these tokens. */
@@ -15336,6 +15418,7 @@ trancy-app
   --border-06: rgba(38, 61, 53, 0.06);
   --border-05: rgba(38, 61, 53, 0.05);
   --border-04: rgba(38, 61, 53, 0.04);
+  --cheng-video-muted: rgba(38, 61, 53, 0.8);
   --bg-0: #fffefb;
   --bg-1: #fffefb;
   --bgf: #f0f3e9;
@@ -15400,6 +15483,7 @@ trancy-app
   --border-06: rgba(38, 61, 53, 0.06);
   --border-05: rgba(38, 61, 53, 0.05);
   --border-04: rgba(38, 61, 53, 0.04);
+  --cheng-video-muted: rgba(38, 61, 53, 0.8);
   --bg-0: #fffefb;
   --bg-1: #fffefb;
   --bgf: #f0f3e9;
@@ -15464,6 +15548,7 @@ trancy-app
   --border-06: rgba(232, 240, 235, 0.06);
   --border-05: rgba(232, 240, 235, 0.05);
   --border-04: rgba(232, 240, 235, 0.04);
+  --cheng-video-muted: rgba(232, 240, 235, 0.8);
   --bg-0: #1e2e26;
   --bg-1: #1e2e26;
   --bgf: #293c32;
@@ -15528,6 +15613,7 @@ trancy-app
   --border-06: rgba(70, 59, 40, 0.06);
   --border-05: rgba(70, 59, 40, 0.05);
   --border-04: rgba(70, 59, 40, 0.04);
+  --cheng-video-muted: rgba(70, 59, 40, 0.8);
   --bg-0: #fff2d5;
   --bg-1: #fff2d5;
   --bgf: #e4d6b4;
@@ -15592,6 +15678,7 @@ trancy-app
   --border-06: rgba(232, 240, 232, 0.06);
   --border-05: rgba(232, 240, 232, 0.05);
   --border-04: rgba(232, 240, 232, 0.04);
+  --cheng-video-muted: rgba(232, 240, 232, 0.8);
   --bg-0: #1a231e;
   --bg-1: #1a231e;
   --bgf: #23362a;
@@ -15656,6 +15743,7 @@ trancy-app
   --border-06: rgba(233, 240, 251, 0.06);
   --border-05: rgba(233, 240, 251, 0.05);
   --border-04: rgba(233, 240, 251, 0.04);
+  --cheng-video-muted: rgba(233, 240, 251, 0.8);
   --bg-0: #192a43;
   --bg-1: #192a43;
   --bgf: #233d62;
@@ -15720,6 +15808,7 @@ trancy-app
   --border-06: rgba(71, 39, 87, 0.06);
   --border-05: rgba(71, 39, 87, 0.05);
   --border-04: rgba(71, 39, 87, 0.04);
+  --cheng-video-muted: rgba(71, 39, 87, 0.8);
   --bg-0: #f5ddff;
   --bg-1: #f5ddff;
   --bgf: #edc0ff;
@@ -15784,6 +15873,7 @@ trancy-app
   --border-06: rgba(240, 232, 252, 0.06);
   --border-05: rgba(240, 232, 252, 0.05);
   --border-04: rgba(240, 232, 252, 0.04);
+  --cheng-video-muted: rgba(240, 232, 252, 0.8);
   --bg-0: #1b132a;
   --bg-1: #1b132a;
   --bgf: #30213f;
@@ -15849,6 +15939,7 @@ trancy-app
   --border-06: rgba(232, 240, 235, 0.06);
   --border-05: rgba(232, 240, 235, 0.05);
   --border-04: rgba(232, 240, 235, 0.04);
+  --cheng-video-muted: rgba(232, 240, 235, 0.8);
   --bg-0: #1e2e26;
   --bg-1: #1e2e26;
   --bgf: #293c32;

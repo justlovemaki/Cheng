@@ -251,10 +251,10 @@ try {
         label: label.color,
       };
     });
-  assert.equal(videoVisual.background, "rgba(255, 254, 251, 0.97)");
+  assert.equal(videoVisual.background, "rgb(255, 254, 251)");
   assert.equal(videoVisual.radius, "10px");
   assert.equal(videoVisual.border, "rgb(220, 227, 217)");
-  assert.equal(videoVisual.label, "rgba(38, 61, 53, 0.9)");
+  assert.equal(videoVisual.label, "rgb(38, 61, 53)");
   assert.deepEqual(errors, []);
   console.log(
     "Cheng visual system passed: workspace, side panel, BYOK, site rules, popup, Reader dock/settings and video menu share paper/ink/green/surface tokens.",
